@@ -1,0 +1,30 @@
+# AI Agent / VIBE CODE / Docs
+.agent/
+docs/
+docs_cliente/
+docs_output.txt
+read_docs.py
+
+# Node / JS
+node_modules/
+dist/
+.next/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# OS
+.DS_Store
+Thumbs.db
