@@ -1,0 +1,443 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==========================================
+// CAMADA 1: PREPARAÇÃO (Globais no Public)
+// ==========================================
+
+model Tenant {
+  id   String  @id @default(uuid())
+  name String
+  cnpj String? @unique
+  slug String  @unique
+
+  city                String?
+  state               String?
+  size                String?
+  owner               String?
+  internalResponsible String?
+  status              String  @default("PREPARATION")
+  projectStage        String?
+
+  consultantId String?
+  // Relation to User as Consultant responsible for this Tenant
+  consultant   User?   @relation("TenantConsultant", fields: [consultantId], references: [id])
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  operationalSystem String?
+  accountingSystem  String?
+  observations      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]           @relation("UserTenant")
+  templates TenantTemplate[]
+}
+
+model TenantTemplate {
+  id           String  @id @default(uuid())
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  layer        Int
+  templateName String
+  status       String  @default("PENDING") // PENDING, UPLOADED, ERROR
+  fileUrl      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, templateName])
+}
+
+model User {
+  id    String  @id // Matches Supabase auth.users.id
+  email String  @unique
+  name  String
+  phone String?
+  role  Role    @default(CONSULTANT)
+
+  // Backward compatibility / Active Tenant
+  tenantId String
+  tenant   Tenant @relation("UserTenant", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Tenants managed by this Consultant
+  managedTenants Tenant[] @relation("TenantConsultant")
+
+  status       String    @default("ACTIVE")
+  startDate    DateTime?
+  observations String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+}
+
+enum Role {
+  ADMIN
+  LEADER
+  CONSULTANT
+}
+
+// ==========================================
+// CAMADAS 2 a 5 (Replicados nos schemas dos Tenants)
+// ==========================================
+
+model OperationalFront {
+  id           String  @id @default(uuid())
+  name         String // Fiscal, DP, Contábil
+  status       String  @default("ACTIVE")
+  observations String?
+
+  subdivisions          Subdivision[]
+  clientClassifications ClientFrontClassification[]
+  deliveries            Delivery[]
+  cycleAllocations      EmployeeCycleAllocation[]
+  clientCycleSnapshots  ClientCycleSnapshot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subdivision {
+  id      String           @id @default(uuid())
+  frontId String
+  front   OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+
+  name         String // Fiscal 01, Fiscal 02
+  leaderId     String?
+  leader       Employee? @relation("SubdivisionLeader", fields: [leaderId], references: [id])
+  status       String    @default("ACTIVE")
+  observations String?
+
+  deliveries  Delivery[]
+  cycleAllocations     EmployeeCycleAllocation[]
+  clientCycleSnapshots ClientCycleSnapshot[]
+  clientFrontClassifications ClientFrontClassification[]
+}
+
+model Employee {
+  id          String  @id @default(uuid())
+  name        String
+  email       String?
+  role        String // Analista, assistente, etc.
+  grossSalary Float?
+  status      String  @default("ACTIVE")
+
+  ledSubdivisions Subdivision[]        @relation("SubdivisionLeader")
+
+  cycleAllocations     EmployeeCycleAllocation[]
+  ledCycleAllocations  EmployeeCycleAllocation[] @relation("AllocationLeader")
+
+  ledFronts       ClientFrontClassification[] @relation("FrontLeader")
+  operatedFronts1 ClientFrontClassification[] @relation("FrontOperator1")
+  operatedFronts2 ClientFrontClassification[] @relation("FrontOperator2")
+
+  deliveriesResponsible Delivery[] @relation("DeliveryResponsible")
+  deliveriesLeader      Delivery[] @relation("DeliveryLeader")
+
+  timeReviews TimeReview[]
+
+  observations String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
+
+model Client {
+  id                String  @id @default(uuid())
+  name              String // Razão social
+  tradeName         String? // Nome fantasia
+  cnpj              String? @unique
+  city              String?
+  state             String?
+  taxRegime         String?
+  segment           String?
+  revenueBracket    String?
+  hasEconomicGroup  Boolean @default(false)
+  economicGroupName String?
+
+  // Contato
+  email       String?
+  phone       String?
+  contactName String?
+
+  // Endereço (já tem city, state)
+  address      String?
+  neighborhood String?
+  zipCode      String?
+
+  // Fiscais / Legais
+  ie             String?
+  im             String?
+  cnae           String?
+  foundationDate DateTime?
+
+  // Governança
+  certificateExpiration DateTime?
+
+  status         String  @default("ACTIVE")
+  monthlyFee     Float?
+  classification String? // A, B, C
+  observations   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  frontClassifications ClientFrontClassification[]
+  deliveries           Delivery[]
+  cycleSnapshots       ClientCycleSnapshot[]
+}
+
+model ClientFrontClassification {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  frontId String
+  front   OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+
+  subdivisionId String?
+  subdivision   Subdivision? @relation(fields: [subdivisionId], references: [id])
+
+  actsInFront String // YES, NO, NO_MOVEMENT
+
+  leaderId String?
+  leader   Employee? @relation("FrontLeader", fields: [leaderId], references: [id])
+
+  operator1Id String?
+  operator1   Employee? @relation("FrontOperator1", fields: [operator1Id], references: [id])
+
+  operator2Id String?
+  operator2   Employee? @relation("FrontOperator2", fields: [operator2Id], references: [id])
+
+  frequency   String?
+  complexity  Int? // 0, 1, 2, 3
+  particulars String?
+
+  taxInfo        ClientTaxInfo?
+  hrInfo         ClientHrInfo?
+  accountingInfo ClientAccountingInfo?
+
+  @@unique([clientId, frontId])
+}
+
+model ClientTaxInfo {
+  id               String                    @id @default(uuid())
+  classificationId String                    @unique
+  classification   ClientFrontClassification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+
+  monthlyNotesVolume       String?
+  outNotesVolume           String?
+  inNotesVolume            String?
+  automationLevel          String? // Manual, parcial, automatizada
+  hasSpecialRegime         Boolean @default(false)
+  specialRegimeDescription String?
+
+  inNfeMethods  String?
+  outNfeMethods String?
+  nfseMethods   String?
+
+  sendingChannels String?
+  fiscalSystem    String?
+  notesPlatform   String?
+  meetsDeadlines  String?
+  particulars     String?
+}
+
+model ClientHrInfo {
+  id               String                    @id @default(uuid())
+  classificationId String                    @unique
+  classification   ClientFrontClassification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+
+  employeesCount Int?
+  prolaboreCount Int?
+  domesticsCount Int?
+
+  pointReceiptMethod    String?
+  variablesLaunchMethod String?
+  processingType        String?
+  sheetSendingMethod    String?
+  frequentAdmissions    Boolean @default(false)
+  particulars           String?
+}
+
+model ClientAccountingInfo {
+  id               String                    @id @default(uuid())
+  classificationId String                    @unique
+  classification   ClientFrontClassification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+
+  bookkeepingRegime    String?
+  lastClosingMonth     String? // MM/YYYY
+  closingPeriod        String? // Mensal, trimestral...
+  infoReceiptFrequency String?
+  infoReceiptMethod    String?
+  integrationLevel     String?
+  trialBalanceNeed     String?
+  launchesVolume       String?
+  particulars          String?
+}
+
+model Delivery {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  frontId String
+  front   OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+
+  subdivisionId String?
+  subdivision   Subdivision? @relation(fields: [subdivisionId], references: [id])
+
+  competence String // MM/YYYY
+
+  originalName     String
+  standardizedName String
+
+  deliveryClass String? // ARP, ARNP...
+  deliveryGroup String? // Imposto, Folha...
+  deliveryType  String? // ICMS, DAS...
+  periodicity   String? // Mensal, Anual...
+
+  responsibleId String
+  responsible   Employee @relation("DeliveryResponsible", fields: [responsibleId], references: [id])
+
+  leaderId String?
+  leader   Employee? @relation("DeliveryLeader", fields: [leaderId], references: [id])
+
+  status String @default("PREVISTA")
+
+  legalDeadline     DateTime?
+  internalDeadline  DateTime?
+  executionDeadline DateTime?
+
+  observations String?
+
+  timeReviews TimeReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimeReview {
+  id         String   @id @default(uuid())
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  responsibleId String?
+  responsible   Employee? @relation(fields: [responsibleId], references: [id])
+
+  currentEstimatedTime Int? // in minutes
+  newEstimatedTime     Int?
+
+  validFrom  DateTime?
+  changeType String? // Initial, revision...
+  reason     String?
+  context    String?
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  isRead    Boolean  @default(false)
+  link      String? // Optional link to redirect user when clicked
+  createdAt DateTime @default(now())
+}
+
+model NotificationPreference {
+  id          String  @id @default(uuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inAppAlerts Boolean @default(true)
+  emailAlerts Boolean @default(true)
+  dailyDigest Boolean @default(false)
+}
+
+model ManagementCycle {
+  id String @id @default(uuid())
+
+  month  Int
+  year   Int
+  status String @default("OPEN") // OPEN, CLOSED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientSnapshots    ClientCycleSnapshot[]
+  employeeAllocations EmployeeCycleAllocation[]
+
+  @@unique([month, year])
+}
+
+model ClientCycleSnapshot {
+  id      String          @id @default(uuid())
+  cycleId String
+  cycle   ManagementCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  frontId String
+  front   OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+
+  subdivisionId String?
+  subdivision   Subdivision? @relation(fields: [subdivisionId], references: [id])
+
+  taxRegime      String?
+  segment        String?
+  monthlyFee     Float?
+  classification String?
+  complexity     Int? // 0, 1, 2, 3
+  frequency      String?
+  particulars    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cycleId, clientId, frontId])
+}
+
+model EmployeeCycleAllocation {
+  id         String          @id @default(uuid())
+  cycleId    String
+  cycle      ManagementCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  employeeId String
+  employee   Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  frontId    String
+  front      OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+
+  subdivisionId String?
+  subdivision   Subdivision? @relation(fields: [subdivisionId], references: [id])
+
+  leaderId String?
+  leader   Employee? @relation("AllocationLeader", fields: [leaderId], references: [id])
+
+  dailyAvailableTime Float? // in hours
+  status             String    @default("ACTIVE")
+  observations       String?
+
+  @@unique([cycleId, employeeId, frontId])
+}
