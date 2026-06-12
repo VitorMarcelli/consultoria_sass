@@ -62,6 +62,22 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading }:
             </div>
           )}
 
+          <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 mb-4 border border-slate-200">
+            <p className="font-medium text-slate-800 mb-2">Instruções para o arquivo:</p>
+            <ul className="list-disc pl-5 space-y-1 mb-3">
+              <li>O arquivo deve estar no formato <strong>.CSV</strong></li>
+              <li>As colunas esperadas são: <code className="bg-slate-200 px-1 rounded">Razão Social</code>, <code className="bg-slate-200 px-1 rounded">CNPJ</code>, <code className="bg-slate-200 px-1 rounded">Fiscal</code>, <code className="bg-slate-200 px-1 rounded">Contábil</code>, <code className="bg-slate-200 px-1 rounded">DP</code></li>
+              <li>Para as colunas das frentes (Fiscal, Contábil, DP), digite <strong>SIM</strong> ou <strong>NÃO</strong>.</li>
+            </ul>
+            <a 
+              href="data:text/csv;charset=utf-8,Razão Social,CNPJ,Fiscal,Contábil,DP%0AExemplo LTDA,00.000.000/0001-00,SIM,SIM,NÃO" 
+              download="modelo_importacao_clientes.csv"
+              className="text-teal-600 font-medium hover:underline text-sm inline-flex items-center gap-1"
+            >
+              Baixar modelo .CSV de exemplo
+            </a>
+          </div>
+
           <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
             <input 
               type="file" 

@@ -90,6 +90,87 @@ export class ClientsService {
     return newClient;
   }
 
+  async bulkImport(tenantId: string, clientsData: any[]) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    
+    // Fetch all fronts to map them
+    const allFronts = await tenantPrisma.operationalFront.findMany();
+    const getFrontId = (keyword: string) => allFronts.find(f => f.name.toLowerCase().includes(keyword.toLowerCase()))?.id;
+
+    const fiscalFrontId = getFrontId('fiscal');
+    const contabilFrontId = getFrontId('contábil') || getFrontId('contabil');
+    const dpFrontId = getFrontId('dp') || getFrontId('departamento') || getFrontId('pessoal');
+
+    let importedCount = 0;
+
+    for (const data of clientsData) {
+      if (!data.name) continue;
+
+      let clientId = null;
+      if (data.cnpj) {
+        const existing = await tenantPrisma.client.findUnique({ where: { cnpj: data.cnpj } });
+        clientId = existing?.id;
+      }
+      
+      if (!clientId) {
+        // Create new client
+        const newClient = await tenantPrisma.client.create({
+          data: {
+            name: data.name,
+            cnpj: data.cnpj || null,
+            status: 'ACTIVE',
+          }
+        });
+        clientId = newClient.id;
+      } else {
+        // Update existing client name
+        await tenantPrisma.client.update({
+          where: { id: clientId },
+          data: { name: data.name }
+        });
+      }
+
+      // Assign to fronts
+      const assignFront = async (frontId: string | undefined, shouldAssign: boolean) => {
+        if (!frontId) return;
+        
+        const existingAssignment = await tenantPrisma.clientFrontClassification.findUnique({
+          where: {
+            clientId_frontId: {
+              clientId,
+              frontId,
+            }
+          }
+        });
+
+        if (shouldAssign) {
+          if (!existingAssignment) {
+            await tenantPrisma.clientFrontClassification.create({
+              data: {
+                clientId,
+                frontId,
+                actsInFront: 'YES'
+              }
+            });
+          } else if (existingAssignment.actsInFront !== 'YES') {
+             await tenantPrisma.clientFrontClassification.update({
+               where: { id: existingAssignment.id },
+               data: { actsInFront: 'YES' }
+             });
+          }
+        }
+      };
+
+      await assignFront(fiscalFrontId, data.fiscal);
+      await assignFront(contabilFrontId, data.contabil);
+      await assignFront(dpFrontId, data.dp);
+
+      importedCount++;
+    }
+
+    return { success: true, imported: importedCount };
+  }
+
   async findAll(tenantId: string) {
     const tenantPrisma = await this.getTenantPrisma(tenantId);
     return tenantPrisma.client.findMany({

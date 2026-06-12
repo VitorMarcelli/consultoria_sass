@@ -102,10 +102,37 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         throw new Error('Arquivo vazio ou sem registros válidos');
       }
       
-      await new Promise(r => setTimeout(r, 1500));
+      // Pular a primeira linha (cabeçalho)
+      const dataLines = lines.slice(1);
       
-      alert(`Simulação: Importação de ${lines.length - 1} registros concluída.`);
+      const clientsPayload = dataLines.map(line => {
+        // Dividir por vírgula, tratando possíveis aspas caso existam no futuro (simplificado aqui)
+        const columns = line.split(',');
+        
+        const name = columns[0]?.trim() || '';
+        const cnpj = columns[1]?.trim() || '';
+        const fiscal = columns[2]?.trim().toUpperCase() === 'SIM';
+        const contabil = columns[3]?.trim().toUpperCase() === 'SIM';
+        const dp = columns[4]?.trim().toUpperCase() === 'SIM';
+        
+        return { name, cnpj, fiscal, contabil, dp };
+      }).filter(c => c.name); // Filtrar linhas inválidas sem nome
+
+      if (clientsPayload.length === 0) {
+        throw new Error('Nenhum cliente válido encontrado no arquivo.');
+      }
+
+      const response = await apiRequest('/clients/bulk', {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId: id,
+          clients: clientsPayload
+        })
+      });
+      
+      alert(`Importação concluída: ${response.imported || 0} registros processados.`);
       setIsImportModalOpen(false);
+      await loadClients();
     } catch (err: any) {
       throw new Error(err.message || 'Falha ao ler arquivo');
     } finally {
