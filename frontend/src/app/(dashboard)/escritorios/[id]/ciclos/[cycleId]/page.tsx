@@ -184,7 +184,7 @@ export default function CycleOverviewPage({
                     ))}
                   </Pie>
                   <RechartsTooltip 
-                    formatter={(value: number) => [`${value} clientes`, 'Quantidade']}
+                    formatter={(value: any) => [`${value} clientes`, 'Quantidade']}
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" />
@@ -210,7 +210,7 @@ export default function CycleOverviewPage({
                   <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
                   <RechartsTooltip 
                     cursor={{ fill: '#f8fafc' }}
-                    formatter={(value: number) => [`${value} clientes`, 'Quantidade']}
+                    formatter={(value: any) => [`${value} clientes`, 'Quantidade']}
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
                   <Bar dataKey="value" fill="#0d9488" radius={[6, 6, 0, 0]} maxBarSize={50} />
@@ -236,7 +236,7 @@ export default function CycleOverviewPage({
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={80} />
                   <RechartsTooltip 
                     cursor={{ fill: '#f8fafc' }}
-                    formatter={(value: number) => [`${value} clientes`, 'Quantidade']}
+                    formatter={(value: any) => [`${value} clientes`, 'Quantidade']}
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
                   <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} maxBarSize={30}>
