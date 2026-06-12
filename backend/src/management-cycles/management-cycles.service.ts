@@ -89,7 +89,7 @@ export class ManagementCyclesService {
       include: { client: true }
     });
 
-    return snapshots.map(snap => ({
+    return snapshots.map((snap: any) => ({
       ...snap.client,
       snapshotId: snap.id,
       taxRegime: snap.taxRegime,
@@ -116,7 +116,7 @@ export class ManagementCyclesService {
       include: { employee: true }
     });
 
-    return allocations.map(alloc => ({
+    return allocations.map((alloc: any) => ({
       id: alloc.id,
       employeeId: alloc.employeeId,
       frontId: alloc.frontId,
@@ -172,7 +172,7 @@ export class ManagementCyclesService {
       }
     }
 
-    const distributionByTaxRegime = snapshots.reduce((acc, curr) => {
+    const distributionByTaxRegime = snapshots.reduce((acc: any, curr: any) => {
       // Only count each client once for distribution
       if (curr.taxRegime) {
          // This is a naive count, if client is multiple times, it will be counted multiple times
