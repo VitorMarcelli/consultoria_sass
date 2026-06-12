@@ -12,6 +12,11 @@ export class ClientsController {
     return this.clientsService.create(createClientDto.tenantId, createClientDto, createClientDto.cycleId, createClientDto.frontId, createClientDto.subdivisionId);
   }
 
+  @Post('bulk')
+  bulkImport(@Body() bulkDto: any) {
+    return this.clientsService.bulkImport(bulkDto.tenantId, bulkDto.clients);
+  }
+
   @Get()
   findAll(@Query('tenantId') tenantId: string) {
     return this.clientsService.findAll(tenantId);
