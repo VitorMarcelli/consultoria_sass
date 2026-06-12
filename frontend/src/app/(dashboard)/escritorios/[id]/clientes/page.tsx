@@ -106,8 +106,8 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
       const dataLines = lines.slice(1);
       
       const clientsPayload = dataLines.map(line => {
-        // Dividir por vírgula, tratando possíveis aspas caso existam no futuro (simplificado aqui)
-        const columns = line.split(',');
+        // Dividir por ponto-e-vírgula ou vírgula
+        const columns = line.split(/[;,]/);
         
         const name = columns[0]?.trim() || '';
         const cnpj = columns[1]?.trim() || '';
