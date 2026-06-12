@@ -148,40 +148,142 @@ export class ClientsService {
         });
       }
 
+      // Fetch employees for name resolution (memoized per bulk run)
+      const allEmployees = await tenantPrisma.employee.findMany();
+      const getEmployeeId = (name: string | undefined | null) => {
+        if (!name) return null;
+        return allEmployees.find(e => e.name.toLowerCase().trim() === name.toLowerCase().trim())?.id || null;
+      };
+
       // Assign to fronts
-      const assignFront = async (frontId: string | undefined, shouldAssign: boolean) => {
+      const assignFront = async (
+        frontId: string | undefined, 
+        shouldAssign: boolean,
+        frontType: 'fiscal' | 'dp' | 'contabil',
+        classificationData: any,
+        infoData: any
+      ) => {
         if (!frontId) return;
         
         const existingAssignment = await tenantPrisma.clientFrontClassification.findUnique({
-          where: {
-            clientId_frontId: {
-              clientId,
-              frontId,
-            }
-          }
+          where: { clientId_frontId: { clientId, frontId } }
         });
+
+        const leaderId = getEmployeeId(classificationData.leaderName);
+        const operator1Id = getEmployeeId(classificationData.op1Name);
+        const operator2Id = getEmployeeId(classificationData.op2Name);
+
+        const classificationPayload = {
+          leaderId,
+          operator1Id,
+          operator2Id,
+          frequency: classificationData.frequency || null,
+          complexity: classificationData.complexity !== undefined ? Number(classificationData.complexity) : null,
+          particulars: classificationData.particulars || null,
+        };
+
+        let classificationId: string;
 
         if (shouldAssign) {
           if (!existingAssignment) {
-            await tenantPrisma.clientFrontClassification.create({
+            const newAssign = await tenantPrisma.clientFrontClassification.create({
               data: {
                 clientId,
                 frontId,
-                actsInFront: 'YES'
+                actsInFront: 'YES',
+                ...classificationPayload
               }
             });
-          } else if (existingAssignment.actsInFront !== 'YES') {
-             await tenantPrisma.clientFrontClassification.update({
+            classificationId = newAssign.id;
+          } else {
+             const updatedAssign = await tenantPrisma.clientFrontClassification.update({
                where: { id: existingAssignment.id },
-               data: { actsInFront: 'YES' }
+               data: { actsInFront: 'YES', ...classificationPayload }
+             });
+             classificationId = updatedAssign.id;
+          }
+
+          // Create or update specific info
+          if (frontType === 'fiscal') {
+             await tenantPrisma.clientTaxInfo.upsert({
+               where: { classificationId },
+               create: { classificationId, ...infoData },
+               update: infoData
+             });
+          } else if (frontType === 'dp') {
+             await tenantPrisma.clientHrInfo.upsert({
+               where: { classificationId },
+               create: { classificationId, ...infoData },
+               update: infoData
+             });
+          } else if (frontType === 'contabil') {
+             await tenantPrisma.clientAccountingInfo.upsert({
+               where: { classificationId },
+               create: { classificationId, ...infoData },
+               update: infoData
              });
           }
         }
       };
 
-      await assignFront(fiscalFrontId, data.fiscal);
-      await assignFront(contabilFrontId, data.contabil);
-      await assignFront(dpFrontId, data.dp);
+      await assignFront(fiscalFrontId, data.fiscal, 'fiscal', {
+        leaderName: data.fiscalLeaderName,
+        op1Name: data.fiscalOp1Name,
+        op2Name: data.fiscalOp2Name,
+        frequency: data.fiscalFrequency,
+        complexity: data.fiscalComplexity,
+        particulars: data.fiscalParticulars
+      }, {
+        monthlyNotesVolume: data.fiscalNotesVolume || null,
+        outNotesVolume: data.fiscalOutNotesVolume || null,
+        inNotesVolume: data.fiscalInNotesVolume || null,
+        automationLevel: data.fiscalAutomationLevel || null,
+        hasSpecialRegime: data.fiscalHasSpecialRegime || false,
+        specialRegimeDescription: data.fiscalSpecialRegimeDesc || null,
+        inNfeMethods: data.fiscalInNfe || null,
+        outNfeMethods: data.fiscalOutNfe || null,
+        nfseMethods: data.fiscalNfse || null,
+        sendingChannels: data.fiscalSendingChannels || null,
+        fiscalSystem: data.fiscalSystem || null,
+        notesPlatform: data.fiscalNotesPlatform || null,
+        meetsDeadlines: data.fiscalMeetsDeadlines || null,
+      });
+
+      await assignFront(dpFrontId, data.dp, 'dp', {
+        leaderName: data.dpLeaderName,
+        op1Name: data.dpOp1Name,
+        op2Name: data.dpOp2Name,
+        frequency: data.dpFrequency,
+        complexity: data.dpComplexity,
+        particulars: data.dpParticulars
+      }, {
+        employeesCount: data.dpEmployeesCount !== undefined ? Number(data.dpEmployeesCount) : null,
+        prolaboreCount: data.dpProlaboreCount !== undefined ? Number(data.dpProlaboreCount) : null,
+        domesticsCount: data.dpDomesticsCount !== undefined ? Number(data.dpDomesticsCount) : null,
+        pointReceiptMethod: data.dpPointReceipt || null,
+        variablesLaunchMethod: data.dpVariablesLaunch || null,
+        processingType: data.dpProcessingType || null,
+        sheetSendingMethod: data.dpSheetSending || null,
+        frequentAdmissions: data.dpFrequentAdmissions || false,
+      });
+
+      await assignFront(contabilFrontId, data.contabil, 'contabil', {
+        leaderName: data.contabilLeaderName,
+        op1Name: data.contabilOp1Name,
+        op2Name: data.contabilOp2Name,
+        frequency: data.contabilFrequency,
+        complexity: data.contabilComplexity,
+        particulars: data.contabilParticulars
+      }, {
+        bookkeepingRegime: data.contabilBookkeepingRegime || null,
+        lastClosingMonth: data.contabilLastClosing || null,
+        closingPeriod: data.contabilClosingPeriod || null,
+        infoReceiptFrequency: data.contabilInfoReceiptFreq || null,
+        infoReceiptMethod: data.contabilInfoReceiptMethod || null,
+        integrationLevel: data.contabilIntegrationLevel || null,
+        trialBalanceNeed: data.contabilTrialBalanceNeed || null,
+        launchesVolume: data.contabilLaunchesVolume || null,
+      });
 
       importedCount++;
     }

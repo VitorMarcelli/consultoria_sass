@@ -66,15 +66,16 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading }:
             <p className="font-medium text-slate-800 mb-2">Instruções para o arquivo:</p>
             <ul className="list-disc pl-5 space-y-1 mb-3">
               <li>O arquivo deve estar no formato <strong>.CSV</strong></li>
-              <li>A planilha agora aceita <strong>22 colunas</strong> (incluindo todos os dados cadastrais).</li>
-              <li>Para as colunas das frentes (Fiscal, Contábil, DP), digite <strong>SIM</strong> ou <strong>NÃO</strong>.</li>
+              <li>A planilha agora aceita <strong>64 colunas</strong> (incluindo todos os dados das frentes).</li>
+              <li>Para as colunas com perguntas fechadas, digite <strong>SIM</strong> ou <strong>NÃO</strong>.</li>
+              <li>Para líderes e operadores, informe o nome exato. Se não for encontrado, ficará em branco.</li>
             </ul>
             <a 
-              href="data:text/csv;charset=utf-8,%EF%BB%BFRazão Social;Nome Fantasia;CNPJ;Email;Telefone;Nome do Contato;CEP;Endereço;Bairro;Cidade;Estado;Regime Tributário;Segmento;Faixa de Faturamento;Possui Grupo Econômico;Nome do Grupo;Honorários;Classificação;Status;Fiscal;Contábil;DP%0AExemplo LTDA;Exemplo;00.000.000/0001-00;contato@exemplo.com;11999999999;João;00000-000;Rua A;Centro;São Paulo;SP;Simples Nacional;Tecnologia;Até 100k;NÃO;;1500;A;Ativo;SIM;SIM;NÃO" 
-              download="modelo_importacao_clientes.csv"
+              href="data:text/csv;charset=utf-8,%EF%BB%BFRazão Social;Nome Fantasia;CNPJ;Município;Estado;Regime Tributário;Segmento;Faixa de Faturamento;Pertence a grupo empresarial?;Nome do grupo empresarial;Honorários;Classificação;Status;Possui Frente Fiscal?;Possui Frente Contábil?;Possui Frente DP?;Observações cadastrais;Fiscal - Líder responsável;Fiscal - Operador 1;Fiscal - Operador 2;Fiscal - Frequência de atendimento;Fiscal - Complexidade;Fiscal - Volume de notas/mês;Fiscal - Volume de notas de saída;Fiscal - Volume de notas de entrada;Fiscal - Nível de automação;Fiscal - Possui regime especial?;Fiscal - Descrição do regime especial;Fiscal - NF-e de entrada;Fiscal - NF-e de saída;Fiscal - NFS-e;Fiscal - Envio ao cliente;Fiscal - Sistema fiscal;Fiscal - Plataforma de gestão de notas;Fiscal - Cumpre prazos de envio?;Fiscal - Particularidades fiscais;DP - Líder responsável;DP - Operador 1;DP - Operador 2;DP - Frequência de atendimento;DP - Complexidade;DP - Quantidade de funcionários;DP - Quantidade de pró-labores;DP - Quantidade de domésticas;DP - Recebimento de ponto;DP - Meio de lançamento;DP - Tipo de processamento;DP - Envio folha ao cliente;DP - Admissões e rescisões frequentes;DP - Particularidades de DP;Contábil - Líder responsável;Contábil - Operador 1;Contábil - Operador 2;Contábil - Frequência de atendimento;Contábil - Complexidade;Contábil - Regime de escrituração;Contábil - Último mês de fechamento;Contábil - Período de fechamento;Contábil - Frequência de recebimento;Contábil - Forma de recebimento;Contábil - Integração com cliente;Contábil - Necessidade de apresentação de balancete;Contábil - Total de lançamentos;Contábil - Particularidades contábeis%0AExemplo LTDA;Exemplo;00.000.000/0001-00;São Paulo;SP;Simples Nacional;Tecnologia;Até 100k;NÃO;;1500;A;Ativo;SIM;SIM;NÃO;Cliente VIP;Vitor;João;Maria;Diário;1;Alto;Médio;Baixo;Automatizado;NÃO;;Email;Sistema;Portal;Email;Dominio;Sieg;SIM;Nenhuma;;;;;;;;;;;;;;;;;;;;;;;;;;;;" 
+              download="modelo_importacao_clientes_completo.csv"
               className="text-teal-600 font-medium hover:underline text-sm inline-flex items-center gap-1"
             >
-              Baixar modelo .CSV completo
+              Baixar modelo .CSV completo (64 colunas)
             </a>
           </div>
 
