@@ -66,15 +66,15 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading }:
             <p className="font-medium text-slate-800 mb-2">Instruções para o arquivo:</p>
             <ul className="list-disc pl-5 space-y-1 mb-3">
               <li>O arquivo deve estar no formato <strong>.CSV</strong></li>
-              <li>As colunas esperadas são: <code className="bg-slate-200 px-1 rounded">Razão Social</code>, <code className="bg-slate-200 px-1 rounded">CNPJ</code>, <code className="bg-slate-200 px-1 rounded">Fiscal</code>, <code className="bg-slate-200 px-1 rounded">Contábil</code>, <code className="bg-slate-200 px-1 rounded">DP</code></li>
+              <li>A planilha agora aceita <strong>22 colunas</strong> (incluindo todos os dados cadastrais).</li>
               <li>Para as colunas das frentes (Fiscal, Contábil, DP), digite <strong>SIM</strong> ou <strong>NÃO</strong>.</li>
             </ul>
             <a 
-              href="data:text/csv;charset=utf-8,%EF%BB%BFRazão Social;CNPJ;Fiscal;Contábil;DP%0AExemplo LTDA;00.000.000/0001-00;SIM;SIM;NÃO" 
+              href="data:text/csv;charset=utf-8,%EF%BB%BFRazão Social;Nome Fantasia;CNPJ;Email;Telefone;Nome do Contato;CEP;Endereço;Bairro;Cidade;Estado;Regime Tributário;Segmento;Faixa de Faturamento;Possui Grupo Econômico;Nome do Grupo;Honorários;Classificação;Status;Fiscal;Contábil;DP%0AExemplo LTDA;Exemplo;00.000.000/0001-00;contato@exemplo.com;11999999999;João;00000-000;Rua A;Centro;São Paulo;SP;Simples Nacional;Tecnologia;Até 100k;NÃO;;1500;A;Ativo;SIM;SIM;NÃO" 
               download="modelo_importacao_clientes.csv"
               className="text-teal-600 font-medium hover:underline text-sm inline-flex items-center gap-1"
             >
-              Baixar modelo .CSV de exemplo
+              Baixar modelo .CSV completo
             </a>
           </div>
 
