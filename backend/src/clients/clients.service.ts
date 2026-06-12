@@ -48,6 +48,15 @@ export class ClientsService {
         cnae: data.cnae || null,
         foundationDate: data.foundationDate ? new Date(data.foundationDate) : null,
         certificateExpiration: data.certificateExpiration ? new Date(data.certificateExpiration) : null,
+        tradeName: data.tradeName || null,
+        taxRegime: data.taxRegime || null,
+        segment: data.segment || null,
+        revenueBracket: data.revenueBracket || null,
+        hasEconomicGroup: data.hasEconomicGroup || false,
+        economicGroupName: data.economicGroupName || null,
+        monthlyFee: data.monthlyFee ? Number(data.monthlyFee) : null,
+        classification: data.classification || null,
+        observations: data.observations || null,
       },
     });
 
@@ -131,6 +140,9 @@ export class ClientsService {
     }
     if (data.certificateExpiration) {
       updateData.certificateExpiration = new Date(data.certificateExpiration);
+    }
+    if (data.monthlyFee !== undefined) {
+      updateData.monthlyFee = data.monthlyFee ? Number(data.monthlyFee) : null;
     }
 
     return tenantPrisma.client.update({

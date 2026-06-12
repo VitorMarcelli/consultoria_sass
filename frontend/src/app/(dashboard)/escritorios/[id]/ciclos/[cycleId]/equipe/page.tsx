@@ -5,6 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { Search, Loader2, Users, Plus, Trash2, Edit2 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import AllocateEmployeeModal from './AllocateEmployeeModal';
+import EmployeeCycleModal from './EmployeeCycleModal';
+import Team360SlideOver from '@/components/Team360SlideOver';
 
 const tableVariants = {
   hidden: { opacity: 0 },
@@ -29,6 +32,11 @@ export default function CycleTeamPage({
   const [team, setTeam] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false); // Allocate existing
+  const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = useState(false); // Create new
+  
+  const [selectedTeamMemberFor360, setSelectedTeamMemberFor360] = useState<any>(null);
+  const [is360Open, setIs360Open] = useState(false);
 
   const loadTeam = async () => {
     setIsLoading(true);
@@ -50,9 +58,15 @@ export default function CycleTeamPage({
     loadTeam();
   }, [id, cycleId, frontId, subdivisionId]);
 
-  const filteredTeam = team.filter(member => 
-    member.employee?.name?.toLowerCase().includes(search.toLowerCase()) || 
-    member.employee?.role?.toLowerCase().includes(search.toLowerCase())
+  const uniqueTeam = Array.from(
+    new Map(
+      team
+        .filter(member => 
+          member.employee?.name?.toLowerCase().includes(search.toLowerCase()) || 
+          member.employee?.role?.toLowerCase().includes(search.toLowerCase())
+        )
+        .map(member => [member.employeeId, member])
+    ).values()
   );
 
   return (
@@ -70,11 +84,18 @@ export default function CycleTeamPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button 
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Users className="w-4 h-4" />
+            Alocar da Base
+          </button>
+          <button 
             className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
-            onClick={() => alert('Em desenvolvimento: Modal de Alocação de Equipe')}
+            onClick={() => setIsNewEmployeeModalOpen(true)}
           >
             <Plus className="w-4 h-4" />
-            Alocar Colaborador
+            Novo Colaborador
           </button>
         </div>
       </motion.div>
@@ -96,7 +117,7 @@ export default function CycleTeamPage({
             />
           </div>
           <div className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
-            Total na equipe: <span className="text-slate-900">{filteredTeam.length}</span>
+            Total na equipe: <span className="text-slate-900">{uniqueTeam.length}</span>
           </div>
         </div>
         
@@ -119,7 +140,7 @@ export default function CycleTeamPage({
                   </td>
                 </tr>
               </tbody>
-            ) : filteredTeam.length === 0 ? (
+            ) : uniqueTeam.length === 0 ? (
               <tbody>
                 <tr>
                   <td colSpan={4} className="px-6 py-20 text-center text-slate-500">
@@ -139,11 +160,15 @@ export default function CycleTeamPage({
                 className="divide-y divide-slate-100"
               >
                 <AnimatePresence>
-                  {filteredTeam.map((member) => (
+                  {uniqueTeam.map((member) => (
                     <motion.tr 
                       variants={rowVariants}
-                      key={member.id} 
-                      className="bg-white hover:bg-slate-50/80 transition-colors group"
+                      key={member.employeeId} 
+                      className="bg-white hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                      onClick={() => {
+                        setSelectedTeamMemberFor360(member);
+                        setIs360Open(true);
+                      }}
                     >
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-3">
@@ -156,18 +181,12 @@ export default function CycleTeamPage({
                       <td className="px-8 py-5 text-slate-600 font-semibold">{member.employee?.role || '-'}</td>
                       <td className="px-8 py-5 text-slate-600 font-semibold">{member.allocatedHours}h</td>
                       <td className="px-8 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                           <button 
                             className="p-2 text-slate-400 hover:text-teal-600 transition-colors rounded-xl hover:bg-teal-50"
                             title="Editar alocação"
                           >
                             <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50"
-                            title="Remover da célula"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -179,6 +198,31 @@ export default function CycleTeamPage({
           </table>
         </div>
       </motion.div>
+
+      <AllocateEmployeeModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tenantId={id}
+        cycleId={cycleId}
+        onSuccess={loadTeam}
+      />
+
+      <EmployeeCycleModal 
+        isOpen={isNewEmployeeModalOpen}
+        onClose={() => setIsNewEmployeeModalOpen(false)}
+        tenantId={id}
+        cycleId={cycleId}
+        onSuccess={loadTeam}
+      />
+
+      <Team360SlideOver 
+        isOpen={is360Open}
+        onClose={() => setIs360Open(false)}
+        member={selectedTeamMemberFor360}
+        tenantId={id}
+        cycleId={cycleId}
+        onFrontRemoved={loadTeam}
+      />
     </div>
   );
 }

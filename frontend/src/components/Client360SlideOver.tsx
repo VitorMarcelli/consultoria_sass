@@ -1,22 +1,160 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiRequest } from '@/utils/api';
 import { 
   X, Building2, MapPin, Phone, Mail, 
   Calendar, FileText, CheckCircle2, AlertCircle, 
   Clock, DollarSign, PieChart, Users, TrendingUp, CreditCard,
-  Briefcase, Activity, Sparkles, ChevronRight
+  Briefcase, Activity, Sparkles, ChevronRight, Trash2, Plus, Loader2, Settings
 } from 'lucide-react';
+import FrontClassificationForm from './FrontClassificationForm';
 
 interface Client360SlideOverProps {
   isOpen: boolean;
   onClose: () => void;
   client: any;
+  tenantId?: string;
+  cycleId?: string;
+  onFrontRemoved?: () => void;
 }
 
-export default function Client360SlideOver({ isOpen, onClose, client }: Client360SlideOverProps) {
+export default function Client360SlideOver({ isOpen, onClose, client, tenantId, cycleId, onFrontRemoved }: Client360SlideOverProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'deliveries' | 'financial'>('overview');
+  const [clientFronts, setClientFronts] = useState<any[]>([]);
+  const [isLoadingFronts, setIsLoadingFronts] = useState(false);
+  const [availableFronts, setAvailableFronts] = useState<any[]>([]);
+  const [isAllocating, setIsAllocating] = useState(false);
+  
+  // New Allocation State
+  const [isAllocatingFormOpen, setIsAllocatingFormOpen] = useState(false);
+  const [selectedFront, setSelectedFront] = useState('');
+  const [selectedSubdivision, setSelectedSubdivision] = useState('');
+  const [classificationData, setClassificationData] = useState<any>({});
+  
+  const [editingFrontId, setEditingFrontId] = useState<string | null>(null);
+  const [editingClassificationData, setEditingClassificationData] = useState<any>({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && client && tenantId && cycleId) {
+      loadClientFronts();
+    }
+  }, [isOpen, client, tenantId, cycleId]);
+
+  const loadClientFronts = async () => {
+    setIsLoadingFronts(true);
+    try {
+      const [data, frontsData] = await Promise.all([
+        apiRequest(`/management-cycles/${cycleId}/clients?tenantId=${tenantId}&clientId=${client.id}`),
+        apiRequest(`/structures/fronts?tenantId=${tenantId}`)
+      ]);
+      setClientFronts(data || []);
+      setAvailableFronts(frontsData || []);
+    } catch (err) {
+      console.error('Failed to load client fronts:', err);
+    } finally {
+      setIsLoadingFronts(false);
+    }
+  };
+
+  const handleAllocateNewFront = async () => {
+    if (!selectedFront) return;
+    setIsAllocating(true);
+    try {
+      if (Object.keys(classificationData).length > 0) {
+        await apiRequest(`/clients/${client.id}/fronts/${selectedFront}/classification`, {
+          method: 'PUT',
+          body: JSON.stringify({ ...classificationData, tenantId })
+        });
+      }
+
+      await apiRequest(`/management-cycles/${cycleId}/clients`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId,
+          clientId: client.id,
+          frontId: selectedFront,
+          subdivisionId: selectedSubdivision || null
+        })
+      });
+      setSelectedFront('');
+      setSelectedSubdivision('');
+      setClassificationData({});
+      setIsAllocatingFormOpen(false);
+      await loadClientFronts();
+      if (onFrontRemoved) onFrontRemoved();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao alocar cliente na nova frente');
+    } finally {
+      setIsAllocating(false);
+    }
+  };
+
+  const handleEditFrontClick = async (frontId: string) => {
+    setEditingFrontId(frontId);
+    setEditingClassificationData({});
+    try {
+      const data = await apiRequest(`/clients/${client.id}/fronts/${frontId}/classification?tenantId=${tenantId}`);
+      if (data && data.classification) {
+        const mergedData = {
+          ...data.classification,
+          taxInfo: data.taxInfo || {},
+          hrInfo: data.hrInfo || {},
+          accountingInfo: data.accountingInfo || {}
+        };
+        setEditingClassificationData(mergedData);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar classificação:', err);
+    }
+  };
+
+  const handleSaveFrontEdit = async () => {
+    if (!editingFrontId) return;
+    setIsSavingEdit(true);
+    try {
+      await apiRequest(`/clients/${client.id}/fronts/${editingFrontId}/classification`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...editingClassificationData, tenantId })
+      });
+
+      const frontSnap = clientFronts.find((f: any) => f.frontId === editingFrontId);
+      if (frontSnap?.snapshotId) {
+        await apiRequest(`/management-cycles/${cycleId}/clients/${frontSnap.snapshotId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ ...editingClassificationData, tenantId })
+        });
+      }
+
+      setEditingFrontId(null);
+      setEditingClassificationData({});
+      await loadClientFronts();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao salvar alterações');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleRemoveFront = async (snapshotId: string, frontName: string) => {
+    if (!confirm(`Deseja desalocar o cliente da frente ${frontName} neste mês?\nA classificação dele também será desligada globalmente para os próximos meses.`)) {
+      return;
+    }
+    
+    try {
+      await apiRequest(`/management-cycles/${cycleId}/clients/${snapshotId}?tenantId=${tenantId}`, {
+        method: 'DELETE',
+      });
+      // reload this slide over
+      await loadClientFronts();
+      // notify parent to reload the main table
+      if (onFrontRemoved) onFrontRemoved();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao remover cliente do escopo');
+    }
+  };
 
   if (!isOpen || !client) return null;
 
@@ -199,16 +337,27 @@ export default function Client360SlideOver({ isOpen, onClose, client }: Client36
                           </div>
                           <div className="group">
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                              Inscrição Estadual (IE)
+                              Faixa de Faturamento
                             </p>
-                            <p className="text-sm font-bold text-slate-700">{client.ie || 'Isento'}</p>
+                            <p className="text-sm font-bold text-slate-700">{client.revenueBracket || 'Não informada'}</p>
                           </div>
                           <div className="group">
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                              Inscrição Municipal (IM)
+                              Grupo Empresarial
                             </p>
-                            <p className="text-sm font-bold text-slate-700">{client.im || '-'}</p>
+                            <p className="text-sm font-bold text-slate-700">{client.hasEconomicGroup ? client.economicGroupName || 'Sim' : 'Não'}</p>
                           </div>
+                          
+                          {client.observations && (
+                            <div className="group col-span-2 pt-2 border-t border-slate-100/50">
+                              <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                Observações Cadastrais
+                              </p>
+                              <p className="text-sm font-medium text-slate-600 leading-relaxed">
+                                {client.observations}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -261,46 +410,186 @@ export default function Client360SlideOver({ isOpen, onClose, client }: Client36
                         <div className="w-14 h-14 bg-white/20 border border-white/30 rounded-[1.2rem] flex items-center justify-center backdrop-blur-md shrink-0 z-10">
                           <PieChart className="w-7 h-7 text-white" />
                         </div>
-                        <div className="z-10">
+                        <div className="flex-1">
                           <h4 className="text-xl font-black tracking-tight">Mapeamento de Escopo</h4>
                           <p className="text-sm text-teal-50 font-medium mt-1 opacity-90 max-w-md">
                             Visão panorâmica da complexidade e atuação do cliente nas diferentes frentes de negócio do escritório.
                           </p>
                         </div>
+                        <button 
+                          onClick={() => setIsAllocatingFormOpen(!isAllocatingFormOpen)}
+                          className="bg-white text-teal-700 font-bold px-4 py-2 rounded-xl text-sm shadow-md hover:bg-teal-50 transition-colors flex items-center gap-2 z-10"
+                        >
+                          <Plus className="w-4 h-4" /> Alocar Frente
+                        </button>
                       </div>
 
-                      {['Fiscal', 'Departamento Pessoal', 'Contábil'].map((frente, index) => (
+                      <AnimatePresence>
+                        {isAllocatingFormOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-6 bg-slate-100/50 rounded-2xl border border-slate-200">
+                              <h5 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Plus className="w-4 h-4 text-teal-600" /> Nova Alocação
+                              </h5>
+                              <div className="grid sm:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Frente de Negócio *</label>
+                                  <select
+                                    value={selectedFront}
+                                    onChange={(e) => {
+                                      setSelectedFront(e.target.value);
+                                      setSelectedSubdivision('');
+                                    }}
+                                    className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
+                                  >
+                                    <option value="">Selecione uma Frente</option>
+                                    {availableFronts.filter(f => !clientFronts.some(cf => cf.frontId === f.id)).map(f => (
+                                      <option key={f.id} value={f.id}>{f.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {selectedFront && availableFronts.find(f => f.id === selectedFront)?.subdivisions?.length > 0 && (
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Célula (Opcional)</label>
+                                    <select
+                                      value={selectedSubdivision}
+                                      onChange={(e) => setSelectedSubdivision(e.target.value)}
+                                      className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
+                                    >
+                                      <option value="">Selecione uma Célula</option>
+                                      {availableFronts.find(f => f.id === selectedFront)?.subdivisions.map((sub: any) => (
+                                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {selectedFront && (
+                                <FrontClassificationForm 
+                                  tenantId={tenantId || ''} 
+                                  frontName={availableFronts.find(f => f.id === selectedFront)?.name || ''} 
+                                  value={classificationData} 
+                                  onChange={setClassificationData} 
+                                />
+                              )}
+
+                              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200/60">
+                                <button
+                                  onClick={() => setIsAllocatingFormOpen(false)}
+                                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={handleAllocateNewFront}
+                                  disabled={!selectedFront || isAllocating}
+                                  className="px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {isAllocating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Alocação'}
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {isLoadingFronts ? (
+                        <div className="py-10 text-center text-slate-500">Carregando escopos...</div>
+                      ) : clientFronts.length === 0 ? (
+                        <div className="py-10 text-center text-slate-500">Nenhum escopo operacional mapeado.</div>
+                      ) : (
+                        clientFronts.map((frontSnap, index) => (
                         <div key={index} className="bg-white p-6 rounded-[2rem] border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] group hover:border-teal-200 transition-colors">
                           <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                               <div className="w-2 h-8 rounded-full bg-teal-500"></div>
-                              <h4 className="text-lg font-black text-slate-800 tracking-tight">{frente}</h4>
+                              <h4 className="text-lg font-black text-slate-800 tracking-tight">{frontSnap.frontName || 'Frente'}</h4>
                             </div>
-                            <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Escopo Ativo
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Escopo Ativo
+                              </span>
+                              <button
+                                onClick={() => handleEditFrontClick(frontSnap.frontId)}
+                                className="p-2 text-slate-400 hover:text-teal-600 transition-colors rounded-xl hover:bg-teal-50 border border-transparent hover:border-teal-100"
+                                title="Editar Configurações da Frente"
+                              >
+                                <Settings className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveFront(frontSnap.snapshotId, frontSnap.frontName || 'Frente')}
+                                className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50 border border-transparent hover:border-rose-100"
+                                title="Desalocar Frente"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-8 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
-                            <div>
-                              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5" /> Nível de Complexidade
-                              </p>
-                              <div className="flex gap-1.5">
-                                {[1, 2, 3].map((level) => (
-                                  <div key={level} className={`h-2.5 w-full rounded-full ${level <= (index === 1 ? 3 : 2) ? 'bg-gradient-to-r from-teal-400 to-teal-500 shadow-sm shadow-teal-500/20' : 'bg-slate-200/60'}`}></div>
-                                ))}
+                          {editingFrontId === frontSnap.frontId ? (
+                            <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 mt-4">
+                              <div className="flex items-center justify-between mb-4">
+                                <h5 className="font-bold text-slate-800 flex items-center gap-2">
+                                  <Settings className="w-4 h-4 text-teal-600" /> Editar Parâmetros: {frontSnap.frontName}
+                                </h5>
+                                <button onClick={() => setEditingFrontId(null)} className="text-slate-400 hover:text-slate-600">
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <FrontClassificationForm 
+                                tenantId={tenantId || ''} 
+                                frontName={frontSnap.frontName || ''} 
+                                value={editingClassificationData} 
+                                onChange={setEditingClassificationData} 
+                              />
+                              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200/60 justify-end">
+                                <button
+                                  onClick={() => setEditingFrontId(null)}
+                                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={handleSaveFrontEdit}
+                                  disabled={isSavingEdit}
+                                  className="px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Alterações'}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-8 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                              <div>
+                                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                  <Activity className="w-3.5 h-3.5" /> Nível de Complexidade
+                                </p>
+                                <div className="flex gap-1.5">
+                                {[1, 2, 3].map((level) => {
+                                  const isActive = level <= (frontSnap.complexity || 1);
+                                  return (
+                                    <div key={level} className={`h-2.5 w-full rounded-full ${isActive ? 'bg-gradient-to-r from-teal-400 to-teal-500 shadow-sm shadow-teal-500/20' : 'bg-slate-200/60'}`}></div>
+                                  );
+                                })}
                               </div>
                             </div>
                             <div>
                               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5" /> Frequência
                               </p>
-                              <p className="text-sm font-black text-slate-800">Mensal</p>
+                              <p className="text-sm font-black text-slate-800">{frontSnap.frequency || 'Mensal'}</p>
                             </div>
                           </div>
+                          )}
                         </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   )}
 

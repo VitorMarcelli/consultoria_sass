@@ -104,7 +104,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
       router.push(`/escritorios/${id}/colaboradores`);
     } catch (err) {
       console.error(err);
-      alert('Erro ao salvar as estruturas.');
+      alert('Erro ao salvar as células.');
     } finally {
       setIsSaving(false);
     }
@@ -142,7 +142,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
             <GitMerge className="w-7 h-7" />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Estruturas (Células)</h2>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Células</h2>
             <p className="text-slate-500 font-medium mt-1">Crie subgrupos ou células específicas dentro de cada Frente Ativa.</p>
           </div>
         </div>
@@ -160,7 +160,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
             <GitMerge className="w-8 h-8 text-slate-300" />
           </div>
           <h3 className="text-lg font-bold text-slate-700 mb-2">Sem Frentes Ativas</h3>
-          <p className="max-w-sm mx-auto">Vá para a aba Frentes e ative ao menos uma área operacional antes de criar as estruturas.</p>
+          <p className="max-w-sm mx-auto">Vá para a aba Frentes e ative ao menos uma área operacional antes de criar as células.</p>
         </motion.div>
       ) : (
         <motion.div 

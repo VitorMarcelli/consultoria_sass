@@ -12,8 +12,7 @@ const menuGroups = [
     items: [
       { id: 'cadastro', label: 'Dados', icon: '1.1' },
       { id: 'frentes', label: 'Frentes', icon: '1.2' },
-      { id: 'estruturas', label: 'Estruturas', icon: '1.3' },
-      { id: 'colaboradores', label: 'Equipe', icon: '1.4' },
+      { id: 'estruturas', label: 'Células', icon: '1.3' },
       { id: 'ciclos', label: 'Gestão de Ciclos', icon: '1.5' },
     ]
   },
