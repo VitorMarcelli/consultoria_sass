@@ -131,20 +131,34 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const b = (idx: number) => c(idx).toUpperCase() === 'SIM';
         const n = (idx: number) => c(idx) ? Number(c(idx).replace(/[^0-9.-]+/g,"")) : undefined;
 
+        const mapRegime: Record<string, string> = { 'Simples Nacional': 'SIMPLES_NACIONAL', 'Lucro Presumido': 'LUCRO_PRESUMIDO', 'Lucro Real': 'LUCRO_REAL' };
+        const mapStatus: Record<string, string> = { 'Ativo': 'ACTIVE', 'Inativo': 'INACTIVE' };
+        const mapVolume: Record<string, string> = { 'Até 50': 'ATE_50', '51 a 200': '51_200', '201 a 500': '201_500', 'Mais de 500': 'MAIS_500' };
+        const mapAuto: Record<string, string> = { 'Manual': 'MANUAL', 'Parcial': 'PARCIAL', 'Automatizada': 'AUTOMATIZADA' };
+        const mapSystem: Record<string, string> = { 'Domínio': 'DOMINIO', 'Alterdata': 'ALTERDATA', 'Nasajon': 'NASAJON', 'Outro': 'OUTRO' };
+        const mapPlatform: Record<string, string> = { 'Sieg': 'SIEG', 'Arquivei': 'ARQUIVEI', 'Outro': 'OUTRO' };
+        const mapPoint: Record<string, string> = { 'Sistema/App': 'SISTEMA', 'Planilha': 'PLANILHA', 'Papel/Manual': 'MANUAL' };
+        const mapProcType: Record<string, string> = { 'Normal': 'NORMAL', 'Complexo (Múltiplos sindicatos)': 'COMPLEXO' };
+        const mapBookkeeping: Record<string, string> = { 'Caixa': 'CAIXA', 'Competência': 'COMPETENCIA' };
+        const mapPeriod: Record<string, string> = { 'Mensal': 'MENSAL', 'Trimestral': 'TRIMESTRAL', 'Anual': 'ANUAL' };
+        const mapInteg: Record<string, string> = { 'Sem Integração': 'NENHUMA', 'Parcial (Planilhas)': 'PARCIAL', 'Total (Sistemas via API)': 'TOTAL' };
+        
+        const m = (val: string, dict: Record<string, string>) => val ? (dict[val] || val) : '';
+
         // Geral
         const name = c(0);
         const tradeName = c(1);
         const cnpj = c(2);
         const city = c(3);
         const state = c(4);
-        const taxRegime = c(5);
+        const taxRegime = m(c(5), mapRegime);
         const segment = c(6);
         const revenueBracket = c(7);
         const hasEconomicGroup = b(8);
         const economicGroupName = c(9);
         const monthlyFee = n(10);
         const classification = c(11);
-        const status = c(12) || 'ACTIVE';
+        const status = m(c(12), mapStatus) || 'ACTIVE';
         const fiscal = b(13);
         const contabil = b(14);
         const dp = b(15);
@@ -156,18 +170,18 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const fiscalOp2Name = c(19);
         const fiscalFrequency = c(20);
         const fiscalComplexity = n(21);
-        const fiscalNotesVolume = c(22);
+        const fiscalNotesVolume = m(c(22), mapVolume);
         const fiscalOutNotesVolume = c(23);
         const fiscalInNotesVolume = c(24);
-        const fiscalAutomationLevel = c(25);
+        const fiscalAutomationLevel = m(c(25), mapAuto);
         const fiscalHasSpecialRegime = b(26);
         const fiscalSpecialRegimeDesc = c(27);
         const fiscalInNfe = c(28);
         const fiscalOutNfe = c(29);
         const fiscalNfse = c(30);
         const fiscalSendingChannels = c(31);
-        const fiscalSystem = c(32);
-        const fiscalNotesPlatform = c(33);
+        const fiscalSystem = m(c(32), mapSystem);
+        const fiscalNotesPlatform = m(c(33), mapPlatform);
         const fiscalMeetsDeadlines = c(34);
         const fiscalParticulars = c(35);
 
@@ -180,9 +194,9 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const dpEmployeesCount = n(41);
         const dpProlaboreCount = n(42);
         const dpDomesticsCount = n(43);
-        const dpPointReceipt = c(44);
+        const dpPointReceipt = m(c(44), mapPoint);
         const dpVariablesLaunch = c(45);
-        const dpProcessingType = c(46);
+        const dpProcessingType = m(c(46), mapProcType);
         const dpSheetSending = c(47);
         const dpFrequentAdmissions = b(48);
         const dpParticulars = c(49);
@@ -193,14 +207,14 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const contabilOp2Name = c(52);
         const contabilFrequency = c(53);
         const contabilComplexity = n(54);
-        const contabilBookkeepingRegime = c(55);
+        const contabilBookkeepingRegime = m(c(55), mapBookkeeping);
         const contabilLastClosing = c(56);
-        const contabilClosingPeriod = c(57);
+        const contabilClosingPeriod = m(c(57), mapPeriod);
         const contabilInfoReceiptFreq = c(58);
         const contabilInfoReceiptMethod = c(59);
-        const contabilIntegrationLevel = c(60);
+        const contabilIntegrationLevel = m(c(60), mapInteg);
         const contabilTrialBalanceNeed = c(61);
-        const contabilLaunchesVolume = c(62);
+        const contabilLaunchesVolume = m(c(62), mapVolume);
         const contabilParticulars = c(63);
         
         return { 
