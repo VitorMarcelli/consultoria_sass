@@ -21,6 +21,11 @@ export class AllocationsService {
         subdivisionId: createDto.subdivisionId || null,
         leaderId: createDto.leaderId || null,
         dailyAvailableTime: createDto.dailyAvailableTime ? parseFloat(createDto.dailyAvailableTime) : null,
+        predictableRecurrentTimePercentage: createDto.predictableRecurrentTimePercentage !== undefined && createDto.predictableRecurrentTimePercentage !== null ? parseFloat(createDto.predictableRecurrentTimePercentage) : null,
+        unpredictableRecurrentTimePercentage: createDto.unpredictableRecurrentTimePercentage !== undefined && createDto.unpredictableRecurrentTimePercentage !== null ? parseFloat(createDto.unpredictableRecurrentTimePercentage) : null,
+        allocationStartDate: createDto.allocationStartDate ? new Date(createDto.allocationStartDate) : null,
+        allocationEndDate: createDto.allocationEndDate ? new Date(createDto.allocationEndDate) : null,
+        status: createDto.status || 'ACTIVE',
       }
     });
   }
@@ -49,6 +54,11 @@ export class AllocationsService {
         subdivisionId: updateDto.subdivisionId || null,
         leaderId: updateDto.leaderId || null,
         dailyAvailableTime: updateDto.dailyAvailableTime ? parseFloat(updateDto.dailyAvailableTime) : null,
+        predictableRecurrentTimePercentage: updateDto.predictableRecurrentTimePercentage !== undefined && updateDto.predictableRecurrentTimePercentage !== null ? parseFloat(updateDto.predictableRecurrentTimePercentage) : null,
+        unpredictableRecurrentTimePercentage: updateDto.unpredictableRecurrentTimePercentage !== undefined && updateDto.unpredictableRecurrentTimePercentage !== null ? parseFloat(updateDto.unpredictableRecurrentTimePercentage) : null,
+        allocationStartDate: updateDto.allocationStartDate ? new Date(updateDto.allocationStartDate) : null,
+        allocationEndDate: updateDto.allocationEndDate ? new Date(updateDto.allocationEndDate) : null,
+        status: updateDto.status,
       }
     });
   }

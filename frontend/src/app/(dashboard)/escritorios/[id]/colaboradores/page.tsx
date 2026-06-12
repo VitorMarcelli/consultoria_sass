@@ -27,7 +27,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
 
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [colaboradores, setColaboradores] = useState<{id: string, nome: string, cargo: string, email: string, salario_bruto: string, dbId?: string}[]>([]);
+  const [colaboradores, setColaboradores] = useState<{id: string, nome: string, cargo: string, nivel: string, email: string, salario_bruto: string, status: string, observations: string, dbId?: string}[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -38,14 +38,17 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
             id: crypto.randomUUID(),
             nome: emp.name,
             cargo: emp.role,
+            nivel: emp.level || '',
             email: emp.email || '',
             salario_bruto: emp.grossSalary ? emp.grossSalary.toString() : '',
+            status: emp.status || 'ACTIVE',
+            observations: emp.observations || '',
             dbId: emp.id
           }));
           setColaboradores(loadedRows);
         } else {
           // Linha vazia por padrão
-          setColaboradores([{ id: crypto.randomUUID(), nome: '', cargo: '', email: '', salario_bruto: '' }]);
+          setColaboradores([{ id: crypto.randomUUID(), nome: '', cargo: '', nivel: '', email: '', salario_bruto: '', status: 'ACTIVE', observations: '' }]);
         }
       } catch (err) {
         console.error('Erro ao buscar colaboradores:', err);
@@ -66,7 +69,10 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
           tenantId: id,
           name: row.nome,
           role: row.cargo,
+          level: row.nivel,
           email: row.email,
+          status: row.status,
+          observations: row.observations,
           grossSalary: row.salario_bruto ? parseFloat(row.salario_bruto.replace(',', '.')) : null
         };
         
@@ -92,7 +98,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
   };
 
   const handleAddRow = () => {
-    setColaboradores([...colaboradores, { id: crypto.randomUUID(), nome: '', cargo: '', email: '', salario_bruto: '' }]);
+    setColaboradores([...colaboradores, { id: crypto.randomUUID(), nome: '', cargo: '', nivel: '', email: '', salario_bruto: '', status: 'ACTIVE', observations: '' }]);
   };
 
   const handleDeleteRow = async (rowId: string) => {
@@ -136,8 +142,11 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
             id: crypto.randomUUID(),
             nome: getVal(['nome', 'name', 'colaborador']),
             cargo: getVal(['cargo', 'papel', 'role', 'função', 'funcao']),
+            nivel: getVal(['nível', 'nivel', 'senioridade']) || '',
             email: getVal(['email', 'e-mail']),
             salario_bruto: getVal(['salário', 'salario', 'bruto', 'remuneração']) || '',
+            status: 'ACTIVE',
+            observations: getVal(['obs', 'observações', 'observacao', 'observacoes']) || ''
           };
         }).filter(r => r.nome || r.cargo);
 
@@ -208,13 +217,16 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
         >
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-[11px] text-slate-400 uppercase tracking-widest bg-slate-50/80 border-b border-slate-200">
+              <thead className="text-[11px] text-slate-400 uppercase tracking-widest bg-slate-50/80 border-b border-slate-200 whitespace-nowrap">
                 <tr>
-                  <th className="px-8 py-5 font-bold">Nome Completo</th>
-                  <th className="px-8 py-5 font-bold">Cargo / Papel</th>
-                  <th className="px-8 py-5 font-bold">E-mail Profissional</th>
-                  <th className="px-8 py-5 font-bold">Salário Bruto (R$)</th>
-                  <th className="px-8 py-5 text-right font-bold w-24">Ações</th>
+                  <th className="px-6 py-5 font-bold">Nome Completo</th>
+                  <th className="px-6 py-5 font-bold">Cargo / Papel</th>
+                  <th className="px-6 py-5 font-bold">Nível</th>
+                  <th className="px-6 py-5 font-bold">E-mail Profissional</th>
+                  <th className="px-6 py-5 font-bold">Salário Bruto (R$)</th>
+                  <th className="px-6 py-5 font-bold">Status</th>
+                  <th className="px-6 py-5 font-bold">Observações</th>
+                  <th className="px-6 py-5 text-right font-bold w-24">Ações</th>
                 </tr>
               </thead>
               <motion.tbody 
@@ -230,12 +242,12 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                       key={colaborador.id} 
                       className="bg-white hover:bg-slate-50/80 transition-colors group"
                     >
-                      <td className="px-8 py-5">
+                      <td className="px-6 py-5 min-w-[200px]">
                         <input 
                           type="text" 
                           value={colaborador.nome}
-                          placeholder="Nome do colaborador"
-                          className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                          placeholder="Nome"
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
                           onChange={(e) => {
                             const newRows = [...colaboradores];
                             newRows.find(c => c.id === colaborador.id)!.nome = e.target.value;
@@ -243,12 +255,12 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                           }}
                         />
                       </td>
-                      <td className="px-8 py-5">
+                      <td className="px-6 py-5 min-w-[150px]">
                         <input 
                           type="text" 
                           value={colaborador.cargo}
                           placeholder="Ex: Analista Fiscal"
-                          className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
                           onChange={(e) => {
                             const newRows = [...colaboradores];
                             newRows.find(c => c.id === colaborador.id)!.cargo = e.target.value;
@@ -256,12 +268,33 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                           }}
                         />
                       </td>
-                      <td className="px-8 py-5">
+                      <td className="px-6 py-5 min-w-[120px]">
+                        <select 
+                          value={colaborador.nivel}
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                          onChange={(e) => {
+                            const newRows = [...colaboradores];
+                            newRows.find(c => c.id === colaborador.id)!.nivel = e.target.value;
+                            setColaboradores(newRows);
+                          }}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="Estagiário">Estagiário</option>
+                          <option value="Júnior">Júnior</option>
+                          <option value="Pleno">Pleno</option>
+                          <option value="Sênior">Sênior</option>
+                          <option value="Especialista">Especialista</option>
+                          <option value="Gerente">Gerente</option>
+                          <option value="Diretor">Diretor</option>
+                          <option value="Sócio">Sócio</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-5 min-w-[200px]">
                         <input 
                           type="email" 
                           value={colaborador.email}
                           placeholder="email@escritorio.com"
-                          className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
                           onChange={(e) => {
                             const newRows = [...colaboradores];
                             newRows.find(c => c.id === colaborador.id)!.email = e.target.value;
@@ -269,14 +302,14 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                           }}
                         />
                       </td>
-                      <td className="px-8 py-5">
+                      <td className="px-6 py-5 min-w-[150px]">
                         <input 
                           type="number"
                           step="0.01"
                           min="0"
                           placeholder="0.00"
                           value={colaborador.salario_bruto}
-                          className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
                           onChange={(e) => {
                             const newRows = [...colaboradores];
                             newRows.find(c => c.id === colaborador.id)!.salario_bruto = e.target.value;
@@ -284,9 +317,36 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                           }}
                         />
                       </td>
-                      <td className="px-8 py-5 text-right">
+                      <td className="px-6 py-5 min-w-[120px]">
+                        <select 
+                          value={colaborador.status}
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                          onChange={(e) => {
+                            const newRows = [...colaboradores];
+                            newRows.find(c => c.id === colaborador.id)!.status = e.target.value;
+                            setColaboradores(newRows);
+                          }}
+                        >
+                          <option value="ACTIVE">Ativo</option>
+                          <option value="INACTIVE">Inativo</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-5 min-w-[200px]">
+                        <input 
+                          type="text" 
+                          value={colaborador.observations}
+                          placeholder="Observações..."
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                          onChange={(e) => {
+                            const newRows = [...colaboradores];
+                            newRows.find(c => c.id === colaborador.id)!.observations = e.target.value;
+                            setColaboradores(newRows);
+                          }}
+                        />
+                      </td>
+                      <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                          <button onClick={() => handleDeleteRow(colaborador.id)} className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                          <button onClick={() => handleDeleteRow(colaborador.id)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
                             <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
@@ -313,3 +373,4 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
     </div>
   );
 }
+

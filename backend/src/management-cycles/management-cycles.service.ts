@@ -18,6 +18,114 @@ export class ManagementCyclesService {
     });
   }
 
+  async findOne(tenantId: string, cycleId: string) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+    const cycle = await tenantPrisma.managementCycle.findUnique({
+      where: { id: cycleId }
+    });
+    if (!cycle) throw new NotFoundException('Ciclo não encontrado.');
+    return cycle;
+  }
+
+  async allocateClientToCycle(tenantId: string, cycleId: string, data: { clientId: string, frontId: string, subdivisionId?: string }) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+
+    // Get client details to inherit
+    const client = await tenantPrisma.client.findUnique({
+      where: { id: data.clientId }
+    });
+    if (!client) throw new NotFoundException('Cliente não encontrado.');
+
+    const frontClassification = await tenantPrisma.clientFrontClassification.findUnique({
+      where: { clientId_frontId: { clientId: data.clientId, frontId: data.frontId } }
+    });
+
+    const existing = await tenantPrisma.clientCycleSnapshot.findUnique({
+      where: { cycleId_clientId_frontId: { cycleId, clientId: data.clientId, frontId: data.frontId } }
+    });
+
+    if (existing) throw new ConflictException('Este cliente já está alocado nesta frente para este ciclo.');
+
+    return tenantPrisma.clientCycleSnapshot.create({
+      data: {
+        cycleId,
+        clientId: data.clientId,
+        frontId: data.frontId,
+        subdivisionId: data.subdivisionId || null,
+        taxRegime: client.taxRegime,
+        segment: client.segment,
+        monthlyFee: client.monthlyFee,
+        classification: client.classification,
+        complexity: frontClassification?.complexity || null,
+        frequency: frontClassification?.frequency || null,
+        particulars: frontClassification?.particulars || null,
+      }
+    });
+  }
+
+  async removeClientFromCycleFront(tenantId: string, cycleId: string, snapshotId: string) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+
+    const snapshot = await tenantPrisma.clientCycleSnapshot.findUnique({
+      where: { id: snapshotId }
+    });
+
+    if (!snapshot || snapshot.cycleId !== cycleId) {
+      throw new NotFoundException('Alocação do cliente no ciclo não encontrada.');
+    }
+
+    // Usamos transação para garantir que excluímos do ciclo e desativamos globalmente
+    return tenantPrisma.$transaction(async (tx) => {
+      // 1. Exclui o snapshot do ciclo
+      await tx.clientCycleSnapshot.delete({
+        where: { id: snapshotId }
+      });
+
+      // 2. Desativa a frente globalmente
+      const classification = await tx.clientFrontClassification.findUnique({
+        where: { clientId_frontId: { clientId: snapshot.clientId, frontId: snapshot.frontId } }
+      });
+
+      if (classification) {
+        await tx.clientFrontClassification.update({
+          where: { id: classification.id },
+          data: { actsInFront: 'NO' }
+        });
+      }
+
+      return { success: true };
+    });
+  }
+
+  async updateClientCycleSnapshot(tenantId: string, cycleId: string, snapshotId: string, data: any) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+    
+    return tenantPrisma.clientCycleSnapshot.update({
+      where: { id: snapshotId },
+      data: {
+        complexity: data.complexity ? Number(data.complexity) : null,
+        frequency: data.frequency || null,
+        particulars: data.particulars || null
+      }
+    });
+  }
+
+  async removeTeamFromCycleFront(tenantId: string, cycleId: string, allocationId: string) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+
+    const allocation = await tenantPrisma.employeeCycleAllocation.findUnique({
+      where: { id: allocationId }
+    });
+
+    if (!allocation || allocation.cycleId !== cycleId) {
+      throw new NotFoundException('Alocação da equipe no ciclo não encontrada.');
+    }
+
+    return tenantPrisma.employeeCycleAllocation.delete({
+      where: { id: allocationId }
+    });
+  }
+
   async createCycle(tenantId: string, data: { month: number, year: number }) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
 
@@ -76,17 +184,18 @@ export class ManagementCyclesService {
     return newCycle;
   }
 
-  async getCycleClients(tenantId: string, cycleId: string, frontId?: string, subdivisionId?: string) {
+  async getCycleClients(tenantId: string, cycleId: string, frontId?: string, subdivisionId?: string, clientId?: string) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
     
     // Fetch snapshots with the included client data
     const whereClause: any = { cycleId };
     if (frontId) whereClause.frontId = frontId;
     if (subdivisionId) whereClause.subdivisionId = subdivisionId;
+    if (clientId) whereClause.clientId = clientId;
 
     const snapshots = await tenantPrisma.clientCycleSnapshot.findMany({
       where: whereClause,
-      include: { client: true }
+      include: { client: true, front: true }
     });
 
     return snapshots.map((snap: any) => ({
@@ -100,20 +209,22 @@ export class ManagementCyclesService {
       frequency: snap.frequency,
       particulars: snap.particulars,
       frontId: snap.frontId,
-      subdivisionId: snap.subdivisionId
+      subdivisionId: snap.subdivisionId,
+      frontName: snap.front?.name
     }));
   }
 
-  async getCycleTeam(tenantId: string, cycleId: string, frontId?: string, subdivisionId?: string) {
+  async getCycleTeam(tenantId: string, cycleId: string, frontId?: string, subdivisionId?: string, employeeId?: string) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
     
     const whereClause: any = { cycleId };
     if (frontId) whereClause.frontId = frontId;
     if (subdivisionId) whereClause.subdivisionId = subdivisionId;
+    if (employeeId) whereClause.employeeId = employeeId;
 
     const allocations = await tenantPrisma.employeeCycleAllocation.findMany({
       where: whereClause,
-      include: { employee: true }
+      include: { employee: true, front: true }
     });
 
     return allocations.map((alloc: any) => ({
@@ -124,7 +235,8 @@ export class ManagementCyclesService {
       leaderId: alloc.leaderId,
       allocatedHours: alloc.dailyAvailableTime || 0,
       status: alloc.status,
-      employee: alloc.employee
+      employee: alloc.employee,
+      frontName: alloc.front?.name
     }));
   }
 
@@ -139,23 +251,37 @@ export class ManagementCyclesService {
       where: whereClause
     });
     
-    // Na vida real, a receita seria do cliente vs front, mas aqui simplificamos sumindo os monthlyFee
-    // Se o cliente tem 1000 de fee global, talvez devesse ser particionado, 
-    // mas vamos manter o sum para seguir com a ideia geral.
-    // Dica: Cuidado ao somar monthlyFee se o mesmo cliente estiver em 2 fronts. Para evitar duplicidade global:
-    
     let uniqueClientsTotalRevenue = 0;
     const clientIdsCounted = new Set<string>();
+    
+    const distributionByTaxRegime: Record<string, number> = {};
+    const distributionByComplexity: Record<string, number> = {};
+    const distributionByFrequency: Record<string, number> = {};
+    const clientIdsForRegime = new Set<string>();
 
     for (const snap of snapshots) {
       if (!clientIdsCounted.has(snap.clientId)) {
         uniqueClientsTotalRevenue += (Number(snap.monthlyFee) || 0);
         clientIdsCounted.add(snap.clientId);
       }
+
+      if (!clientIdsForRegime.has(snap.clientId)) {
+        const regime = snap.taxRegime || 'Não Informado';
+        distributionByTaxRegime[regime] = (distributionByTaxRegime[regime] || 0) + 1;
+        clientIdsForRegime.add(snap.clientId);
+      }
+
+      if (snap.complexity !== null && snap.complexity !== undefined) {
+        const comp = `Nível ${snap.complexity}`;
+        distributionByComplexity[comp] = (distributionByComplexity[comp] || 0) + 1;
+      }
+
+      if (snap.frequency) {
+        const freq = snap.frequency;
+        distributionByFrequency[freq] = (distributionByFrequency[freq] || 0) + 1;
+      }
     }
 
-    // 2. Custo Total da Equipe Alocada
-    // Fetch from EmployeeCycleAllocation
     const allocations = await tenantPrisma.employeeCycleAllocation.findMany({
       where: whereClause,
       include: { employee: true }
@@ -166,28 +292,21 @@ export class ManagementCyclesService {
 
     for (const alloc of allocations) {
       if (!employeeIdsCounted.has(alloc.employeeId)) {
-        // Here we could calculate proportion based on dailyAvailableTime
         uniqueEmployeesTotalCost += (Number(alloc.employee.grossSalary) || 0);
         employeeIdsCounted.add(alloc.employeeId);
       }
     }
-
-    const distributionByTaxRegime = snapshots.reduce((acc: any, curr: any) => {
-      // Only count each client once for distribution
-      if (curr.taxRegime) {
-         // This is a naive count, if client is multiple times, it will be counted multiple times
-         const regime = curr.taxRegime || 'OUTROS';
-         acc[regime] = (acc[regime] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
 
     return {
       cycleId,
       totalRevenue: uniqueClientsTotalRevenue,
       totalPersonnelCost: uniqueEmployeesTotalCost,
       kpiPersonnelCostPercent: uniqueClientsTotalRevenue > 0 ? (uniqueEmployeesTotalCost / uniqueClientsTotalRevenue) * 100 : 0,
-      distributionByTaxRegime
+      clientsCount: clientIdsCounted.size,
+      teamCount: employeeIdsCounted.size,
+      distributionByTaxRegime,
+      distributionByComplexity,
+      distributionByFrequency
     };
   }
 

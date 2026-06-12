@@ -135,6 +135,7 @@ model Employee {
   name        String
   email       String?
   role        String // Analista, assistente, etc.
+  level       String? // Júnior, Pleno, Sênior, etc.
   grossSalary Float?
   status      String  @default("ACTIVE")
 
@@ -436,6 +437,11 @@ model EmployeeCycleAllocation {
   leader   Employee? @relation("AllocationLeader", fields: [leaderId], references: [id])
 
   dailyAvailableTime Float? // in hours
+  predictableRecurrentTimePercentage   Float? // Percentage 0-100
+  unpredictableRecurrentTimePercentage Float? // Percentage 0-100
+  allocationStartDate                  DateTime?
+  allocationEndDate                    DateTime?
+  
   status             String    @default("ACTIVE")
   observations       String?
 

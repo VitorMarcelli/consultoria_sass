@@ -29,18 +29,22 @@ export default function CycleLayout({
   const currentSubdivisionId = searchParams.get('subdivisionId') || '';
 
   const [fronts, setFronts] = useState<any[]>([]);
+  const [cycleInfo, setCycleInfo] = useState<any>(null);
 
   useEffect(() => {
-    const fetchFronts = async () => {
+    const fetchFrontsAndCycle = async () => {
       try {
         const data = await apiRequest(`/structures/fronts?tenantId=${id}`);
         setFronts(data);
+
+        const cycleData = await apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`);
+        setCycleInfo(cycleData);
       } catch (err) {
-        console.error('Failed to fetch fronts', err);
+        console.error('Failed to fetch data', err);
       }
     };
-    fetchFronts();
-  }, [id]);
+    fetchFrontsAndCycle();
+  }, [id, cycleId]);
 
   // Determine active tab
   const currentPath = pathname.replace(`/escritorios/${id}/ciclos/${cycleId}`, '');
@@ -84,7 +88,7 @@ export default function CycleLayout({
               <ChevronLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gestão do Ciclo Mensal</h1>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gestão do Ciclo Mensal {cycleInfo ? `- ${cycleInfo.month.toString().padStart(2, '0')}/${cycleInfo.year}` : ''}</h1>
               <p className="text-sm font-medium text-slate-500 mt-1">ID: <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">{cycleId}</span></p>
             </div>
           </div>

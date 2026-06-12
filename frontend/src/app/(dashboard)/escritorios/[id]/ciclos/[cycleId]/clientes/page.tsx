@@ -7,6 +7,8 @@ import { apiRequest } from '@/utils/api';
 import ClientModal from '@/components/ClientModal';
 import CsvImportModal from '@/components/CsvImportModal';
 import Client360SlideOver from '@/components/Client360SlideOver';
+import AllocateClientModal from './AllocateClientModal';
+import ClientCycleModal from './ClientCycleModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const tableVariants = {
@@ -35,8 +37,10 @@ export default function CycleClientsPage({
   const [search, setSearch] = useState('');
 
   // Modals state
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false); // Used only for editing now
+  const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false); // Used for creation
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAllocateModalOpen, setIsAllocateModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -67,21 +71,15 @@ export default function CycleClientsPage({
     setIsSaving(true);
     try {
       if (editingClient) {
-        // Edit (Global update, but will reflect in snapshot if we refresh, or we need to update snapshot specifically. For now updating global)
+        // Edit (Global update, mas reflete no cycle se regarregar)
         await apiRequest(`/clients/${editingClient.id}`, {
           method: 'PATCH',
           body: JSON.stringify({ tenantId: id, ...clientData }),
         });
-      } else {
-        // Create (will also create snapshot for this cycle because we pass cycleId)
-        await apiRequest(`/clients`, {
-          method: 'POST',
-          body: JSON.stringify({ tenantId: id, cycleId: cycleId, frontId, subdivisionId, ...clientData }),
-        });
+        setIsClientModalOpen(false);
+        setEditingClient(null);
+        await loadClients();
       }
-      setIsClientModalOpen(false);
-      setEditingClient(null);
-      await loadClients();
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar cliente');
     } finally {
@@ -113,7 +111,7 @@ export default function CycleClientsPage({
 
   const openNewClient = () => {
     setEditingClient(null);
-    setIsClientModalOpen(true);
+    setIsNewClientModalOpen(true);
   };
 
   const openEditClient = (client: any) => {
@@ -121,24 +119,12 @@ export default function CycleClientsPage({
     setIsClientModalOpen(true);
   };
 
-  const handleDelete = async (clientId: string) => {
-    if (!confirm('Atenção: A exclusão na Base do Ciclo excluirá o cliente globalmente. Deseja continuar?')) {
-      return;
-    }
-    
-    try {
-      await apiRequest(`/clients/${clientId}?tenantId=${id}`, {
-        method: 'DELETE',
-      });
-      setClientes(prev => prev.filter(c => c.id !== clientId));
-    } catch (err: any) {
-      alert(err.message || 'Erro ao excluir cliente');
-    }
-  };
-
-  const filteredClientes = clientes.filter(c => 
-    c.name?.toLowerCase().includes(search.toLowerCase()) || 
-    c.cnpj?.includes(search)
+  const uniqueClientes = Array.from(
+    new Map(
+      clientes
+        .filter(c => c.name?.toLowerCase().includes(search.toLowerCase()) || c.cnpj?.includes(search))
+        .map(c => [c.id, c])
+    ).values()
   );
 
   const formatRegime = (regime: string) => {
@@ -181,18 +167,25 @@ export default function CycleClientsPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button 
+            onClick={() => setIsAllocateModalOpen(true)}
+            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
+          >
+            <Plus className="w-4 h-4" />
+            Alocar Cliente da Base
+          </button>
+          <button 
+            onClick={openNewClient}
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Cliente
+          </button>
+          <button 
             onClick={() => setIsImportModalOpen(true)}
             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
           >
             <Upload className="w-4 h-4" />
-            Importar Planilha
-          </button>
-          <button 
-            onClick={openNewClient}
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Cliente
+            Importar
           </button>
         </div>
       </motion.div>
@@ -214,7 +207,7 @@ export default function CycleClientsPage({
             />
           </div>
           <div className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
-            Total neste ciclo: <span className="text-slate-900">{filteredClientes.length}</span>
+            Total neste ciclo: <span className="text-slate-900">{uniqueClientes.length}</span>
           </div>
         </div>
         
@@ -239,7 +232,7 @@ export default function CycleClientsPage({
                   </td>
                 </tr>
               </tbody>
-            ) : filteredClientes.length === 0 ? (
+            ) : uniqueClientes.length === 0 ? (
               <tbody>
                 <tr>
                   <td colSpan={6} className="px-6 py-20 text-center text-slate-500">
@@ -259,10 +252,10 @@ export default function CycleClientsPage({
                 className="divide-y divide-slate-100"
               >
                 <AnimatePresence>
-                  {filteredClientes.map((cliente) => (
+                  {uniqueClientes.map((cliente) => (
                     <motion.tr 
                       variants={rowVariants}
-                      key={cliente.snapshotId} 
+                      key={cliente.id} 
                       className="bg-white hover:bg-slate-50/80 transition-colors group"
                     >
                       <td className="px-8 py-5">
@@ -300,13 +293,6 @@ export default function CycleClientsPage({
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(cliente.id)}
-                            className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50"
-                            title="Excluir cliente"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
                         </div>
                       </td>
                     </motion.tr>
@@ -320,10 +306,18 @@ export default function CycleClientsPage({
 
       <ClientModal 
         isOpen={isClientModalOpen}
-        onClose={() => setIsClientModalOpen(false)}
+        onClose={() => { setIsClientModalOpen(false); setEditingClient(null); }}
         onSave={handleSaveClient}
         initialData={editingClient}
         isLoading={isSaving}
+      />
+
+      <ClientCycleModal 
+        isOpen={isNewClientModalOpen}
+        onClose={() => setIsNewClientModalOpen(false)}
+        tenantId={id}
+        cycleId={cycleId}
+        onSuccess={loadClients}
       />
 
       <CsvImportModal 
@@ -333,10 +327,21 @@ export default function CycleClientsPage({
         isLoading={isSaving}
       />
 
+      <AllocateClientModal 
+        isOpen={isAllocateModalOpen}
+        onClose={() => setIsAllocateModalOpen(false)}
+        tenantId={id}
+        cycleId={cycleId}
+        onSuccess={loadClients}
+      />
+
       <Client360SlideOver 
         isOpen={is360Open}
         onClose={() => setIs360Open(false)}
         client={selectedClientFor360}
+        tenantId={id}
+        cycleId={cycleId}
+        onFrontRemoved={loadClients}
       />
     </div>
   );
