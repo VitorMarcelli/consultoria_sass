@@ -7,6 +7,7 @@ import { apiRequest } from '@/utils/api';
 import ClientModal from '@/components/ClientModal';
 import CsvImportModal from '@/components/CsvImportModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
 
 const tableVariants = {
   hidden: { opacity: 0 },
@@ -95,21 +96,38 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
   const handleImportCsv = async (file: File) => {
     setIsSaving(true);
     try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim().length > 0);
-      
-      if (lines.length <= 1) {
-        throw new Error('Arquivo vazio ou sem registros válidos');
-      }
-      
-      // Pular a primeira linha (cabeçalho)
-      const dataLines = lines.slice(1);
-      
-      const clientsPayload = dataLines.map(line => {
-        // Dividir por ponto-e-vírgula ou vírgula
-        const columns = line.split(/[;,]/);
+      let lines: any[] = [];
+
+      if (file.name.endsWith('.xlsx')) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
         
-        const c = (idx: number) => columns[idx]?.trim() || '';
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        if (rows.length <= 1) {
+          throw new Error('A planilha parece estar vazia ou conter apenas o cabeçalho.');
+        }
+
+        lines = rows.slice(1);
+      } else {
+        const text = await file.text();
+        const textLines = text.split('\n').filter(line => line.trim().length > 0);
+        
+        if (textLines.length <= 1) {
+          throw new Error('O arquivo CSV parece estar vazio ou conter apenas o cabeçalho.');
+        }
+
+        lines = textLines.slice(1).map(line => line.split(/[;,]/));
+      }
+
+      const clientsPayload = lines.map((columns: any[]) => {
+        const c = (idx: number) => {
+           const val = columns[idx];
+           if (val === undefined || val === null) return '';
+           return String(val).trim();
+        };
         const b = (idx: number) => c(idx).toUpperCase() === 'SIM';
         const n = (idx: number) => c(idx) ? Number(c(idx).replace(/[^0-9.-]+/g,"")) : undefined;
 

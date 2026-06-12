@@ -37,14 +37,21 @@ export default function EscritorioLayout({
   const currentTabId = pathname.split('/').pop() || 'cadastro';
   
   const [role, setRole] = React.useState<string | null>(null);
+  const [tenantName, setTenantName] = React.useState<string>('Configuração do Escritório');
 
   React.useEffect(() => {
     import('@/utils/api').then(({ apiRequest }) => {
+      apiRequest(`/tenants/${id}`)
+        .then(data => {
+          if (data?.name) setTenantName(data.name);
+        })
+        .catch(console.error);
+
       apiRequest('/users/me')
         .then(data => setRole(data?.role || 'CONSULTANT'))
         .catch(() => setRole('CONSULTANT'));
     });
-  }, []);
+  }, [id]);
 
   // Todos (Admin, Lider, Consultor) podem ver o Painel Gerencial de seus próprios escritórios
   const filteredMenuGroups = menuGroups;
@@ -54,7 +61,7 @@ export default function EscritorioLayout({
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
         <div className="mb-8 pb-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Configuração do Escritório</h1>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{tenantName}</h1>
             <p className="text-sm font-medium text-slate-500 mt-2">ID: <span className="font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">{id}</span></p>
           </div>
           <div className="bg-teal-50 px-4 py-2 rounded-xl border border-teal-100">
