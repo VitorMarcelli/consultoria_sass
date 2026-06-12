@@ -8,8 +8,13 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Enable CORS so the Next.js frontend (on localhost:3000) can make API calls
-  app.enableCors();
+  // Enable CORS with permissive options to allow Vercel to connect
+  app.enableCors({
+    origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning',
+  });
   
   const port = process.env.PORT || 3333;
   await app.listen(port);
