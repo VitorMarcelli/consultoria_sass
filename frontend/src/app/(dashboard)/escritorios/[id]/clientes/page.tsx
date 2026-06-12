@@ -142,6 +142,7 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const mapBookkeeping: Record<string, string> = { 'Caixa': 'CAIXA', 'Competência': 'COMPETENCIA' };
         const mapPeriod: Record<string, string> = { 'Mensal': 'MENSAL', 'Trimestral': 'TRIMESTRAL', 'Anual': 'ANUAL' };
         const mapInteg: Record<string, string> = { 'Sem Integração': 'NENHUMA', 'Parcial (Planilhas)': 'PARCIAL', 'Total (Sistemas via API)': 'TOTAL' };
+        const mapLaunches: Record<string, string> = { 'Até 100': 'ATE_100', '101 a 500': '101_500', 'Mais de 500': 'MAIS_500' };
         
         const m = (val: string, dict: Record<string, string>) => val ? (dict[val] || val) : '';
 
@@ -154,68 +155,68 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const taxRegime = m(c(5), mapRegime);
         const segment = c(6);
         const revenueBracket = c(7);
-        const hasEconomicGroup = b(8);
-        const economicGroupName = c(9);
-        const monthlyFee = n(10);
-        const classification = c(11);
-        const status = m(c(12), mapStatus) || 'ACTIVE';
-        const fiscal = b(13);
-        const contabil = b(14);
-        const dp = b(15);
-        const observations = c(16);
+        const hasEconomicGroup = !!c(8);
+        const economicGroupName = c(8);
+        const monthlyFee = n(9);
+        const classification = c(10);
+        const status = m(c(11), mapStatus) || 'ACTIVE';
+        const fiscal = b(12);
+        const contabil = b(13);
+        const dp = b(14);
+        const observations = c(15);
 
         // Fiscal
-        const fiscalLeaderName = c(17);
-        const fiscalOp1Name = c(18);
-        const fiscalOp2Name = c(19);
-        const fiscalFrequency = c(20);
-        const fiscalComplexity = n(21);
-        const fiscalNotesVolume = m(c(22), mapVolume);
-        const fiscalOutNotesVolume = c(23);
-        const fiscalInNotesVolume = c(24);
-        const fiscalAutomationLevel = m(c(25), mapAuto);
-        const fiscalHasSpecialRegime = b(26);
-        const fiscalSpecialRegimeDesc = c(27);
-        const fiscalInNfe = c(28);
-        const fiscalOutNfe = c(29);
-        const fiscalNfse = c(30);
-        const fiscalSendingChannels = c(31);
-        const fiscalSystem = m(c(32), mapSystem);
-        const fiscalNotesPlatform = m(c(33), mapPlatform);
-        const fiscalMeetsDeadlines = c(34);
-        const fiscalParticulars = c(35);
+        const fiscalLeaderName = c(16);
+        const fiscalOp1Name = c(17);
+        const fiscalOp2Name = c(18);
+        const fiscalFrequency = c(19);
+        const fiscalComplexity = n(20);
+        const fiscalNotesVolume = m(c(21), mapVolume);
+        const fiscalOutNotesVolume = c(22);
+        const fiscalInNotesVolume = c(23);
+        const fiscalAutomationLevel = m(c(24), mapAuto);
+        const fiscalHasSpecialRegime = !!c(25);
+        const fiscalSpecialRegimeDesc = c(25);
+        const fiscalInNfe = c(26);
+        const fiscalOutNfe = c(27);
+        const fiscalNfse = c(28);
+        const fiscalSendingChannels = c(29);
+        const fiscalSystem = m(c(30), mapSystem);
+        const fiscalNotesPlatform = m(c(31), mapPlatform);
+        const fiscalMeetsDeadlines = c(32);
+        const fiscalParticulars = c(33);
 
         // DP
-        const dpLeaderName = c(36);
-        const dpOp1Name = c(37);
-        const dpOp2Name = c(38);
-        const dpFrequency = c(39);
-        const dpComplexity = n(40);
-        const dpEmployeesCount = n(41);
-        const dpProlaboreCount = n(42);
-        const dpDomesticsCount = n(43);
-        const dpPointReceipt = m(c(44), mapPoint);
-        const dpVariablesLaunch = c(45);
-        const dpProcessingType = m(c(46), mapProcType);
-        const dpSheetSending = c(47);
-        const dpFrequentAdmissions = b(48);
-        const dpParticulars = c(49);
+        const dpLeaderName = c(34);
+        const dpOp1Name = c(35);
+        const dpOp2Name = c(36);
+        const dpFrequency = c(37);
+        const dpComplexity = n(38);
+        const dpEmployeesCount = n(39);
+        const dpProlaboreCount = n(40);
+        const dpDomesticsCount = n(41);
+        const dpPointReceipt = m(c(42), mapPoint);
+        const dpVariablesLaunch = c(43);
+        const dpProcessingType = m(c(44), mapProcType);
+        const dpSheetSending = c(45);
+        const dpFrequentAdmissions = b(46);
+        const dpParticulars = c(47);
 
-        // Contabil
-        const contabilLeaderName = c(50);
-        const contabilOp1Name = c(51);
-        const contabilOp2Name = c(52);
-        const contabilFrequency = c(53);
-        const contabilComplexity = n(54);
-        const contabilBookkeepingRegime = m(c(55), mapBookkeeping);
-        const contabilLastClosing = c(56);
-        const contabilClosingPeriod = m(c(57), mapPeriod);
-        const contabilInfoReceiptFreq = c(58);
-        const contabilInfoReceiptMethod = c(59);
-        const contabilIntegrationLevel = m(c(60), mapInteg);
-        const contabilTrialBalanceNeed = c(61);
-        const contabilLaunchesVolume = m(c(62), mapVolume);
-        const contabilParticulars = c(63);
+        // Contábil
+        const contabilLeaderName = c(48);
+        const contabilOp1Name = c(49);
+        const contabilOp2Name = c(50);
+        const contabilFrequency = c(51);
+        const contabilComplexity = n(52);
+        const contabilBookkeeping = m(c(53), mapBookkeeping);
+        const contabilLastClosing = c(54);
+        const contabilClosingPeriod = m(c(55), mapPeriod);
+        const contabilReceiptFreq = c(56);
+        const contabilReceiptMethod = c(57);
+        const contabilIntegration = m(c(58), mapInteg);
+        const contabilTrialBalance = c(59);
+        const contabilLaunches = m(c(60), mapLaunches);
+        const contabilParticulars = c(61);
         
         return { 
           name, tradeName, cnpj, city, state, 
@@ -224,7 +225,7 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
           fiscal, contabil, dp,
           fiscalLeaderName, fiscalOp1Name, fiscalOp2Name, fiscalFrequency, fiscalComplexity, fiscalNotesVolume, fiscalOutNotesVolume, fiscalInNotesVolume, fiscalAutomationLevel, fiscalHasSpecialRegime, fiscalSpecialRegimeDesc, fiscalInNfe, fiscalOutNfe, fiscalNfse, fiscalSendingChannels, fiscalSystem, fiscalNotesPlatform, fiscalMeetsDeadlines, fiscalParticulars,
           dpLeaderName, dpOp1Name, dpOp2Name, dpFrequency, dpComplexity, dpEmployeesCount, dpProlaboreCount, dpDomesticsCount, dpPointReceipt, dpVariablesLaunch, dpProcessingType, dpSheetSending, dpFrequentAdmissions, dpParticulars,
-          contabilLeaderName, contabilOp1Name, contabilOp2Name, contabilFrequency, contabilComplexity, contabilBookkeepingRegime, contabilLastClosing, contabilClosingPeriod, contabilInfoReceiptFreq, contabilInfoReceiptMethod, contabilIntegrationLevel, contabilTrialBalanceNeed, contabilLaunchesVolume, contabilParticulars
+          contabilLeaderName, contabilOp1Name, contabilOp2Name, contabilFrequency, contabilComplexity, contabilBookkeepingRegime: contabilBookkeeping, contabilLastClosing, contabilClosingPeriod, contabilInfoReceiptFreq: contabilReceiptFreq, contabilInfoReceiptMethod: contabilReceiptMethod, contabilIntegrationLevel: contabilIntegration, contabilTrialBalanceNeed: contabilTrialBalance, contabilLaunchesVolume: contabilLaunches, contabilParticulars
         };
       }).filter(c => c.name); // Filtrar linhas inválidas sem nome
 
