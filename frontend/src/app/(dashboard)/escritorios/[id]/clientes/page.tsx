@@ -110,12 +110,36 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const columns = line.split(/[;,]/);
         
         const name = columns[0]?.trim() || '';
-        const cnpj = columns[1]?.trim() || '';
-        const fiscal = columns[2]?.trim().toUpperCase() === 'SIM';
-        const contabil = columns[3]?.trim().toUpperCase() === 'SIM';
-        const dp = columns[4]?.trim().toUpperCase() === 'SIM';
+        const tradeName = columns[1]?.trim() || '';
+        const cnpj = columns[2]?.trim() || '';
+        const email = columns[3]?.trim() || '';
+        const phone = columns[4]?.trim() || '';
+        const contactName = columns[5]?.trim() || '';
+        const zipCode = columns[6]?.trim() || '';
+        const address = columns[7]?.trim() || '';
+        const neighborhood = columns[8]?.trim() || '';
+        const city = columns[9]?.trim() || '';
+        const state = columns[10]?.trim() || '';
+        const taxRegime = columns[11]?.trim() || '';
+        const segment = columns[12]?.trim() || '';
+        const revenueBracket = columns[13]?.trim() || '';
+        const hasEconomicGroup = columns[14]?.trim().toUpperCase() === 'SIM';
+        const economicGroupName = columns[15]?.trim() || '';
+        const monthlyFee = columns[16]?.trim() ? Number(columns[16].trim().replace(/[^0-9.-]+/g,"")) : undefined;
+        const classification = columns[17]?.trim() || '';
+        const status = columns[18]?.trim() || 'ACTIVE';
+
+        const fiscal = columns[19]?.trim().toUpperCase() === 'SIM';
+        const contabil = columns[20]?.trim().toUpperCase() === 'SIM';
+        const dp = columns[21]?.trim().toUpperCase() === 'SIM';
         
-        return { name, cnpj, fiscal, contabil, dp };
+        return { 
+          name, tradeName, cnpj, email, phone, contactName, 
+          zipCode, address, neighborhood, city, state, 
+          taxRegime, segment, revenueBracket, hasEconomicGroup, 
+          economicGroupName, monthlyFee, classification, status,
+          fiscal, contabil, dp 
+        };
       }).filter(c => c.name); // Filtrar linhas inválidas sem nome
 
       if (clientsPayload.length === 0) {

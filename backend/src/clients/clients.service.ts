@@ -112,21 +112,39 @@ export class ClientsService {
         clientId = existing?.id;
       }
       
+      const clientData = {
+        name: data.name,
+        cnpj: data.cnpj || null,
+        tradeName: data.tradeName || null,
+        email: data.email || null,
+        phone: data.phone || null,
+        contactName: data.contactName || null,
+        zipCode: data.zipCode || null,
+        address: data.address || null,
+        neighborhood: data.neighborhood || null,
+        city: data.city || null,
+        state: data.state || null,
+        taxRegime: data.taxRegime || null,
+        segment: data.segment || null,
+        revenueBracket: data.revenueBracket || null,
+        hasEconomicGroup: data.hasEconomicGroup || false,
+        economicGroupName: data.economicGroupName || null,
+        monthlyFee: data.monthlyFee ? Number(data.monthlyFee) : null,
+        classification: data.classification || null,
+        status: data.status || 'ACTIVE',
+      };
+
       if (!clientId) {
         // Create new client
         const newClient = await tenantPrisma.client.create({
-          data: {
-            name: data.name,
-            cnpj: data.cnpj || null,
-            status: 'ACTIVE',
-          }
+          data: clientData
         });
         clientId = newClient.id;
       } else {
-        // Update existing client name
+        // Update existing client name and other fields
         await tenantPrisma.client.update({
           where: { id: clientId },
-          data: { name: data.name }
+          data: clientData
         });
       }
 
