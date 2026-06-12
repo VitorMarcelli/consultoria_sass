@@ -70,7 +70,7 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading }:
               <li>Para as colunas das frentes (Fiscal, Contábil, DP), digite <strong>SIM</strong> ou <strong>NÃO</strong>.</li>
             </ul>
             <a 
-              href="data:text/csv;charset=utf-8,Razão Social,CNPJ,Fiscal,Contábil,DP%0AExemplo LTDA,00.000.000/0001-00,SIM,SIM,NÃO" 
+              href="data:text/csv;charset=utf-8,%EF%BB%BFRazão Social;CNPJ;Fiscal;Contábil;DP%0AExemplo LTDA;00.000.000/0001-00;SIM;SIM;NÃO" 
               download="modelo_importacao_clientes.csv"
               className="text-teal-600 font-medium hover:underline text-sm inline-flex items-center gap-1"
             >
