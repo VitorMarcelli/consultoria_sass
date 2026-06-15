@@ -126,14 +126,22 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
         hasColor={modalConfig.hasColor}
         onUpdated={reloadOptions}
       />
+      
+      {/* Decorative Background Blob */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-teal-400/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-400/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-teal-500/30 shrink-0">
-            <FileText className="w-7 h-7" />
+        <div className="flex items-center gap-5">
+          <div className="relative">
+            <div className="absolute inset-0 bg-teal-400 blur-xl opacity-20 rounded-full"></div>
+            <div className="w-16 h-16 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-teal-500/30 relative z-10 border border-white/20 ring-4 ring-white/50">
+              <FileText className="w-8 h-8" />
+            </div>
           </div>
           <div>
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dados Cadastrais</h2>
@@ -142,56 +150,71 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
         </div>
       </motion.div>
 
-      <form onSubmit={handleSaveAndNext} className="max-w-4xl space-y-8">
+      <form onSubmit={handleSaveAndNext} className="max-w-4xl space-y-8 relative z-10">
         
         {/* Bloco 1: Informações Básicas */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 relative overflow-hidden"
+          className="bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-6 relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply"></div>
           
-          <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4 relative z-10">
-            <Building2 className="w-5 h-5 text-teal-500" />
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Informações Básicas</h3>
+          <div className="flex items-center gap-3 mb-8 pb-4 relative z-10">
+            <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+              <Building2 className="w-5 h-5 text-teal-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Informações Básicas</h3>
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">Identificação da empresa</p>
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome do Escritório</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 relative z-10">
+            <div className="space-y-2.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Nome do Escritório
+              </label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm"
                 placeholder="Ex: Contabilidade Alpha"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CNPJ</label>
+            <div className="space-y-2.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> CNPJ
+              </label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm"
+                placeholder="00.000.000/0000-00"
                 value={cnpj}
                 onChange={(e) => setCnpj(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cidade / UF</label>
+            <div className="space-y-2.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Cidade / UF
+              </label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm"
+                placeholder="Ex: São Paulo / SP"
                 value={cityState}
                 onChange={(e) => setCityState(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between mb-1 ml-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Porte do Escritório</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Porte do Escritório
+                </label>
                 {role === 'ADMIN' && (
-                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_SIZE', title: 'Porte do Escritório', description: 'Tamanhos disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
+                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_SIZE', title: 'Porte do Escritório', description: 'Tamanhos disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-white border border-teal-100 shadow-sm hover:bg-teal-50 px-2 py-1 rounded-lg transition-all">
                     <Settings className="w-3 h-3" /> Configurar
                   </button>
                 )}
@@ -199,13 +222,13 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
               <select 
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm appearance-none"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2em' }}
               >
                 <option value="">Selecione...</option>
                 {systemOptions.filter((o: any) => o.category === 'TENANT_SIZE').map((o: any) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
-
               </select>
             </div>
           </div>
@@ -216,21 +239,28 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 relative overflow-hidden"
+          className="bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-6 relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply"></div>
 
-          <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4 relative z-10">
-            <FileText className="w-5 h-5 text-teal-500" />
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Gestão do Projeto</h3>
+          <div className="flex items-center gap-3 mb-8 pb-4 relative z-10">
+            <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+              <FileText className="w-5 h-5 text-teal-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Gestão do Projeto</h3>
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">Andamento e responsáveis</p>
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 relative z-10">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between mb-1 ml-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status do Projeto</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span> Status do Projeto
+                </label>
                 {role === 'ADMIN' && (
-                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_STATUS', title: 'Status do Projeto', description: 'Fases e status com cores associadas', hasColor: true})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
+                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_STATUS', title: 'Status do Projeto', description: 'Fases e status com cores associadas', hasColor: true})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-white border border-teal-100 shadow-sm hover:bg-teal-50 px-2 py-1 rounded-lg transition-all">
                     <Settings className="w-3 h-3" /> Configurar
                   </button>
                 )}
@@ -238,20 +268,23 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
               <select 
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm appearance-none"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2em' }}
               >
                 {systemOptions.filter((o: any) => o.category === 'TENANT_STATUS').map((o: any) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
-
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Consultor Responsável</label>
+            <div className="space-y-2.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Consultor Responsável
+              </label>
               <select 
                 value={consultantId}
                 onChange={(e) => setConsultantId(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm appearance-none"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2em' }}
               >
                 <option value="">Ninguém (Sem Consultor)</option>
                 {consultores.map(c => (
@@ -259,11 +292,13 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5 md:col-span-2">
               <div className="flex items-center justify-between mb-1 ml-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sistema Contábil Principal</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Sistema Contábil Principal
+                </label>
                 {role === 'ADMIN' && (
-                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'ACCOUNTING_SYSTEM', title: 'Sistema Contábil Principal', description: 'Sistemas disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
+                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'ACCOUNTING_SYSTEM', title: 'Sistema Contábil Principal', description: 'Sistemas disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-white border border-teal-100 shadow-sm hover:bg-teal-50 px-2 py-1 rounded-lg transition-all">
                     <Settings className="w-3 h-3" /> Configurar
                   </button>
                 )}
@@ -271,36 +306,45 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
               <select 
                 value={accountingSystem}
                 onChange={(e) => setAccountingSystem(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm appearance-none"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2em' }}
               >
                 <option value="">Selecione...</option>
                 {systemOptions.filter((o: any) => o.category === 'ACCOUNTING_SYSTEM').map((o: any) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
-
               </select>
             </div>
           </div>
 
-          <div className="space-y-2 relative z-10 mt-6">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Observações Gerais</label>
+          <div className="space-y-2.5 relative z-10 mt-8 pt-8 border-t border-slate-100">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Observações Gerais
+            </label>
             <textarea 
               rows={4}
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
-              className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300 resize-none"
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 resize-none shadow-sm"
               placeholder="Anotações importantes sobre o momento do escritório, desafios iniciais ou detalhes do contrato."
             />
           </div>
         </motion.div>
 
-        <div className="pt-6 flex justify-end">
+        <div className="pt-8 pb-10 flex justify-end">
           <button 
             type="submit"
             disabled={saving}
-            className="bg-teal-600 text-white px-10 py-4 rounded-2xl hover:bg-teal-700 transition-all font-bold text-sm flex items-center gap-2 shadow-xl shadow-teal-600/20 disabled:opacity-50"
+            className="group relative overflow-hidden bg-slate-900 text-white px-8 py-4 rounded-full transition-all font-black text-sm flex items-center gap-3 shadow-[0_8px_20px_rgb(0,0,0,0.15)] hover:shadow-[0_10px_25px_rgb(0,0,0,0.2)] hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
           >
-            {saving ? <><Loader2 className="w-5 h-5 animate-spin" /> Salvando...</> : 'Salvar e Avançar para Frentes'}
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <span className="relative z-10 flex items-center gap-2">
+              {saving ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Salvando...</>
+              ) : (
+                <>Salvar e Avançar para Frentes <span className="transform group-hover:translate-x-1 transition-transform">→</span></>
+              )}
+            </span>
           </button>
         </div>
       </form>
