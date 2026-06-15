@@ -80,39 +80,26 @@ export default function TopNavbar() {
           </div>
         </div>
 
-        {/* Central Navigation (Dynamic Island Style) */}
+        {/* Central Navigation */}
         <nav 
-          onMouseEnter={() => setHoveredTab('nav-container')}
           onMouseLeave={() => setHoveredTab(null)}
           className="hidden md:flex items-center bg-slate-200/50 dark:bg-slate-950/50 p-1.5 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] border border-slate-300/50 dark:border-slate-800/50 transition-all duration-500"
         >
-          <AnimatePresence initial={false}>
-            {menuItems.filter(item => {
-              if (item.path.startsWith('/admin') || item.path === '/') {
-                return profile?.role === 'ADMIN';
-              }
-              return true;
-            }).map((item) => {
-              const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
-              const isNavHovered = hoveredTab === 'nav-container' || hoveredTab === item.name;
-              
-              // Se não estiver com o mouse em cima da navbar, mostra apenas o item ativo (Dynamic Island effect)
-              const isVisible = isActive || hoveredTab !== null;
-
-              if (!isVisible) return null;
-
-              return (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, width: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, width: 'auto', scale: 1 }}
-                  exit={{ opacity: 0, width: 0, scale: 0.8 }}
-                  transition={{ type: "spring", bounce: 0.25, duration: 0.6 }}
-                  key={item.name}
-                  className="overflow-hidden whitespace-nowrap origin-center"
-                >
-                  <Link 
-                    href={item.path} 
+          {menuItems.filter(item => {
+            if (item.path.startsWith('/admin') || item.path === '/') {
+              return profile?.role === 'ADMIN';
+            }
+            return true;
+          }).map((item) => {
+            const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+            
+            return (
+              <div
+                key={item.name}
+                className="overflow-hidden whitespace-nowrap origin-center"
+              >
+                <Link 
+                  href={item.path} 
                     className="relative flex px-5 py-2.5 mx-0.5 rounded-full outline-none group"
                     onMouseEnter={() => setHoveredTab(item.name)}
                   >
@@ -143,10 +130,10 @@ export default function TopNavbar() {
                       </span>
                     </div>
                   </Link>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+              </div>
+            );
+          })}
+
         </nav>
 
         {/* Right Actions */}

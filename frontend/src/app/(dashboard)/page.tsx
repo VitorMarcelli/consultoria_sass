@@ -19,6 +19,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
+import { StatsCard } from '@/components/ui/StatsCard';
 
 interface Client {
   id: string;
@@ -151,22 +152,6 @@ export default function DashboardHome() {
     { name: 'MRR', value: `R$ ${(activeClients * 2.49).toFixed(2)}k`, total: 'Faturamento', color: 'text-emerald-500', stripColor: 'bg-emerald-500', icon: TrendingUp, progress: 85, desc: 'Ticket Médio: R$ 2.49k' },
   ];
 
-  // Helper component for the Circular Progress indicator from the reference image
-  const CircularProgress = ({ progress, colorClass }: { progress: number, colorClass: string }) => {
-    const strokeDasharray = 2 * Math.PI * 18; 
-    const strokeDashoffset = strokeDasharray - (progress / 100) * strokeDasharray;
-    return (
-      <div className="relative h-12 w-12 flex items-center justify-center shrink-0">
-        <svg className="transform -rotate-90 w-12 h-12 drop-shadow-sm">
-          <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-100 dark:text-slate-800" />
-          <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={strokeDasharray} strokeDashoffset={strokeDashoffset} className={`${colorClass} transition-all duration-1000 ease-out`} strokeLinecap="round" />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{Math.round(progress)}%</span>
-        </div>
-      </div>
-    );
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -280,34 +265,7 @@ export default function DashboardHome() {
         className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
       >
         {stats.map((stat, i) => (
-          <motion.div 
-            key={i} 
-            variants={cardVariants}
-            className="rounded-[2.5rem] bg-white dark:bg-slate-900 p-7 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] dark:shadow-none border border-slate-50 dark:border-slate-800 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer flex flex-col justify-between min-h-[160px]"
-          >
-            {/* Decorative colored strip on the right edge */}
-            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-16 rounded-l-full opacity-90 transition-all duration-300 group-hover:h-24 group-hover:shadow-lg ${stat.stripColor}`}></div>
-            
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div className="flex flex-col">
-                <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 w-max mb-3 border border-slate-100 dark:border-slate-700 shadow-sm group-hover:shadow-md transition-shadow">
-                  <stat.icon className="h-5 w-5" />
-                </div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{stat.total}</p>
-              </div>
-              <CircularProgress progress={stat.progress} colorClass={stat.color} />
-            </div>
-
-            <div className="relative z-10">
-              <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter flex items-baseline gap-2">
-                {stat.value}
-                <span className="text-sm font-bold text-slate-400 tracking-normal opacity-0 group-hover:opacity-100 transition-opacity">
-                   / {stat.name}
-                </span>
-              </h3>
-              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-2">{stat.desc}</p>
-            </div>
-          </motion.div>
+          <StatsCard key={i} stat={stat as any} />
         ))}
       </motion.div>
 
