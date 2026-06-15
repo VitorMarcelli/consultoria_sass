@@ -13,6 +13,7 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [consultores, setConsultores] = useState<any[]>([]);
+  const [systemOptions, setSystemOptions] = useState<any[]>([]);
 
   // Form State
   const [name, setName] = useState('');
@@ -27,11 +28,13 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
   useEffect(() => {
     async function loadData() {
       try {
-        const [tenantData, usersData] = await Promise.all([
+        const [tenantData, usersData, optionsData] = await Promise.all([
           apiRequest(`/tenants/${id}`),
-          apiRequest('/users')
+          apiRequest('/users'),
+          apiRequest('/system-options').catch(() => [])
         ]);
         
+        setSystemOptions(optionsData || []);
         setConsultores(usersData.filter((u: any) => u.role === 'CONSULTANT') || []);
         
         if (tenantData) {
@@ -171,9 +174,17 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
                 className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
               >
                 <option value="">Selecione...</option>
-                <option value="Pequeno (até 20 colaboradores)">Pequeno (até 20 colaboradores)</option>
-                <option value="Médio (21 a 100 colaboradores)">Médio (21 a 100 colaboradores)</option>
-                <option value="Grande (mais de 100 colaboradores)">Grande (mais de 100 colaboradores)</option>
+                {systemOptions.filter((o: any) => o.category === 'TENANT_SIZE').map((o: any) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+                {/* Fallbacks in case options are empty */}
+                {systemOptions.filter((o: any) => o.category === 'TENANT_SIZE').length === 0 && (
+                  <>
+                    <option value="Pequeno (até 20 colaboradores)">Pequeno (até 20 colaboradores)</option>
+                    <option value="Médio (21 a 100 colaboradores)">Médio (21 a 100 colaboradores)</option>
+                    <option value="Grande (mais de 100 colaboradores)">Grande (mais de 100 colaboradores)</option>
+                  </>
+                )}
               </select>
             </div>
           </div>
@@ -201,10 +212,18 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
               >
-                <option value="PREPARATION">Preparação (M0)</option>
-                <option value="MAPPING">Mapeamento (M1 - M3)</option>
-                <option value="ACTIVE">Ativo (Implantação de Rotinas)</option>
-                <option value="INACTIVE">Inativo / Pausado</option>
+                {systemOptions.filter((o: any) => o.category === 'TENANT_STATUS').map((o: any) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+                {/* Fallbacks */}
+                {systemOptions.filter((o: any) => o.category === 'TENANT_STATUS').length === 0 && (
+                  <>
+                    <option value="PREPARATION">Preparação (M0)</option>
+                    <option value="MAPPING">Mapeamento (M1 - M3)</option>
+                    <option value="ACTIVE">Ativo (Implantação de Rotinas)</option>
+                    <option value="INACTIVE">Inativo / Pausado</option>
+                  </>
+                )}
               </select>
             </div>
             <div className="space-y-2">
@@ -228,11 +247,19 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
                 className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300"
               >
                 <option value="">Selecione...</option>
-                <option value="Domínio Sistemas">Domínio Sistemas</option>
-                <option value="Alterdata">Alterdata</option>
-                <option value="Nasajon">Nasajon</option>
-                <option value="ContaAzul">ContaAzul</option>
-                <option value="Outro">Outro</option>
+                {systemOptions.filter((o: any) => o.category === 'ACCOUNTING_SYSTEM').map((o: any) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+                {/* Fallbacks */}
+                {systemOptions.filter((o: any) => o.category === 'ACCOUNTING_SYSTEM').length === 0 && (
+                  <>
+                    <option value="Domínio Sistemas">Domínio Sistemas</option>
+                    <option value="Alterdata">Alterdata</option>
+                    <option value="Nasajon">Nasajon</option>
+                    <option value="ContaAzul">ContaAzul</option>
+                    <option value="Outro">Outro</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

@@ -41,6 +41,8 @@ export default function EscritorioLayout({
   const [tenantCnpj, setTenantCnpj] = React.useState<string>('');
   const [tenantStatus, setTenantStatus] = React.useState<string>('PREPARATION');
 
+  const [systemOptions, setSystemOptions] = React.useState<any[]>([]);
+
   React.useEffect(() => {
     import('@/utils/api').then(({ apiRequest }) => {
       apiRequest(`/tenants/${id}`)
@@ -54,10 +56,23 @@ export default function EscritorioLayout({
       apiRequest('/users/me')
         .then(data => setRole(data?.role || 'CONSULTANT'))
         .catch(() => setRole('CONSULTANT'));
+
+      apiRequest('/system-options')
+        .then(data => setSystemOptions(data || []))
+        .catch(() => setSystemOptions([]));
     });
   }, [id]);
 
   const getStatusLabel = (status: string) => {
+    const dynamicOption = systemOptions.find(o => o.category === 'TENANT_STATUS' && o.value === status);
+    if (dynamicOption) {
+      const baseColor = dynamicOption.color || 'slate';
+      return { 
+        label: dynamicOption.label, 
+        colors: `bg-${baseColor}-100 text-${baseColor}-700 border-${baseColor}-200` 
+      };
+    }
+
     switch (status) {
       case 'ACTIVE': return { label: 'Ativo', colors: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
       case 'MAPPING': return { label: 'Mapeamento', colors: 'bg-amber-100 text-amber-700 border-amber-200' };
