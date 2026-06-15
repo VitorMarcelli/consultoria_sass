@@ -88,69 +88,76 @@ export default function EscritorioLayout({
 
   const statusInfo = getStatusLabel(tenantStatus);
 
-  // Todos (Admin, Lider, Consultor) podem ver o Painel Gerencial de seus próprios escritórios
-  const filteredMenuGroups = menuGroups;
+  const flatTabs = [
+    { id: 'cadastro', label: 'Dados' },
+    { id: 'frentes', label: 'Frentes' },
+    { id: 'estruturas', label: 'Células' },
+    { id: 'ciclos', label: 'Gestão de Ciclos' },
+    { id: 'painel', label: 'Painel Gerencial' },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
-        <div className="mb-8 pb-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{tenantName}</h1>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${statusInfo.colors}`}>
-                {statusInfo.label}
-              </span>
+    <div className="space-y-0 max-w-7xl mx-auto pb-12">
+      {/* Top Header - Transparent & Sleek */}
+      <div className="mb-8 px-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{tenantName}</h1>
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border ${statusInfo.colors.replace('100', '50').replace('200', '200')} bg-white shadow-sm`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.colors.split(' ')[0].replace('bg-', 'bg-').replace('100', '500')} animate-pulse`}></span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{statusInfo.label}</span>
             </div>
-            {tenantCnpj && (
-              <p className="text-sm font-medium text-slate-500 mt-2">
-                CNPJ: <span className="text-slate-600">{tenantCnpj}</span>
-              </p>
-            )}
           </div>
-          <div className="bg-teal-50 px-4 py-2 rounded-xl border border-teal-100">
-            <p className="text-sm font-bold text-teal-700">Mapeamento da Operação</p>
-          </div>
+          {tenantCnpj && (
+            <p className="text-sm font-medium text-slate-500 mt-2">
+              CNPJ: <span className="text-slate-700">{tenantCnpj}</span>
+            </p>
+          )}
         </div>
-
-        {/* Grouped Stepper Navigation */}
-        <div className="flex flex-wrap gap-8 overflow-x-auto pb-2 custom-scrollbar">
-          {filteredMenuGroups.map((group, groupIdx) => (
-            <div key={groupIdx} className="flex flex-col gap-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">{group.title}</span>
-              <div className="flex items-center gap-2">
-                {group.items.map((tab) => {
-                  const isActive = tab.id === currentTabId;
-
-                  return (
-                    <Link 
-                      key={tab.id}
-                      href={`/escritorios/${id}/${tab.id}`}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
-                        isActive 
-                          ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20' 
-                          : 'bg-slate-50 text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
-                      }`}
-                    >
-                      {tab.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        
+        <div className="bg-teal-50/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-teal-100/50 shadow-sm">
+          <p className="text-sm font-bold text-teal-700 flex items-center gap-2">
+            <Check className="w-4 h-4" />
+            Mapeamento da Operação
+          </p>
         </div>
       </div>
 
-      {currentTabId === 'painel' ? (
-        <div className="min-h-[500px]">
+      {/* Folder Tabs Navigation */}
+      <div className="flex px-4 gap-1.5 overflow-x-auto custom-scrollbar relative z-10 pt-2">
+        {flatTabs.map((tab) => {
+          const isActive = tab.id === currentTabId;
+
+          return (
+            <Link 
+              key={tab.id}
+              href={`/escritorios/${id}/${tab.id}`}
+              className={`relative px-6 py-3.5 font-bold text-sm transition-colors duration-300 flex items-center justify-center min-w-[130px] whitespace-nowrap ${
+                isActive 
+                  ? 'bg-white text-teal-600 z-20 rounded-t-2xl' 
+                  : 'bg-slate-200/60 text-slate-500 hover:bg-slate-200 hover:text-slate-800 z-0 rounded-t-xl mt-1.5'
+              }`}
+            >
+              {tab.label}
+              
+              {/* Seamless Inverted Curves for Active Tab */}
+              {isActive && (
+                <>
+                  <div className="absolute bottom-0 -left-4 w-4 h-4 bg-transparent rounded-br-2xl shadow-[6px_6px_0_6px_white] pointer-events-none"></div>
+                  <div className="absolute bottom-0 -right-4 w-4 h-4 bg-transparent rounded-bl-2xl shadow-[-6px_6px_0_6px_white] pointer-events-none"></div>
+                </>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Main Content Area - Visually connected to the active tab */}
+      <div className="bg-white rounded-b-3xl rounded-tr-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative z-20 border border-slate-100 min-h-[500px]">
+        <div className="p-8">
           {children}
         </div>
-      ) : (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 min-h-[500px]">
-          {children}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
