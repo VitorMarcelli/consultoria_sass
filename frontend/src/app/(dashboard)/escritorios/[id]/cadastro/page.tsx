@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/utils/api';
-import { Loader2, FileText, Building2 } from 'lucide-react';
+import { Loader2, FileText, Building2, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
+import SystemOptionManagerModal from '@/components/SystemOptionManagerModal';
 
 export default function CadastroEscritorioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
@@ -14,6 +15,10 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
   const [saving, setSaving] = useState(false);
   const [consultores, setConsultores] = useState<any[]>([]);
   const [systemOptions, setSystemOptions] = useState<any[]>([]);
+  const [role, setRole] = useState('CONSULTANT');
+  const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; category: string; title: string; description: string; hasColor?: boolean }>({
+    isOpen: false, category: '', title: '', description: '', hasColor: false
+  });
 
   // Form State
   const [name, setName] = useState('');
@@ -28,14 +33,16 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
   useEffect(() => {
     async function loadData() {
       try {
-        const [tenantData, usersData, optionsData] = await Promise.all([
+        const [tenantData, usersData, optionsData, meData] = await Promise.all([
           apiRequest(`/tenants/${id}`),
           apiRequest('/users'),
-          apiRequest('/system-options').catch(() => [])
+          apiRequest('/system-options').catch(() => []),
+          apiRequest('/users/me').catch(() => null)
         ]);
         
         setSystemOptions(optionsData || []);
         setConsultores(usersData.filter((u: any) => u.role === 'CONSULTANT') || []);
+        if (meData?.role) setRole(meData.role);
         
         if (tenantData) {
           setName(tenantData.name || '');
@@ -55,6 +62,11 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
     }
     loadData();
   }, [id]);
+
+  const reloadOptions = async () => {
+    const data = await apiRequest('/system-options').catch(() => []);
+    setSystemOptions(data || []);
+  };
 
   const handleSaveAndNext = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +117,15 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
 
   return (
     <div className="relative">
+      <SystemOptionManagerModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        category={modalConfig.category}
+        title={modalConfig.title}
+        description={modalConfig.description}
+        hasColor={modalConfig.hasColor}
+        onUpdated={reloadOptions}
+      />
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -167,7 +188,14 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Porte do Escritório</label>
+              <div className="flex items-center justify-between mb-1 ml-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Porte do Escritório</label>
+                {role === 'SUPERADMIN' && (
+                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_SIZE', title: 'Porte do Escritório', description: 'Tamanhos disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
+                    <Settings className="w-3 h-3" /> Configurar
+                  </button>
+                )}
+              </div>
               <select 
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
@@ -206,7 +234,14 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Status do Projeto</label>
+              <div className="flex items-center justify-between mb-1 ml-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status do Projeto</label>
+                {role === 'SUPERADMIN' && (
+                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_STATUS', title: 'Status do Projeto', description: 'Fases e status com cores associadas', hasColor: true})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
+                    <Settings className="w-3 h-3" /> Configurar
+                  </button>
+                )}
+              </div>
               <select 
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
@@ -240,7 +275,14 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sistema Contábil Principal</label>
+              <div className="flex items-center justify-between mb-1 ml-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sistema Contábil Principal</label>
+                {role === 'SUPERADMIN' && (
+                  <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'ACCOUNTING_SYSTEM', title: 'Sistema Contábil Principal', description: 'Sistemas disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
+                    <Settings className="w-3 h-3" /> Configurar
+                  </button>
+                )}
+              </div>
               <select 
                 value={accountingSystem}
                 onChange={(e) => setAccountingSystem(e.target.value)}
