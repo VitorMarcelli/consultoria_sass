@@ -38,7 +38,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
   useEffect(() => {
     if (officeId) {
-      apiRequest(`/offices/${officeId}`)
+      apiRequest(`/tenants/${officeId}`)
         .then(res => {
           if (res && res.name) setOfficeName(res.name);
         })
