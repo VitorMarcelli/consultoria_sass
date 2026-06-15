@@ -1,19 +1,71 @@
 'use client';
 
-import { Search, Menu } from 'lucide-react';
+import { Search, Menu, ChevronRight } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { apiRequest } from '@/utils/api';
+import Link from 'next/link';
 import NotificationDropdown from './NotificationDropdown';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
 }
 
+const mapLabels: Record<string, string> = {
+  'escritorios': 'Escritórios',
+  'clientes': 'Clientes',
+  'configuracoes': 'Configurações',
+  'empresa': 'Empresa',
+  'entregas': 'Entregas',
+  'equipe': 'Equipe',
+  'cadastro': 'Cadastro',
+  'ciclos': 'Ciclos',
+  'colaboradores': 'Colaboradores',
+  'estruturas': 'Estruturas',
+  'frentes': 'Frentes de Atuação',
+  'painel': 'Painel',
+  'imports': 'Importações',
+  'relatorios': 'Relatórios'
+};
+
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const pathname = usePathname();
+  const [officeName, setOfficeName] = useState<string>('');
   
-  const pageName = pathname === '/' 
-    ? 'Visão Geral' 
-    : pathname.split('/')[1].charAt(0).toUpperCase() + pathname.split('/')[1].slice(1);
+  const pathParts = pathname.split('/').filter(Boolean);
+  const isOfficeContext = pathParts[0] === 'escritorios' && pathParts.length > 1;
+  const officeId = isOfficeContext ? pathParts[1] : null;
+
+  useEffect(() => {
+    if (officeId) {
+      apiRequest(`/offices/${officeId}`)
+        .then(res => {
+          if (res && res.name) setOfficeName(res.name);
+        })
+        .catch(console.error);
+    } else {
+      setOfficeName('');
+    }
+  }, [officeId]);
+
+  const breadcrumbs = [];
+  breadcrumbs.push({ label: 'Sevilha Performance', href: '/' });
+
+  let currentPath = '';
+  pathParts.forEach((part, index) => {
+    currentPath += `/${part}`;
+    
+    let label = mapLabels[part] || (part.charAt(0).toUpperCase() + part.slice(1));
+    
+    // Se for o ID do escritório, substituir pelo nome
+    if (isOfficeContext && index === 1) {
+      label = officeName || 'Carregando...';
+    }
+
+    breadcrumbs.push({ label, href: currentPath });
+  });
+
+  const pageName = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 1].label : 'Visão Geral';
 
   return (
     <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between bg-white px-6 lg:px-10">
@@ -24,15 +76,28 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         >
           <Menu className="h-6 w-6" />
         </button>
-        <div className="flex flex-col justify-center">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1">
-            <span>Sevilha Performance</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-teal-600 font-semibold">Escritório Alpha</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-700">{pageName}</span>
-          </div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900">{pageName}</h2>
+        <div className="flex flex-col justify-center mt-1">
+          <nav className="flex items-center text-[13px] font-medium text-slate-500 mb-1.5 overflow-hidden whitespace-nowrap">
+            {breadcrumbs.map((bc, idx) => {
+              const isLast = idx === breadcrumbs.length - 1;
+              const isOfficeName = isOfficeContext && idx === 2; // "Sevilha" is 0, "Escritorios" is 1, Office is 2
+              return (
+                <div key={bc.href} className="flex items-center">
+                  {idx > 0 && <ChevronRight className="w-3.5 h-3.5 mx-1.5 text-slate-300" />}
+                  <Link 
+                    href={bc.href}
+                    className={`transition-colors hover:text-teal-600 ${
+                      isOfficeName ? 'text-teal-600 font-semibold' : 
+                      isLast ? 'text-slate-800' : ''
+                    }`}
+                  >
+                    {bc.label}
+                  </Link>
+                </div>
+              );
+            })}
+          </nav>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 leading-none">{pageName}</h2>
         </div>
       </div>
 
