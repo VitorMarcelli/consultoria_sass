@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient } from '@supabase/supabase-js';
+import { CreateConsultantDto } from './dto/create-consultant.dto';
 
 @Injectable()
 export class UsersService {
@@ -123,7 +124,7 @@ export class UsersService {
     });
   }
 
-  async createConsultant(requesterId: string, data: { name: string; email: string; password?: string }) {
+  async createConsultant(requesterId: string, data: CreateConsultantDto) {
     const requester = await this.prisma.user.findUnique({ where: { id: requesterId } });
     if (!requester || requester.role !== 'ADMIN') {
       throw new ForbiddenException('Apenas administradores podem convidar consultores.');
@@ -159,29 +160,35 @@ export class UsersService {
 
     const authUserId = authData.user.id;
 
-    // 2. Create Tenant (Escritório)
-    // Generate a simple slug
-    const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 6);
-    
-    const tenant = await this.prisma.tenant.create({
-      data: {
-        name: `Escritório de ${data.name}`,
-        slug,
-        status: 'ACTIVE'
-      }
-    });
+    try {
+      // 2. Create Tenant (Escritório)
+      const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 6);
+      
+      const tenant = await this.prisma.tenant.create({
+        data: {
+          name: `Escritório de ${data.name}`,
+          slug,
+          status: 'ACTIVE'
+        }
+      });
 
-    // 3. Create User in Prisma
-    const user = await this.prisma.user.create({
-      data: {
-        id: authUserId,
-        email: data.email,
-        name: data.name,
-        role: 'CONSULTANT',
-        tenantId: tenant.id
-      }
-    });
+      // 3. Create User in Prisma
+      const user = await this.prisma.user.create({
+        data: {
+          id: authUserId,
+          email: data.email,
+          name: data.name,
+          role: 'CONSULTANT',
+          tenantId: tenant.id
+        }
+      });
 
-    return user;
+      return user;
+    } catch (err: any) {
+      // Rollback: delete the Auth user if anything failed in DB creation
+      console.error('Failed to create DB records for new consultant, rolling back Auth.', err);
+      await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      throw new BadRequestException('Falha ao registrar dados no banco. O usuário foi descartado de forma segura.');
+    }
   }
 }
