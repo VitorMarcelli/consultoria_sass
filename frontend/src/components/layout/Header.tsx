@@ -80,15 +80,13 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <nav className="flex items-center text-[13px] font-medium text-slate-500 mb-1.5 overflow-hidden whitespace-nowrap">
             {breadcrumbs.map((bc, idx) => {
               const isLast = idx === breadcrumbs.length - 1;
-              const isOfficeName = isOfficeContext && idx === 2; // "Sevilha" is 0, "Escritorios" is 1, Office is 2
               return (
                 <div key={bc.href} className="flex items-center">
                   {idx > 0 && <ChevronRight className="w-3.5 h-3.5 mx-1.5 text-slate-300" />}
                   <Link 
                     href={bc.href}
                     className={`transition-colors hover:text-teal-600 ${
-                      isOfficeName ? 'text-teal-600 font-semibold' : 
-                      isLast ? 'text-slate-800' : ''
+                      isLast ? 'text-teal-600 font-semibold' : 'text-slate-400'
                     }`}
                   >
                     {bc.label}
