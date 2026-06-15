@@ -35,6 +35,7 @@ export default function TopNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -79,36 +80,73 @@ export default function TopNavbar() {
           </div>
         </div>
 
-        {/* Central Navigation */}
-        <nav className="hidden md:flex items-center gap-1 bg-slate-100/50 dark:bg-slate-950/50 p-1 rounded-full border border-slate-200/50 dark:border-slate-800/50">
-          {menuItems.filter(item => {
-            if (item.path.startsWith('/admin') || item.path === '/') {
-              return profile?.role === 'ADMIN';
-            }
-            return true;
-          }).map((item) => {
-            const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
-            return (
-              <Link key={item.name} href={item.path} className="relative group px-4 py-2 rounded-full outline-none">
-                {isActive && (
-                  <motion.div 
-                    layoutId="topnavActiveTab"
-                    className="absolute inset-0 bg-slate-900 dark:bg-teal-600 rounded-full shadow-lg"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <div className="relative flex items-center gap-2 z-10">
-                  <span className={`text-sm font-semibold transition-colors duration-200 ${
-                    isActive 
-                      ? 'text-white' 
-                      : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
-                  }`}>
-                    {item.name}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+        {/* Central Navigation (Dynamic Island Style) */}
+        <nav 
+          onMouseEnter={() => setHoveredTab('nav-container')}
+          onMouseLeave={() => setHoveredTab(null)}
+          className="hidden md:flex items-center bg-slate-200/50 dark:bg-slate-950/50 p-1.5 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] border border-slate-300/50 dark:border-slate-800/50 transition-all duration-500"
+        >
+          <AnimatePresence initial={false}>
+            {menuItems.filter(item => {
+              if (item.path.startsWith('/admin') || item.path === '/') {
+                return profile?.role === 'ADMIN';
+              }
+              return true;
+            }).map((item) => {
+              const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+              const isNavHovered = hoveredTab === 'nav-container' || hoveredTab === item.name;
+              
+              // Se não estiver com o mouse em cima da navbar, mostra apenas o item ativo (Dynamic Island effect)
+              const isVisible = isActive || hoveredTab !== null;
+
+              if (!isVisible) return null;
+
+              return (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, width: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, width: 'auto', scale: 1 }}
+                  exit={{ opacity: 0, width: 0, scale: 0.8 }}
+                  transition={{ type: "spring", bounce: 0.25, duration: 0.6 }}
+                  key={item.name}
+                  className="overflow-hidden whitespace-nowrap origin-center"
+                >
+                  <Link 
+                    href={item.path} 
+                    className="relative flex px-5 py-2.5 mx-0.5 rounded-full outline-none group"
+                    onMouseEnter={() => setHoveredTab(item.name)}
+                  >
+                    {isActive && (
+                      <motion.div 
+                        layoutId="topnavActiveTab"
+                        className="absolute inset-0 bg-slate-900 dark:bg-teal-600 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    {hoveredTab === item.name && !isActive && (
+                      <motion.div
+                        layoutId="topnavHoverTab"
+                        className="absolute inset-0 bg-white/60 dark:bg-slate-800/60 rounded-full"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                    <div className="relative flex items-center gap-2 z-10 w-full justify-center">
+                      <span className={`text-[13px] font-bold transition-colors duration-200 tracking-wide ${
+                        isActive 
+                          ? 'text-white' 
+                          : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-white'
+                      }`}>
+                        {item.name}
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </nav>
 
         {/* Right Actions */}
