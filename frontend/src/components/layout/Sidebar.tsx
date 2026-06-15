@@ -12,8 +12,7 @@ import {
   Sparkles,
   LogOut,
   ShieldCheck,
-  X,
-  Plus
+  X
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
@@ -101,19 +100,6 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <X className="h-5 w-5" />
         </button>
       </div>
-      
-      {/* Criar Novo */}
-      <div className="mt-8 px-3">
-        <button className="w-full flex items-center h-12 bg-white text-slate-900 rounded-xl font-bold shadow-lg shadow-white/5 hover:bg-slate-100 transition-all group/btn overflow-hidden">
-          <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center">
-            <Plus className="w-5 h-5 text-teal-600 transition-transform group-hover/btn:rotate-90" />
-          </div>
-          <span className={textTransitionClasses.replace('ml-3', 'ml-1')}>
-            Criar Novo
-          </span>
-        </button>
-      </div>
-
       {/* Navigation menu */}
       <div className="mt-8 px-3 flex-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
         <nav className="flex flex-col gap-2">
