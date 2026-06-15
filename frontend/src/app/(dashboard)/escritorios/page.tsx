@@ -176,45 +176,43 @@ export default function EscritoriosPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      {/* Neumorphic Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white/60 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-200/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative overflow-hidden">
-        {/* Subtle decorative background glow */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-teal-400/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10">
+      {/* Sleek Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 relative z-20">
+        <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
             Escritórios
-            <span className="inline-flex items-center justify-center bg-teal-100 text-teal-700 text-sm font-bold h-7 px-3 rounded-full border border-teal-200/60">
+            <span className="flex items-center justify-center bg-slate-900 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm">
               {escritorios.length}
             </span>
           </h1>
-          <p className="text-slate-500 font-medium text-sm mt-1">Gestão inteligente da carteira de escritórios</p>
+          <p className="text-slate-500 font-medium text-sm mt-1.5">Gestão inteligente e acompanhamento da sua carteira</p>
         </div>
 
-        <div className="flex items-center gap-4 w-full sm:w-auto relative z-10">
+        <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200/70 w-full sm:w-auto transition-shadow hover:shadow-md">
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
               placeholder="Buscar escritórios..."
-              className="w-full pl-11 pr-4 py-3 bg-white/80 backdrop-blur-md border border-slate-200/60 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all hover:border-slate-300 shadow-inner placeholder:text-slate-400 text-slate-700"
+              className="w-full pl-9 pr-4 py-2 bg-transparent text-sm font-medium focus:outline-none placeholder:text-slate-400 text-slate-700"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
+          <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
+          
           <button 
             onClick={openCreateModal}
-            className="flex items-center justify-center shrink-0 w-12 h-12 sm:w-auto sm:px-6 bg-slate-900 text-white rounded-2xl hover:bg-teal-600 transition-all duration-300 font-bold text-sm shadow-[0_8px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_25px_rgba(13,148,136,0.3)] hover:-translate-y-0.5"
+            className="flex items-center justify-center shrink-0 px-5 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-all duration-300 font-bold text-sm shadow-[0_4px_12px_rgba(20,184,166,0.25)] hover:shadow-[0_6px_16px_rgba(20,184,166,0.35)] hover:-translate-y-0.5"
           >
-            <Plus className="w-5 h-5 sm:mr-2" />
+            <Plus className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Novo Escritório</span>
           </button>
         </div>
       </div>
 
-      <div className="relative">
+      <div className="relative z-10">
         {loading ? (
           <div className="py-20 flex flex-col justify-center items-center gap-4">
             <Loader2 className="w-10 h-10 text-teal-500 animate-spin" />
@@ -232,26 +230,18 @@ export default function EscritoriosPage() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.3 }}
                     key={escritorio.id}
-                    className="group relative bg-white p-6 pl-7 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(13,148,136,0.12)] hover:-translate-y-1 hover:border-teal-100 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                    className="group relative bg-white p-7 rounded-[2.5rem] border border-slate-100/80 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(20,184,166,0.1)] hover:-translate-y-1.5 transition-all duration-500 flex flex-col justify-between overflow-hidden"
                   >
-                    {/* Status Color Strip */}
-                    {(() => {
-                      const baseColorMatch = statusInfo.colors.match(/text-([a-z]+)-/);
-                      const baseColor = baseColorMatch ? baseColorMatch[1] : 'slate';
-                      const stripColorMap: Record<string, string> = {
-                        emerald: 'bg-emerald-500', amber: 'bg-amber-500', slate: 'bg-slate-400', blue: 'bg-blue-500', teal: 'bg-teal-500'
-                      };
-                      const stripColor = stripColorMap[baseColor] || 'bg-slate-400';
-                      return <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${stripColor}`} />;
-                    })()}
+                    {/* Subtle Background Glow */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-teal-50 to-transparent rounded-bl-full transition-transform duration-500 group-hover:scale-125 opacity-50 pointer-events-none"></div>
 
-                    <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      <button onClick={() => openEditModal(escritorio)} className="p-2 text-slate-400 hover:text-teal-600 bg-white/80 backdrop-blur-md hover:bg-teal-50 rounded-xl transition-all shadow-sm border border-slate-100 hover:border-teal-100">
+                    <div className="absolute top-5 right-5 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 translate-x-2 group-hover:translate-x-0 duration-300">
+                      <button onClick={() => openEditModal(escritorio)} className="p-2 text-slate-400 hover:text-teal-600 bg-white/80 backdrop-blur-sm hover:bg-teal-50 rounded-xl transition-all shadow-sm border border-slate-100 hover:border-teal-100">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => confirmDelete(escritorio)} className="p-2 text-slate-400 hover:text-red-500 bg-white/80 backdrop-blur-md hover:bg-red-50 rounded-xl transition-all shadow-sm border border-slate-100 hover:border-red-100">
+                      <button onClick={() => confirmDelete(escritorio)} className="p-2 text-slate-400 hover:text-red-500 bg-white/80 backdrop-blur-sm hover:bg-red-50 rounded-xl transition-all shadow-sm border border-slate-100 hover:border-red-100">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -259,40 +249,52 @@ export default function EscritoriosPage() {
                     <div>
                       <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br from-teal-50 to-white border border-teal-100/50 flex items-center justify-center text-teal-600 shadow-inner relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                            <div className="absolute inset-0 bg-teal-400/5 blur-xl rounded-full"></div>
+                          <div className="w-14 h-14 shrink-0 rounded-[1.25rem] bg-gradient-to-br from-teal-50 to-white border border-teal-100/50 flex items-center justify-center text-teal-600 shadow-sm relative overflow-hidden group-hover:scale-110 transition-transform duration-500">
                             <Building2 className="w-6 h-6 relative z-10" />
                           </div>
-                          <div className="min-w-0 pr-16">
-                            <h3 className="font-bold text-lg text-slate-900 tracking-tight truncate group-hover:text-teal-700 transition-colors" title={escritorio.name}>{escritorio.name}</h3>
-                            <p className="text-sm font-medium text-slate-500 mt-0.5 flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-slate-200 inline-block"></span>
-                              {escritorio._count?.users || 0} usuários
+                          <div className="min-w-0 pr-16 relative z-10">
+                            <h3 className="font-bold text-xl text-slate-900 tracking-tight truncate group-hover:text-teal-700 transition-colors" title={escritorio.name}>{escritorio.name}</h3>
+                            <p className="text-sm font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
+                              {escritorio._count?.users || 0} usuários vinculados
                             </p>
                           </div>
                         </div>
                       </div>
                       
                       <div className="mb-6">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest shrink-0 border ${statusInfo.colors.replace('bg-', 'border-').replace('100', '200')} ${statusInfo.colors.split(' ')[0]}/30 ${statusInfo.colors.split(' ')[1]}`}>
-                          {statusInfo.label}
-                        </span>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${statusInfo.colors.replace('100', '50').replace('200', '100')} bg-opacity-50`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.colors.split(' ')[0].replace('bg-', 'bg-').replace('100', '500')} animate-pulse shadow-sm`}></span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider">{statusInfo.label}</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="pt-5 mt-auto border-t border-slate-100/60 flex items-center justify-between">
+                    <div className="pt-5 mt-auto border-t border-slate-100/80 flex items-center justify-between relative z-10">
                       <div className="text-sm flex flex-col">
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Consultor</span>
-                        <span className="font-bold text-slate-700 truncate max-w-[150px]">
-                          {escritorio.consultant?.name || 'Não atribuído'}
-                        </span>
+                        <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Responsável</span>
+                        <div className="flex items-center gap-2">
+                          {escritorio.consultant ? (
+                            <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600 shrink-0">
+                              {escritorio.consultant.name.substring(0, 2).toUpperCase()}
+                            </div>
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-300 shrink-0">
+                              --
+                            </div>
+                          )}
+                          <span className="font-bold text-slate-700 truncate max-w-[140px]">
+                            {escritorio.consultant?.name || 'Não atribuído'}
+                          </span>
+                        </div>
                       </div>
                       
                       <Link 
                         href={`/escritorios/${escritorio.id}/cadastro`}
-                        className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full bg-slate-50 text-slate-400 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-[0_4px_15px_rgba(20,184,166,0.4)] hover:scale-110"
+                        className="flex items-center gap-2 px-4 py-2 shrink-0 rounded-xl bg-slate-50 text-slate-500 border border-slate-100 group-hover:bg-teal-500 group-hover:border-teal-500 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-[0_4px_15px_rgba(20,184,166,0.3)]"
                       >
-                        <ArrowRight className="w-4 h-4" />
+                        <span className="text-xs font-bold">Acessar</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-300" />
                       </Link>
                     </div>
                   </motion.div>
