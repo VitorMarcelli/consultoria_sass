@@ -173,11 +173,11 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900"></span>
             </div>
             
-            <div className={`flex flex-col justify-center ${textTransitionClasses}`}>
-              <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{profile.name}</span>
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 uppercase tracking-wider">
-                <ShieldCheck className="h-3 w-3 text-teal-600 dark:text-teal-400" />
-                {getRoleLabel(profile.role)}
+            <div className="flex flex-col justify-center overflow-hidden transition-all duration-300 whitespace-nowrap opacity-100 ml-3 lg:opacity-0 lg:ml-0 lg:group-hover/sidebar:opacity-100 lg:group-hover/sidebar:ml-3 max-w-[130px] lg:max-w-0 lg:group-hover/sidebar:max-w-[130px]">
+              <span className="text-sm font-bold text-slate-900 dark:text-white truncate block">{profile.name}</span>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 uppercase tracking-wider truncate">
+                <ShieldCheck className="h-3 w-3 shrink-0 text-teal-600 dark:text-teal-400" />
+                <span className="truncate">{getRoleLabel(profile.role)}</span>
               </span>
             </div>
 
