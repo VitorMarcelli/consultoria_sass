@@ -28,6 +28,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.24",
     "@prisma/client": "^6.19.3",
+    "@supabase/supabase-js": "^2.108.2",
     "csv-parse": "^6.2.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
