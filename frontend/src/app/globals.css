@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
@@ -8,6 +10,87 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+}
+
+/* Dynamic Accent Colors replacing Teal */
+.theme-blue {
+  --color-teal-50: var(--color-blue-50);
+  --color-teal-100: var(--color-blue-100);
+  --color-teal-200: var(--color-blue-200);
+  --color-teal-300: var(--color-blue-300);
+  --color-teal-400: var(--color-blue-400);
+  --color-teal-500: var(--color-blue-500);
+  --color-teal-600: var(--color-blue-600);
+  --color-teal-700: var(--color-blue-700);
+  --color-teal-800: var(--color-blue-800);
+  --color-teal-900: var(--color-blue-900);
+  --color-teal-950: var(--color-blue-950);
+}
+
+.theme-emerald {
+  --color-teal-50: var(--color-emerald-50);
+  --color-teal-100: var(--color-emerald-100);
+  --color-teal-200: var(--color-emerald-200);
+  --color-teal-300: var(--color-emerald-300);
+  --color-teal-400: var(--color-emerald-400);
+  --color-teal-500: var(--color-emerald-500);
+  --color-teal-600: var(--color-emerald-600);
+  --color-teal-700: var(--color-emerald-700);
+  --color-teal-800: var(--color-emerald-800);
+  --color-teal-900: var(--color-emerald-900);
+  --color-teal-950: var(--color-emerald-950);
+}
+
+.theme-cyan {
+  --color-teal-50: var(--color-cyan-50);
+  --color-teal-100: var(--color-cyan-100);
+  --color-teal-200: var(--color-cyan-200);
+  --color-teal-300: var(--color-cyan-300);
+  --color-teal-400: var(--color-cyan-400);
+  --color-teal-500: var(--color-cyan-500);
+  --color-teal-600: var(--color-cyan-600);
+  --color-teal-700: var(--color-cyan-700);
+  --color-teal-800: var(--color-cyan-800);
+  --color-teal-900: var(--color-cyan-900);
+  --color-teal-950: var(--color-cyan-950);
+}
+
+.theme-amber {
+  --color-teal-50: var(--color-amber-50);
+  --color-teal-100: var(--color-amber-100);
+  --color-teal-200: var(--color-amber-200);
+  --color-teal-300: var(--color-amber-300);
+  --color-teal-400: var(--color-amber-400);
+  --color-teal-500: var(--color-amber-500);
+  --color-teal-600: var(--color-amber-600);
+  --color-teal-700: var(--color-amber-700);
+  --color-teal-800: var(--color-amber-800);
+  --color-teal-900: var(--color-amber-900);
+  --color-teal-950: var(--color-amber-950);
+}
+
+.theme-slate {
+  --color-teal-50: var(--color-slate-50);
+  --color-teal-100: var(--color-slate-100);
+  --color-teal-200: var(--color-slate-200);
+  --color-teal-300: var(--color-slate-300);
+  --color-teal-400: var(--color-slate-400);
+  --color-teal-500: var(--color-slate-500);
+  --color-teal-600: var(--color-slate-600);
+  --color-teal-700: var(--color-slate-700);
+  --color-teal-800: var(--color-slate-800);
+  --color-teal-900: var(--color-slate-900);
+  --color-teal-950: var(--color-slate-950);
+}
+
+/* Density Settings */
+.density-compact {
+  --spacing-table-p: 0.5rem 1rem;
+  --spacing-row: 0.5rem;
+}
+.density-comfortable {
+  --spacing-table-p: 1rem 1.5rem;
+  --spacing-row: 1rem;
 }
 
 body {
