@@ -190,7 +190,7 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-1 ml-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Porte do Escritório</label>
-                {role === 'SUPERADMIN' && (
+                {role === 'ADMIN' && (
                   <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_SIZE', title: 'Porte do Escritório', description: 'Tamanhos disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
                     <Settings className="w-3 h-3" /> Configurar
                   </button>
@@ -236,7 +236,7 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-1 ml-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status do Projeto</label>
-                {role === 'SUPERADMIN' && (
+                {role === 'ADMIN' && (
                   <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'TENANT_STATUS', title: 'Status do Projeto', description: 'Fases e status com cores associadas', hasColor: true})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
                     <Settings className="w-3 h-3" /> Configurar
                   </button>
@@ -277,7 +277,7 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-1 ml-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sistema Contábil Principal</label>
-                {role === 'SUPERADMIN' && (
+                {role === 'ADMIN' && (
                   <button type="button" onClick={() => setModalConfig({isOpen: true, category: 'ACCOUNTING_SYSTEM', title: 'Sistema Contábil Principal', description: 'Sistemas disponíveis no cadastro', hasColor: false})} className="flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors">
                     <Settings className="w-3 h-3" /> Configurar
                   </button>
