@@ -102,7 +102,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         
         {/* The prominent 'New Action' button to match 1:1 the image's "Upload New Files" */}
         <div className="mt-8 px-6">
-          <button className="w-full bg-white text-slate-900 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold shadow-lg shadow-white/5 hover:scale-[1.02] transition-transform">
+          <button className="w-full bg-white text-slate-900 flex items-center justify-center gap-2 py-3.5 rounded-inner font-bold shadow-lg shadow-white/5 hover:scale-[1.02] transition-transform">
             <Plus className="w-5 h-5 text-teal-600" />
             Criar Novo
           </button>
@@ -124,11 +124,11 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   {isActive && (
                     <motion.div 
                       layoutId="sidebarActiveTab"
-                      className="absolute inset-0 bg-slate-900/80 rounded-xl"
+                      className="absolute inset-0 bg-slate-900/80 rounded-inner"
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     />
                   )}
-                  <div className={`relative flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
+                  <div className={`relative flex items-center justify-between px-4 py-3 rounded-inner transition-all duration-200 ${
                     isActive 
                       ? 'text-white font-bold' 
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -150,9 +150,9 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       {/* User profile area */}
       <div className="p-4 px-6 mb-4">
         {profile ? (
-          <div className="flex flex-col gap-3 rounded-2xl bg-slate-900/40 p-4 relative group hover:bg-slate-900/60 transition-colors">
+          <div className="flex flex-col gap-3 rounded-container bg-slate-900/40 p-4 relative group hover:bg-slate-900/60 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center font-bold text-white shadow-inner relative overflow-hidden">
+              <div className="h-10 w-10 rounded-inner bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center font-bold text-white shadow-inner relative overflow-hidden">
                 {getUserInitials(profile.name)}
                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-900"></span>
               </div>
@@ -167,14 +167,14 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
             <button 
               onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950/50 hover:bg-red-500/10 hover:text-red-400 py-2.5 text-xs font-bold text-slate-400 transition-all duration-200"
+              className="flex w-full items-center justify-center gap-2 rounded-inner bg-slate-950/50 hover:bg-red-500/10 hover:text-red-400 py-2.5 text-xs font-bold text-slate-400 transition-all duration-200"
             >
               <LogOut className="h-3.5 w-3.5" />
               Sair
             </button>
           </div>
         ) : (
-          <div className="h-20 rounded-2xl bg-slate-900/40 animate-pulse flex items-center justify-center">
+          <div className="h-20 rounded-container bg-slate-900/40 animate-pulse flex items-center justify-center">
             <span className="text-xs text-slate-500 font-semibold">Carregando perfil...</span>
           </div>
         )}

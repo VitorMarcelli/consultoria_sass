@@ -68,11 +68,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const pageName = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 1].label : 'Visão Geral';
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between bg-white px-6 lg:px-10">
+    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between bg-white dark:bg-slate-900 px-6 lg:px-10 transition-colors border-b border-transparent dark:border-slate-800/60 rounded-t-container">
       <div className="flex items-center gap-4">
         <button 
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+          className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <Menu className="h-6 w-6" />
         </button>
@@ -82,11 +82,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               const isLast = idx === breadcrumbs.length - 1;
               return (
                 <div key={bc.href} className="flex items-center">
-                  {idx > 0 && <ChevronRight className="w-3.5 h-3.5 mx-1.5 text-slate-300" />}
+                  {idx > 0 && <ChevronRight className="w-3.5 h-3.5 mx-1.5 text-slate-300 dark:text-slate-600" />}
                   <Link 
                     href={bc.href}
                     className={`transition-colors hover:text-teal-600 ${
-                      isLast ? 'text-teal-600 font-semibold' : 'text-slate-400'
+                      isLast ? 'text-teal-600 font-semibold' : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
                     {bc.label}
@@ -95,7 +95,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               );
             })}
           </nav>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 leading-none">{pageName}</h2>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">{pageName}</h2>
         </div>
       </div>
 
@@ -105,7 +105,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <input 
             type="text" 
             placeholder="Buscar clientes..." 
-            className="h-10 w-64 rounded-full border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+            className="h-10 w-64 rounded-inner border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-teal-500 dark:focus:border-teal-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-teal-500/10 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
           />
         </div>
 
