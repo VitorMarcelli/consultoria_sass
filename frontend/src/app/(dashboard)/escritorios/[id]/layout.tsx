@@ -88,18 +88,33 @@ export default function EscritorioLayout({
 
   const statusInfo = getStatusLabel(tenantStatus);
 
-  const flatTabs = [
-    { id: 'cadastro', label: 'Dados' },
-    { id: 'frentes', label: 'Frentes' },
-    { id: 'estruturas', label: 'Células' },
-    { id: 'ciclos', label: 'Gestão de Ciclos' },
-    { id: 'painel', label: 'Painel Gerencial' },
+  const menuGroups = [
+    {
+      title: 'Parâmetros',
+      items: [
+        { id: 'cadastro', label: 'Dados' },
+        { id: 'frentes', label: 'Frentes' },
+        { id: 'estruturas', label: 'Células' },
+      ]
+    },
+    {
+      title: 'Operação',
+      items: [
+        { id: 'ciclos', label: 'Gestão de Ciclos' },
+      ]
+    },
+    {
+      title: 'Resultados',
+      items: [
+        { id: 'painel', label: 'Painel Gerencial' },
+      ]
+    }
   ];
 
   return (
     <div className="space-y-0 max-w-7xl mx-auto pb-12">
       {/* Top Header - Transparent & Sleek */}
-      <div className="mb-8 px-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="mb-10 px-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">{tenantName}</h1>
@@ -123,33 +138,43 @@ export default function EscritorioLayout({
         </div>
       </div>
 
-      {/* Folder Tabs Navigation */}
-      <div className="flex px-4 gap-1.5 overflow-x-auto custom-scrollbar relative z-10 pt-2">
-        {flatTabs.map((tab) => {
-          const isActive = tab.id === currentTabId;
+      {/* Grouped Folder Tabs Navigation */}
+      <div className="flex px-4 gap-8 overflow-x-auto custom-scrollbar relative z-10 pt-4">
+        {menuGroups.map((group, groupIdx) => (
+          <div key={groupIdx} className="flex flex-col relative">
+            {/* Group Title floating above the tabs */}
+            <span className="absolute -top-5 left-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {group.title}
+            </span>
+            <div className="flex gap-1.5">
+              {group.items.map((tab) => {
+                const isActive = tab.id === currentTabId;
 
-          return (
-            <Link 
-              key={tab.id}
-              href={`/escritorios/${id}/${tab.id}`}
-              className={`relative px-6 py-3.5 font-bold text-sm transition-colors duration-300 flex items-center justify-center min-w-[130px] whitespace-nowrap ${
-                isActive 
-                  ? 'bg-white text-teal-600 z-20 rounded-t-2xl' 
-                  : 'bg-slate-200/60 text-slate-500 hover:bg-slate-200 hover:text-slate-800 z-0 rounded-t-xl mt-1.5'
-              }`}
-            >
-              {tab.label}
-              
-              {/* Seamless Inverted Curves for Active Tab */}
-              {isActive && (
-                <>
-                  <div className="absolute bottom-0 -left-4 w-4 h-4 bg-transparent rounded-br-2xl shadow-[6px_6px_0_6px_white] pointer-events-none"></div>
-                  <div className="absolute bottom-0 -right-4 w-4 h-4 bg-transparent rounded-bl-2xl shadow-[-6px_6px_0_6px_white] pointer-events-none"></div>
-                </>
-              )}
-            </Link>
-          );
-        })}
+                return (
+                  <Link 
+                    key={tab.id}
+                    href={`/escritorios/${id}/${tab.id}`}
+                    className={`relative px-6 py-3.5 font-bold text-sm transition-colors duration-300 flex items-center justify-center min-w-[110px] whitespace-nowrap ${
+                      isActive 
+                        ? 'bg-white text-teal-600 z-20 rounded-t-2xl' 
+                        : 'bg-slate-200/60 text-slate-500 hover:bg-slate-200 hover:text-slate-800 z-0 rounded-t-xl mt-1.5'
+                    }`}
+                  >
+                    {tab.label}
+                    
+                    {/* Seamless Inverted Curves for Active Tab */}
+                    {isActive && (
+                      <>
+                        <div className="absolute bottom-0 -left-4 w-4 h-4 bg-transparent rounded-br-2xl shadow-[6px_6px_0_6px_white] pointer-events-none"></div>
+                        <div className="absolute bottom-0 -right-4 w-4 h-4 bg-transparent rounded-bl-2xl shadow-[-6px_6px_0_6px_white] pointer-events-none"></div>
+                      </>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Main Content Area - Visually connected to the active tab */}
