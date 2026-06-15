@@ -40,6 +40,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -86,23 +87,23 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         <div className="flex items-center group cursor-pointer pl-1">
           {/* S. for collapsed state */}
           <div className="flex-shrink-0 w-10 flex items-baseline justify-center lg:group-hover/sidebar:hidden transition-all">
-            <span className="text-2xl font-black tracking-tighter text-white leading-none">S</span>
-            <span className="text-teal-400 font-black text-2xl leading-none">.</span>
+            <span className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">S</span>
+            <span className="text-teal-500 dark:text-teal-400 font-black text-2xl leading-none">.</span>
           </div>
           
           {/* Full logo for expanded state */}
           <div className={`flex-col lg:hidden lg:group-hover/sidebar:flex ${textTransitionClasses}`}>
             <div className="flex items-baseline">
-              <span className="text-xl font-black tracking-tighter text-white leading-none">Sevilha</span>
-              <span className="text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+              <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">Sevilha</span>
+              <span className="text-teal-500 dark:text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
             </div>
-            <span className="text-[9px] font-bold text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
+            <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
           </div>
         </div>
         {/* Close button for mobile */}
         <button 
           onClick={onClose}
-          className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
@@ -118,21 +119,41 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           }).map((item) => {
             const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
             return (
-              <Link key={item.name} href={item.path} className="relative block group/item">
-                <div className={`flex items-center h-12 rounded-xl transition-all duration-300 ${
-                  isActive 
-                    ? 'bg-slate-800/80' 
-                    : 'hover:bg-slate-900/60'
-                }`}>
-                  <div className={`flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 ${
+              <Link 
+                key={item.name} 
+                href={item.path} 
+                className="relative flex items-center h-12 rounded-2xl outline-none group/item mb-1 overflow-hidden"
+                onMouseEnter={() => setHoveredTab(item.name)}
+                onMouseLeave={() => setHoveredTab(null)}
+              >
+                {isActive && (
+                  <motion.div 
+                    layoutId="sidebarActiveTab"
+                    className="absolute inset-0 bg-slate-900 dark:bg-teal-600 shadow-[0_4px_12px_rgba(0,0,0,0.15)] rounded-2xl"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                {hoveredTab === item.name && !isActive && (
+                  <motion.div
+                    layoutId="sidebarHoverTab"
+                    className="absolute inset-0 bg-slate-100/60 dark:bg-slate-800/60 rounded-2xl"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  />
+                )}
+                
+                <div className="relative flex items-center z-10 w-full">
+                  <div className={`flex-shrink-0 w-12 h-12 flex items-center justify-center transition-all duration-300 ${
                     isActive 
-                      ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/25 scale-100' 
-                      : 'text-slate-400 group-hover/item:text-white group-hover/item:scale-110'
+                      ? 'text-white' 
+                      : 'text-slate-500 group-hover/item:text-slate-900 dark:text-slate-400 dark:group-hover/item:text-white group-hover/item:scale-110'
                   }`}>
                     <item.icon className="w-5 h-5" />
                   </div>
                   <span className={`${textTransitionClasses} ${
-                    isActive ? 'text-white font-bold' : 'text-slate-400 font-medium group-hover/item:text-slate-200'
+                    isActive ? 'text-white font-bold' : 'text-slate-500 font-medium group-hover/item:text-slate-900 dark:text-slate-400 dark:group-hover/item:text-white'
                   }`}>
                     {item.name}
                   </span>
@@ -146,30 +167,30 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       {/* User profile area */}
       <div className="p-3 mb-4 mt-auto">
         {profile ? (
-          <div className="flex items-center h-14 rounded-xl bg-slate-900/40 hover:bg-slate-900/60 transition-colors p-1 relative group/profile cursor-pointer">
-            <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center font-bold text-white shadow-inner relative overflow-hidden">
+          <div className="flex items-center h-14 rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors p-1 relative group/profile cursor-pointer">
+            <div className="flex-shrink-0 h-12 w-12 rounded-2xl bg-gradient-to-tr from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-white shadow-inner relative overflow-hidden">
               {getUserInitials(profile.name)}
-              <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-900"></span>
+              <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900"></span>
             </div>
             
             <div className={`flex flex-col justify-center ${textTransitionClasses}`}>
-              <span className="text-sm font-bold text-white truncate">{profile.name}</span>
-              <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5 uppercase tracking-wider">
-                <ShieldCheck className="h-3 w-3 text-teal-400" />
+              <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{profile.name}</span>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 uppercase tracking-wider">
+                <ShieldCheck className="h-3 w-3 text-teal-600 dark:text-teal-400" />
                 {getRoleLabel(profile.role)}
               </span>
             </div>
 
             <button 
               onClick={handleLogout}
-              className="absolute right-3 text-slate-500 hover:text-red-400 transition-colors opacity-100 lg:opacity-0 lg:group-hover/sidebar:opacity-100"
+              className="absolute right-3 text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors opacity-100 lg:opacity-0 lg:group-hover/sidebar:opacity-100"
               title="Sair"
             >
               <LogOut className="h-5 w-5" />
             </button>
           </div>
         ) : (
-          <div className="h-14 rounded-xl bg-slate-900/40 animate-pulse flex items-center justify-center">
+          <div className="h-14 rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 animate-pulse flex items-center justify-center">
             <span className="text-xs text-slate-500 font-semibold lg:hidden lg:group-hover/sidebar:block">Carregando...</span>
           </div>
         )}
@@ -180,7 +201,9 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar (Collapsible on Hover) */}
-      <aside className="group/sidebar w-[72px] hover:w-72 transition-[width] duration-300 ease-in-out flex-col justify-between bg-transparent text-slate-400 hidden lg:flex relative z-40 py-4">
+      <aside 
+        className="group/sidebar w-[80px] hover:w-[260px] transition-[width] duration-300 ease-in-out flex-col justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] rounded-[2rem] m-4 hidden lg:flex relative z-40 py-4 overflow-hidden"
+      >
         {sidebarContent}
       </aside>
 
@@ -193,14 +216,14 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-50 bg-slate-900/20 dark:bg-black/50 backdrop-blur-sm lg:hidden"
             />
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 z-50 h-screen w-72 flex flex-col justify-between border-r border-slate-900 bg-slate-950 text-slate-400 lg:hidden"
+              className="fixed left-0 top-0 z-50 h-screen w-72 flex flex-col justify-between border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 lg:hidden shadow-2xl"
             >
               {sidebarContent}
             </motion.aside>
