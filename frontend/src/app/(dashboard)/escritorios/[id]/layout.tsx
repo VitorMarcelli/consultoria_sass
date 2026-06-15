@@ -38,12 +38,16 @@ export default function EscritorioLayout({
   
   const [role, setRole] = React.useState<string | null>(null);
   const [tenantName, setTenantName] = React.useState<string>('Configuração do Escritório');
+  const [tenantCnpj, setTenantCnpj] = React.useState<string>('');
+  const [tenantStatus, setTenantStatus] = React.useState<string>('PREPARATION');
 
   React.useEffect(() => {
     import('@/utils/api').then(({ apiRequest }) => {
       apiRequest(`/tenants/${id}`)
         .then(data => {
           if (data?.name) setTenantName(data.name);
+          if (data?.cnpj) setTenantCnpj(data.cnpj);
+          if (data?.status) setTenantStatus(data.status);
         })
         .catch(console.error);
 
@@ -53,6 +57,17 @@ export default function EscritorioLayout({
     });
   }, [id]);
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return { label: 'Ativo', colors: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+      case 'MAPPING': return { label: 'Mapeamento', colors: 'bg-amber-100 text-amber-700 border-amber-200' };
+      case 'INACTIVE': return { label: 'Inativo', colors: 'bg-slate-100 text-slate-600 border-slate-200' };
+      default: return { label: 'Preparação', colors: 'bg-blue-100 text-blue-700 border-blue-200' };
+    }
+  };
+
+  const statusInfo = getStatusLabel(tenantStatus);
+
   // Todos (Admin, Lider, Consultor) podem ver o Painel Gerencial de seus próprios escritórios
   const filteredMenuGroups = menuGroups;
 
@@ -61,8 +76,17 @@ export default function EscritorioLayout({
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
         <div className="mb-8 pb-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{tenantName}</h1>
-            <p className="text-sm font-medium text-slate-500 mt-2">ID: <span className="font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">{id}</span></p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{tenantName}</h1>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${statusInfo.colors}`}>
+                {statusInfo.label}
+              </span>
+            </div>
+            {tenantCnpj && (
+              <p className="text-sm font-medium text-slate-500 mt-2">
+                CNPJ: <span className="text-slate-600">{tenantCnpj}</span>
+              </p>
+            )}
           </div>
           <div className="bg-teal-50 px-4 py-2 rounded-xl border border-teal-100">
             <p className="text-sm font-bold text-teal-700">Mapeamento da Operação</p>
