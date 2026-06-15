@@ -93,6 +93,17 @@ enum Role {
   CONSULTANT
 }
 
+model SystemOption {
+  id        String   @id @default(uuid())
+  category  String // e.g., "TENANT_SIZE", "ACCOUNTING_SYSTEM", "TENANT_STATUS"
+  label     String // The display name
+  value     String // The underlying value
+  color     String? // Optional color e.g., "emerald", "amber"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ==========================================
 // CAMADAS 2 a 5 (Replicados nos schemas dos Tenants)
 // ==========================================
@@ -124,9 +135,9 @@ model Subdivision {
   status       String    @default("ACTIVE")
   observations String?
 
-  deliveries  Delivery[]
-  cycleAllocations     EmployeeCycleAllocation[]
-  clientCycleSnapshots ClientCycleSnapshot[]
+  deliveries                 Delivery[]
+  cycleAllocations           EmployeeCycleAllocation[]
+  clientCycleSnapshots       ClientCycleSnapshot[]
   clientFrontClassifications ClientFrontClassification[]
 }
 
@@ -139,10 +150,10 @@ model Employee {
   grossSalary Float?
   status      String  @default("ACTIVE")
 
-  ledSubdivisions Subdivision[]        @relation("SubdivisionLeader")
+  ledSubdivisions Subdivision[] @relation("SubdivisionLeader")
 
-  cycleAllocations     EmployeeCycleAllocation[]
-  ledCycleAllocations  EmployeeCycleAllocation[] @relation("AllocationLeader")
+  cycleAllocations    EmployeeCycleAllocation[]
+  ledCycleAllocations EmployeeCycleAllocation[] @relation("AllocationLeader")
 
   ledFronts       ClientFrontClassification[] @relation("FrontLeader")
   operatedFronts1 ClientFrontClassification[] @relation("FrontOperator1")
@@ -157,8 +168,6 @@ model Employee {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
-
-
 
 model Client {
   id                String  @id @default(uuid())
@@ -385,7 +394,7 @@ model ManagementCycle {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  clientSnapshots    ClientCycleSnapshot[]
+  clientSnapshots     ClientCycleSnapshot[]
   employeeAllocations EmployeeCycleAllocation[]
 
   @@unique([month, year])
@@ -420,15 +429,15 @@ model ClientCycleSnapshot {
 }
 
 model EmployeeCycleAllocation {
-  id         String          @id @default(uuid())
-  cycleId    String
-  cycle      ManagementCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  id      String          @id @default(uuid())
+  cycleId String
+  cycle   ManagementCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
   employeeId String
-  employee   Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
-  frontId    String
-  front      OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+  frontId String
+  front   OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
 
   subdivisionId String?
   subdivision   Subdivision? @relation(fields: [subdivisionId], references: [id])
@@ -436,14 +445,14 @@ model EmployeeCycleAllocation {
   leaderId String?
   leader   Employee? @relation("AllocationLeader", fields: [leaderId], references: [id])
 
-  dailyAvailableTime Float? // in hours
+  dailyAvailableTime                   Float? // in hours
   predictableRecurrentTimePercentage   Float? // Percentage 0-100
   unpredictableRecurrentTimePercentage Float? // Percentage 0-100
   allocationStartDate                  DateTime?
   allocationEndDate                    DateTime?
-  
-  status             String    @default("ACTIVE")
-  observations       String?
+
+  status       String  @default("ACTIVE")
+  observations String?
 
   @@unique([cycleId, employeeId, frontId])
 }

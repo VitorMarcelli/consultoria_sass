@@ -15,6 +15,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AllocationsModule } from './allocations/allocations.module';
 import { ManagementCyclesModule } from './management-cycles/management-cycles.module';
 import { ClientClassificationsModule } from './client-classifications/client-classifications.module';
+import { SystemOptionsModule } from './system-options/system-options.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ClientClassificationsModule } from './client-classifications/client-cla
     AllocationsModule,
     ManagementCyclesModule,
     ClientClassificationsModule,
+    SystemOptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,16 +8,18 @@ import NotificationPreferencesForm from './NotificationPreferencesForm';
 import SecurityForm from './SecurityForm';
 import AppearanceForm from './AppearanceForm';
 
+import SystemOptionsForm from './SystemOptionsForm';
+
 export default function ConfiguracoesPage() {
   const [activeTab, setActiveTab] = useState('Perfil & Conta');
 
   const tabs = [
     { name: 'Perfil & Conta', desc: 'Gerencie suas informações', icon: Settings },
+    { name: 'Parâmetros', desc: 'Opções globais do sistema', icon: Database },
     { name: 'Notificações', desc: 'Configure seus alertas', icon: Bell },
     { name: 'Segurança', desc: 'Senha e autenticação', icon: Shield },
     { name: 'Aparência', desc: 'Tema e interface', icon: Palette },
     { name: 'Integrações', desc: 'Conecte ferramentas', icon: Globe },
-    { name: 'Dados & Backup', desc: 'Exporte seus dados', icon: Database },
   ];
 
   return (
@@ -69,6 +71,8 @@ export default function ConfiguracoesPage() {
             >
               {activeTab === 'Perfil & Conta' ? (
                 <ProfileForm />
+              ) : activeTab === 'Parâmetros' ? (
+                <SystemOptionsForm />
               ) : activeTab === 'Notificações' ? (
                 <NotificationPreferencesForm />
               ) : activeTab === 'Segurança' ? (

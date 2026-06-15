@@ -16,6 +16,7 @@ export default function EscritoriosPage() {
   const [saving, setSaving] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [systemOptions, setSystemOptions] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedEscritorio, setSelectedEscritorio] = useState<any>(null);
@@ -28,30 +29,25 @@ export default function EscritoriosPage() {
   const [novoStatus, setNovoStatus] = useState('PREPARATION');
 
   useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [tenantsData, usersData, optionsData] = await Promise.all([
+          apiRequest('/tenants'),
+          apiRequest('/users').catch(() => []),
+          apiRequest('/system-options').catch(() => [])
+        ]);
+        setEscritorios(tenantsData || []);
+        setConsultores(usersData || []);
+        setSystemOptions(optionsData || []);
+      } catch (err) {
+        console.error('Erro ao buscar dados:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchData();
   }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [tenantsData, usersData] = await Promise.all([
-        apiRequest('/tenants'),
-        apiRequest('/users').catch(() => []) // Fallback in case of error
-      ]);
-      setEscritorios(tenantsData || []);
-      setConsultores(usersData || []);
-      
-      // Default consultant selection if available, or keep empty for 'Ninguém'
-      // Removing automatic selection of first user so 'Ninguém' is default
-      // if (usersData && usersData.length > 0) {
-      //   setNovoConsultorId(usersData[0].id);
-      // }
-    } catch (err) {
-      console.error('Erro ao buscar dados:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredEscritorios = escritorios.filter(esc => {
     const search = searchTerm.toLowerCase();
@@ -71,11 +67,21 @@ export default function EscritoriosPage() {
   });
 
   const getStatusLabel = (status: string) => {
+    const dynamicOption = systemOptions.find(o => o.category === 'TENANT_STATUS' && o.value === status);
+    if (dynamicOption) {
+      const baseColor = dynamicOption.color || 'slate';
+      return { 
+        label: dynamicOption.label, 
+        colors: `bg-${baseColor}-100 text-${baseColor}-700 border-${baseColor}-200` 
+      };
+    }
+
+    // Fallbacks
     switch (status) {
-      case 'ACTIVE': return { label: 'Ativo', colors: 'bg-emerald-100 text-emerald-700' };
-      case 'MAPPING': return { label: 'Mapeamento', colors: 'bg-amber-100 text-amber-700' };
-      case 'INACTIVE': return { label: 'Inativo', colors: 'bg-slate-100 text-slate-600' };
-      default: return { label: 'Preparação', colors: 'bg-blue-100 text-blue-700' };
+      case 'ACTIVE': return { label: 'Ativo', colors: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+      case 'MAPPING': return { label: 'Mapeamento', colors: 'bg-amber-100 text-amber-700 border-amber-200' };
+      case 'INACTIVE': return { label: 'Inativo', colors: 'bg-slate-100 text-slate-600 border-slate-200' };
+      default: return { label: 'Preparação', colors: 'bg-blue-100 text-blue-700 border-blue-200' };
     }
   };
 
