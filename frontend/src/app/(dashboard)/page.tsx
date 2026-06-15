@@ -145,11 +145,28 @@ export default function DashboardHome() {
 
 
   const stats = [
-    { name: 'Escritórios Ativos', value: activeClients, total: totalClients, color: 'text-teal-600 bg-teal-50 border-teal-100', icon: Users, desc: 'Isolados no schema' },
-    { name: 'Taxa de Retenção', value: `${retentionRate}%`, total: 'Meta > 95%', color: 'text-emerald-500 bg-emerald-50 border-emerald-100', icon: Target, desc: 'Satisfação geral' },
-    { name: 'Contas Inativas', value: inactiveClients, total: 'Arquivados', color: 'text-slate-500 bg-slate-50 border-slate-200', icon: Clock, desc: 'Sem pendências' },
-    { name: 'MRR Estimado', value: `R$ ${(activeClients * 2490).toLocaleString('pt-BR')}`, total: 'R$ 2.49k / cliente', color: 'text-blue-500 bg-blue-50 border-blue-100', icon: TrendingUp, desc: 'Faturamento recorrente' },
+    { name: 'Escritórios', value: activeClients, total: 'Contas Ativas', color: 'text-indigo-500', stripColor: 'bg-indigo-500', icon: Briefcase, progress: activeClients > 0 ? 100 : 0, desc: `${totalClients - activeClients} inativos no portal` },
+    { name: 'Retenção', value: `${retentionRate}%`, total: 'Satisfação Geral', color: 'text-sky-500', stripColor: 'bg-sky-500', icon: Target, progress: Number(retentionRate) || 0, desc: 'Meta institucional: > 95%' },
+    { name: 'Inativas', value: inactiveClients, total: 'Contas Arquivadas', color: 'text-rose-500', stripColor: 'bg-rose-500', icon: Activity, progress: totalClients > 0 ? (inactiveClients/totalClients)*100 : 0, desc: 'Aguardando intervenção' },
+    { name: 'MRR', value: `R$ ${(activeClients * 2.49).toFixed(2)}k`, total: 'Faturamento', color: 'text-emerald-500', stripColor: 'bg-emerald-500', icon: TrendingUp, progress: 85, desc: 'Ticket Médio: R$ 2.49k' },
   ];
+
+  // Helper component for the Circular Progress indicator from the reference image
+  const CircularProgress = ({ progress, colorClass }: { progress: number, colorClass: string }) => {
+    const strokeDasharray = 2 * Math.PI * 18; 
+    const strokeDashoffset = strokeDasharray - (progress / 100) * strokeDasharray;
+    return (
+      <div className="relative h-12 w-12 flex items-center justify-center shrink-0">
+        <svg className="transform -rotate-90 w-12 h-12 drop-shadow-sm">
+          <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+          <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={strokeDasharray} strokeDashoffset={strokeDashoffset} className={`${colorClass} transition-all duration-1000 ease-out`} strokeLinecap="round" />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{Math.round(progress)}%</span>
+        </div>
+      </div>
+    );
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -257,7 +274,7 @@ export default function DashboardHome() {
         </div>
       </motion.div>
 
-      {/* 2. Synced Metric Cards Grid */}
+      {/* 2. Synced Metric Cards Grid - NEUMORPHIC STYLE */}
       <motion.div 
         variants={containerVariants}
         className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
@@ -266,20 +283,29 @@ export default function DashboardHome() {
           <motion.div 
             key={i} 
             variants={cardVariants}
-            className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm hover:shadow-lg transition-all relative overflow-hidden group cursor-pointer"
+            className="rounded-[2.5rem] bg-white dark:bg-slate-900 p-7 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] dark:shadow-none border border-slate-50 dark:border-slate-800 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer flex flex-col justify-between min-h-[160px]"
           >
-            <div className="flex items-center justify-between">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.color} transition-transform duration-300 group-hover:scale-105`}>
-                <stat.icon className="h-5 w-5" />
+            {/* Decorative colored strip on the right edge */}
+            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-16 rounded-l-full opacity-90 transition-all duration-300 group-hover:h-24 group-hover:shadow-lg ${stat.stripColor}`}></div>
+            
+            <div className="flex justify-between items-start mb-6 relative z-10">
+              <div className="flex flex-col">
+                <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 w-max mb-3 border border-slate-100 dark:border-slate-700 shadow-sm group-hover:shadow-md transition-shadow">
+                  <stat.icon className="h-5 w-5" />
+                </div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{stat.total}</p>
               </div>
-              <span className="text-xs font-bold tracking-wide text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl">
-                {stat.total}
-              </span>
+              <CircularProgress progress={stat.progress} colorClass={stat.color} />
             </div>
-            <div className="mt-6">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{stat.name}</p>
-              <h3 className="text-3xl font-black text-slate-900 mt-2 tracking-tight">{stat.value}</h3>
-              <p className="text-sm font-medium text-slate-500 mt-2">{stat.desc}</p>
+
+            <div className="relative z-10">
+              <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter flex items-baseline gap-2">
+                {stat.value}
+                <span className="text-sm font-bold text-slate-400 tracking-normal opacity-0 group-hover:opacity-100 transition-opacity">
+                   / {stat.name}
+                </span>
+              </h3>
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-2">{stat.desc}</p>
             </div>
           </motion.div>
         ))}
@@ -291,38 +317,36 @@ export default function DashboardHome() {
         {/* LEFT & CENTER PANEL (Charts and Recent Activity) */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Interactive Chart Container */}
+          {/* Interactive Chart Container - NEUMORPHIC STYLE */}
           <motion.div 
             variants={cardVariants}
-            className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm relative"
+            className="rounded-[2.5rem] bg-indigo-600 p-8 shadow-[0_20px_50px_rgba(79,_70,_229,_0.3)] relative overflow-hidden text-white"
           >
-            <div className="flex items-center justify-between mb-8">
+            {/* Background glowing orbs */}
+            <div className="absolute right-0 top-0 -mt-20 -mr-20 h-64 w-64 rounded-full bg-white/10 blur-[60px] pointer-events-none"></div>
+            <div className="absolute left-0 bottom-0 -mb-20 -ml-20 h-64 w-64 rounded-full bg-indigo-400/20 blur-[60px] pointer-events-none"></div>
+
+            <div className="relative z-10 flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Desempenho da Consultoria</h3>
-                <p className="text-sm font-medium text-slate-500 mt-1">Evolução do faturamento e clientes ativos no semestre</p>
+                <h3 className="text-xl font-black tracking-tight text-white">Desempenho da Consultoria</h3>
+                <p className="text-sm font-medium text-indigo-200 mt-1">Evolução de MRR e Contas Ativas (Semestre)</p>
               </div>
-              <div className="flex gap-3 text-xs font-bold">
-                <span className="flex items-center gap-2 bg-teal-50 border border-teal-100 text-teal-700 px-3.5 py-2 rounded-xl">
-                  <span className="h-2 w-2 rounded-full bg-teal-500"></span>
-                  Geral
-                </span>
-                <span className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 text-emerald-700 px-3.5 py-2 rounded-xl">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                  Ativos
-                </span>
+              <div className="flex bg-indigo-700/50 p-1.5 rounded-2xl backdrop-blur-sm border border-indigo-500/30">
+                 <button className="px-4 py-2 rounded-xl bg-white text-indigo-600 font-black text-xs shadow-sm">MRR Geral</button>
+                 <button className="px-4 py-2 rounded-xl text-indigo-200 hover:text-white font-bold text-xs transition-colors">Contas</button>
               </div>
             </div>
 
             {/* Custom Interactive SVG Line Chart */}
-            <div className="relative h-64 w-full bg-slate-50/50 rounded-2xl border border-slate-100 p-4 flex items-end">
+            <div className="relative h-64 w-full rounded-2xl p-4 flex items-end">
               <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none">
                 {[1, 2, 3].map((_, i) => (
-                  <div key={i} className="w-full border-b border-slate-200/50"></div>
+                  <div key={i} className="w-full border-b border-indigo-400/20"></div>
                 ))}
               </div>
 
               {/* Dynamic Bars with Hover Tooltips */}
-              <div className="relative w-full h-48 flex items-end justify-between px-4 z-10">
+              <div className="relative w-full h-48 flex items-end justify-between px-2 sm:px-6 z-10">
                 {chartData.map((data, index) => {
                   const maxVal = Math.max(...chartData.map(d => d.value));
                   const percentageTotal = (data.value / maxVal) * 100;
@@ -331,44 +355,42 @@ export default function DashboardHome() {
                   return (
                     <div 
                       key={index}
-                      className="flex flex-col items-center flex-1 group"
+                      className="flex flex-col items-center flex-1 group relative"
                       onMouseEnter={() => setHoveredBar(index)}
                       onMouseLeave={() => setHoveredBar(null)}
                     >
-                      {/* Tooltip */}
+                      {/* Tooltip Neumorphic */}
                       <AnimatePresence>
                         {hoveredBar === index && (
                           <motion.div 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: -45 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="absolute bg-slate-900 text-white rounded-xl p-3 shadow-xl text-center z-30 flex flex-col items-center gap-1 border border-slate-800"
+                            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                            animate={{ opacity: 1, y: -20, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                            className="absolute bottom-full mb-2 bg-white text-slate-900 rounded-2xl p-3 shadow-2xl text-center z-30 flex flex-col items-center gap-1 border border-slate-100 min-w-[100px]"
                           >
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{data.month}</span>
-                            <span className="text-xs font-black text-teal-400">Total: {data.value}</span>
-                            <span className="text-xs font-black text-emerald-400">Ativos: {data.active}</span>
-                            <div className="h-2 w-2 rotate-45 bg-slate-900 absolute -bottom-1"></div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{data.month}</span>
+                            <span className="text-sm font-black text-indigo-600">R$ {data.value}k</span>
+                            <div className="h-3 w-3 rotate-45 bg-white border-r border-b border-slate-100 absolute -bottom-1.5 shadow-sm"></div>
                           </motion.div>
                         )}
                       </AnimatePresence>
 
-                      <div className="relative w-8 h-40 flex items-end gap-1 cursor-pointer">
-                        {/* Total Clients Bar */}
+                      <div className="relative w-10 sm:w-12 h-40 flex items-end justify-center gap-1 cursor-pointer">
+                        {/* Rounded Bars */}
                         <motion.div 
                           initial={{ height: 0 }}
                           animate={{ height: `${percentageTotal}%` }}
                           transition={{ duration: 1, delay: index * 0.1 }}
-                          className="w-3.5 bg-teal-500/20 group-hover:bg-teal-500/40 rounded-t-md transition-colors"
+                          className="absolute w-6 sm:w-8 bg-indigo-500/40 group-hover:bg-indigo-400/60 rounded-xl transition-colors backdrop-blur-sm"
                         />
-                        {/* Active Clients Bar */}
                         <motion.div 
                           initial={{ height: 0 }}
                           animate={{ height: `${percentageActive}%` }}
                           transition={{ duration: 1, delay: index * 0.1 + 0.15 }}
-                          className="w-3.5 bg-emerald-400 rounded-t-md shadow-xs shadow-emerald-500/10 group-hover:bg-emerald-500 transition-colors"
+                          className="absolute w-6 sm:w-8 bg-white rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.4)] group-hover:bg-indigo-50 transition-colors z-10"
                         />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-400 mt-2">{data.month}</span>
+                      <span className="text-xs font-bold text-indigo-200 mt-4 group-hover:text-white transition-colors">{data.month}</span>
                     </div>
                   );
                 })}
@@ -376,48 +398,50 @@ export default function DashboardHome() {
             </div>
           </motion.div>
 
-          {/* Dynamic Recent Clients Table */}
+          {/* Dynamic Recent Clients Table - NEUMORPHIC STYLE */}
           <motion.div 
             variants={cardVariants}
-            className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm"
+            className="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] dark:shadow-none border border-slate-50 dark:border-slate-800 relative overflow-hidden"
           >
-            <div className="flex items-center justify-between mb-8">
+            {/* Soft background shape */}
+            <div className="absolute left-0 bottom-0 w-full h-32 bg-gradient-to-t from-slate-50 to-transparent dark:from-slate-800/30 pointer-events-none"></div>
+
+            <div className="flex items-center justify-between mb-8 relative z-10">
               <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Atividades Recentes</h3>
-                <p className="text-sm font-medium text-slate-500 mt-1">Últimos escritórios integrados no seu portal</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Escritórios Recentes</h3>
+                <p className="text-sm font-medium text-slate-500 mt-1">Últimos setups realizados no portal</p>
               </div>
               <button 
                 onClick={() => router.push('/escritorios')} 
-                className="text-sm font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1.5 bg-teal-50 hover:bg-teal-100/70 border border-teal-100/50 px-4 py-2 rounded-xl transition-all"
+                className="text-xs font-black text-slate-600 dark:text-slate-300 hover:text-slate-900 flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-full transition-all hover:scale-105 active:scale-95 shadow-sm"
               >
-                Gerenciar Escritórios
-                <ArrowUpRight className="h-4 w-4" />
+                Visualizar Histórico
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 relative z-10">
               {clients.length === 0 ? (
-                <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="text-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-700">
                   <p className="text-sm font-semibold text-slate-400">Nenhuma atividade recente registrada.</p>
                 </div>
               ) : (
                 clients.slice(0, 4).map((client, i) => (
-                  <div key={client.id} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-teal-100/60 hover:bg-teal-50/20 transition-all hover:shadow-sm cursor-pointer">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center font-black text-teal-600 text-sm shadow-sm">
+                  <div key={client.id} className="group flex items-center justify-between p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5">
+                    <div className="flex items-center gap-5">
+                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 text-lg shadow-inner group-hover:shadow-md transition-shadow">
                         {client.name.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-base font-bold text-slate-900 tracking-tight">{client.name}</p>
-                        <p className="text-xs font-medium text-slate-500 mt-0.5">Cadastrado há {i + 1} dia(s)</p>
+                        <p className="text-base font-black text-slate-900 dark:text-white tracking-tight group-hover:text-indigo-600 transition-colors">{client.name}</p>
+                        <p className="text-xs font-bold text-slate-400 mt-0.5">{client.cnpj || `Setup há ${i + 1} dia(s)`}</p>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                    <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[11px] font-black shadow-sm ${
                       client.status === 'ACTIVE' 
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
-                        : 'bg-slate-100 text-slate-600'
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
+                        : 'bg-slate-100 text-slate-500'
                     }`}>
-                      {client.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                      {client.status === 'ACTIVE' ? 'Completed' : 'Pending'}
                     </span>
                   </div>
                 ))
@@ -426,46 +450,42 @@ export default function DashboardHome() {
           </motion.div>
         </div>
 
-        {/* RIGHT PANEL - Mini Interactive Calendar Widget */}
+        {/* RIGHT PANEL - Mini Interactive Calendar Widget NEUMORPHIC */}
         <motion.div 
           variants={cardVariants}
           className="lg:col-span-1 space-y-8"
         >
           {/* Calendar Widget Card */}
-          <div className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm">
+          <div className="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] dark:shadow-none border border-slate-50 dark:border-slate-800">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-                <CalendarIcon className="h-5 w-5 text-teal-600" />
-                Agendas & Reuniões
+              <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                Agendas
               </h3>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-inner">
                 <button 
                   onClick={handlePrevMonth}
-                  className="p-1 rounded-lg hover:bg-slate-50 border border-slate-200 text-slate-500"
+                  className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm text-slate-500 transition-all"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
+                <div className="text-[11px] font-black uppercase px-2 text-slate-700 dark:text-slate-300">
+                  {monthNames[currentDate.getMonth()].substring(0, 3)} {currentDate.getFullYear()}
+                </div>
                 <button 
                   onClick={handleNextMonth}
-                  className="p-1 rounded-lg hover:bg-slate-50 border border-slate-200 text-slate-500"
+                  className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm text-slate-500 transition-all"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            {/* Current Month Banner */}
-            <div className="text-sm font-black text-slate-900 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 flex items-center justify-between mb-4">
-              <span>{monthNames[currentDate.getMonth()]}</span>
-              <span className="text-slate-400">{currentDate.getFullYear()}</span>
-            </div>
-
             {/* Grid calendar */}
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 mb-2">
-              <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+            <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black text-slate-400 mb-4">
+              <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
             </div>
             
-            <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold">
+            <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold">
               {/* Empty days before start day */}
               {Array.from({ length: startDayOfWeek }).map((_, i) => (
                 <div key={`empty-${i}`} className="p-2"></div>
@@ -481,17 +501,17 @@ export default function DashboardHome() {
                   <button
                     key={day}
                     onClick={() => setSelectedDay(day)}
-                    className={`relative p-2.5 rounded-xl text-sm font-bold transition-all ${
+                    className={`relative aspect-square flex items-center justify-center rounded-2xl text-sm font-black transition-all ${
                       isSelected 
-                        ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20' 
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl scale-110 z-10' 
                         : hasSchedule
-                          ? 'bg-teal-50 text-teal-700 border border-teal-100/50 hover:bg-teal-100/50'
-                          : 'text-slate-700 hover:bg-slate-50'
+                          ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     {day}
                     {hasSchedule && !isSelected && (
-                      <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full bg-teal-500"></span>
+                      <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-indigo-500"></span>
                     )}
                   </button>
                 );
@@ -499,25 +519,32 @@ export default function DashboardHome() {
             </div>
 
             {/* Selected day task schedules list */}
-            <div className="mt-8 border-t border-slate-100 pt-8">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-5">
-                Compromissos para Dia {selectedDay}
-              </h4>
+            <div className="mt-8">
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="h-px bg-slate-100 flex-1"></div>
+                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                   Dia {selectedDay}
+                 </span>
+                 <div className="h-px bg-slate-100 flex-1"></div>
+              </div>
               
               <div className="space-y-4">
                 {selectedDay && schedules[selectedDay] ? (
                   schedules[selectedDay].map((task, i) => (
-                    <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-teal-100 transition-colors">
-                      <span className="text-sm font-black text-teal-600 shrink-0 mt-0.5">{task.time}</span>
-                      <div>
-                        <p className="text-xs font-black text-slate-900 leading-normal">{task.title}</p>
-                        <p className="text-[10px] font-bold text-slate-400 capitalize mt-0.5">{task.type}</p>
+                    <div key={i} className="flex gap-4 p-5 rounded-[2rem] bg-white border border-slate-100 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all">
+                      <div className="flex flex-col items-center justify-center bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
+                        <span className="text-xs font-black text-slate-900 leading-none">{task.time.split(':')[0]}</span>
+                        <span className="text-[9px] font-bold text-slate-400">{task.time.split(':')[1]}</span>
+                      </div>
+                      <div className="flex flex-col justify-center">
+                        <p className="text-sm font-black text-slate-900 leading-tight">{task.title}</p>
+                        <span className="text-[10px] font-bold text-indigo-500 capitalize mt-1 tracking-wide">{task.type}</span>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-100">
-                    <p className="text-xs font-bold text-slate-400">Nenhum compromisso agendado para esta data.</p>
+                  <div className="text-center py-8 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+                    <p className="text-xs font-bold text-slate-400">Tempo livre. Sem compromissos.</p>
                   </div>
                 )}
               </div>
