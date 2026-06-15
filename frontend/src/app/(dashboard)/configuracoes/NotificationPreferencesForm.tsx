@@ -71,19 +71,19 @@ export default function NotificationPreferencesForm() {
     onChange: (val: boolean) => void,
     disabled?: boolean
   }) => (
-    <div className={`flex items-start justify-between gap-4 p-4 rounded-xl border ${checked ? 'border-teal-200 bg-teal-50/50' : 'border-slate-100 bg-white hover:border-slate-200'} transition-all`}>
+    <div className={`flex items-start justify-between gap-4 p-4 rounded-inner border ${checked ? 'border-teal-200 dark:border-teal-500/30 bg-teal-50/50 dark:bg-teal-500/10' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-slate-200 dark:hover:border-slate-700'} transition-all`}>
       <div className="flex gap-4">
-        <div className={`mt-0.5 p-2.5 rounded-xl ${checked ? 'bg-teal-100 text-teal-600' : 'bg-slate-50 text-slate-500 border border-slate-200/60'}`}>
+        <div className={`mt-0.5 p-2.5 rounded-inner ${checked ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700'}`}>
           <Icon className="h-5 w-5" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <label htmlFor={`toggle-${label.replace(/\s+/g, '-').toLowerCase()}`} className={`text-sm font-bold tracking-wide cursor-pointer ${checked ? 'text-teal-900' : 'text-slate-900'}`}>{label}</label>
+            <label htmlFor={`toggle-${label.replace(/\s+/g, '-').toLowerCase()}`} className={`text-sm font-bold tracking-wide cursor-pointer ${checked ? 'text-teal-900 dark:text-teal-100' : 'text-slate-900 dark:text-slate-200'}`}>{label}</label>
             {disabled && (
-              <span className="text-[10px] font-bold uppercase bg-amber-50 border border-amber-200/50 text-amber-700 px-2 py-0.5 rounded-md">Em Breve</span>
+              <span className="text-[10px] font-bold uppercase bg-amber-50 dark:bg-amber-500/10 border border-amber-200/50 dark:border-amber-500/20 text-amber-700 dark:text-amber-500 px-2 py-0.5 rounded-md">Em Breve</span>
             )}
           </div>
-          <p className="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">{description}</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{description}</p>
         </div>
       </div>
       <button
@@ -92,7 +92,7 @@ export default function NotificationPreferencesForm() {
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-          checked ? 'bg-teal-600 shadow-inner' : 'bg-slate-200'
+          checked ? 'bg-teal-600 shadow-inner' : 'bg-slate-200 dark:bg-slate-700'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         role="switch"
         aria-checked={checked}
@@ -116,13 +116,13 @@ export default function NotificationPreferencesForm() {
   }
 
   return (
-    <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-8 sm:p-10 animate-in fade-in duration-500">
+    <div className="rounded-container border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 animate-in fade-in duration-500 transition-colors">
       <div className="mb-8">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
           <Bell className="h-6 w-6 text-teal-600" />
           Preferências de Notificações
         </h2>
-        <p className="text-sm font-medium text-slate-500 mt-2">
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">
           Escolha como e quando você deseja ser avisado sobre o que acontece nos projetos.
         </p>
       </div>

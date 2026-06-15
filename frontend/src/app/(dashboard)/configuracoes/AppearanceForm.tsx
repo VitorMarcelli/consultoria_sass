@@ -18,9 +18,9 @@ export default function AppearanceForm() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Theme Section */}
-      <div className="rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
+      <div className="rounded-container border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
         <div className="mb-8 flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400">
+          <div className="p-3 rounded-inner bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400">
             <Monitor className="h-6 w-6" />
           </div>
           <div>
@@ -35,7 +35,7 @@ export default function AppearanceForm() {
           {/* Light Theme */}
           <button 
             onClick={() => setTheme('light')}
-            className={`group text-left border-2 rounded-2xl p-1.5 transition-all ${
+            className={`group text-left border-2 rounded-inner p-1.5 transition-all ${
               theme === 'light' ? 'border-teal-500 ring-4 ring-teal-500/10 dark:ring-teal-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
             }`}
           >
@@ -57,7 +57,7 @@ export default function AppearanceForm() {
           {/* Dark Theme */}
           <button 
             onClick={() => setTheme('dark')}
-            className={`group text-left border-2 rounded-2xl p-1.5 transition-all ${
+            className={`group text-left border-2 rounded-inner p-1.5 transition-all ${
               theme === 'dark' ? 'border-teal-500 ring-4 ring-teal-500/10 dark:ring-teal-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
             }`}
           >
@@ -79,7 +79,7 @@ export default function AppearanceForm() {
           {/* System Theme */}
           <button 
             onClick={() => setTheme('system')}
-            className={`group text-left border-2 rounded-2xl p-1.5 transition-all ${
+            className={`group text-left border-2 rounded-inner p-1.5 transition-all ${
               theme === 'system' ? 'border-teal-500 ring-4 ring-teal-500/10 dark:ring-teal-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
             }`}
           >
@@ -101,10 +101,10 @@ export default function AppearanceForm() {
       </div>
 
       {/* Accent Color Section */}
-      <div className="rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
+      <div className="rounded-container border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 shrink-0 mt-1">
+            <div className="p-3 rounded-inner bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 shrink-0 mt-1">
               <Brush className="h-6 w-6" />
             </div>
             <div>
@@ -133,10 +133,10 @@ export default function AppearanceForm() {
       </div>
 
       {/* Interface Density */}
-      <div className="rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
+      <div className="rounded-container border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1">
+            <div className="p-3 rounded-inner bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1">
               <LayoutTemplate className="h-6 w-6" />
             </div>
             <div>
@@ -153,7 +153,7 @@ export default function AppearanceForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             onClick={() => setDensity('comfortable')}
-            className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+            className={`flex items-center justify-between p-4 rounded-inner border-2 transition-all ${
               density === 'comfortable' ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-500/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
             }`}
           >
@@ -169,7 +169,7 @@ export default function AppearanceForm() {
 
           <button
             onClick={() => setDensity('compact')}
-            className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+            className={`flex items-center justify-between p-4 rounded-inner border-2 transition-all ${
               density === 'compact' ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-500/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
             }`}
           >

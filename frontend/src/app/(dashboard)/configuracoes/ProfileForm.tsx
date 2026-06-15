@@ -76,13 +76,13 @@ export default function ProfileForm() {
   }
 
   return (
-    <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-8 sm:p-10 animate-in fade-in duration-500">
+    <div className="rounded-container border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 animate-in fade-in duration-500 transition-colors">
       <div className="mb-8">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
           <User className="h-6 w-6 text-teal-600" />
           Dados Pessoais
         </h2>
-        <p className="text-sm font-medium text-slate-500 mt-2">
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">
           Atualize suas informações de perfil e como seu nome é exibido no sistema.
         </p>
       </div>
@@ -116,7 +116,7 @@ export default function ProfileForm() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 p-3.5 text-sm font-medium text-slate-900 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10 outline-none transition-all"
+                className="block w-full rounded-inner border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 pl-10 p-3.5 text-sm font-medium text-slate-900 dark:text-white focus:border-teal-500 dark:focus:border-teal-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500"
                 placeholder="Seu nome completo"
               />
             </div>
@@ -135,7 +135,7 @@ export default function ProfileForm() {
                 type="email"
                 disabled
                 value={formData.email}
-                className="block w-full rounded-xl border border-slate-200 bg-slate-100/50 pl-10 p-3.5 text-sm font-medium text-slate-500 cursor-not-allowed outline-none"
+                className="block w-full rounded-inner border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-800/50 pl-10 p-3.5 text-sm font-medium text-slate-500 dark:text-slate-400 cursor-not-allowed outline-none"
               />
             </div>
           </div>
@@ -144,9 +144,9 @@ export default function ProfileForm() {
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
               Permissão Atual
             </label>
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
+            <div className="flex items-center gap-3 p-3 rounded-inner border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
               {getRoleBadge(formData.role)}
-              <span className="text-xs font-medium text-slate-500">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 Para alterar seu nível de acesso, contate um Administrador do sistema.
               </span>
             </div>
