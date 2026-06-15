@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class UsersService {
@@ -120,5 +121,67 @@ export class UsersService {
         ...(data.name !== undefined && { name: data.name }),
       },
     });
+  }
+
+  async createConsultant(requesterId: string, data: { name: string; email: string; password?: string }) {
+    const requester = await this.prisma.user.findUnique({ where: { id: requesterId } });
+    if (!requester || requester.role !== 'ADMIN') {
+      throw new ForbiddenException('Apenas administradores podem convidar consultores.');
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new BadRequestException('Configuração do Supabase ausente no servidor.');
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    // 1. Create User in Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password || 'Sevilha123!',
+      email_confirm: true,
+      user_metadata: {
+        name: data.name
+      }
+    });
+
+    if (authError) {
+      throw new BadRequestException(`Erro no Auth: ${authError.message}`);
+    }
+
+    const authUserId = authData.user.id;
+
+    // 2. Create Tenant (Escritório)
+    // Generate a simple slug
+    const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 6);
+    
+    const tenant = await this.prisma.tenant.create({
+      data: {
+        name: `Escritório de ${data.name}`,
+        slug,
+        status: 'ACTIVE'
+      }
+    });
+
+    // 3. Create User in Prisma
+    const user = await this.prisma.user.create({
+      data: {
+        id: authUserId,
+        email: data.email,
+        name: data.name,
+        role: 'CONSULTANT',
+        tenantId: tenant.id
+      }
+    });
+
+    return user;
   }
 }

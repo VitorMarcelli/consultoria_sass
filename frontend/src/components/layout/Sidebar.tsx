@@ -21,6 +21,7 @@ import { createClient } from '@/utils/supabase/client';
 const menuItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Escritórios', path: '/escritorios', icon: Building2 },
+  { name: 'Administradores', path: '/admin/administradores', icon: ShieldCheck },
   { name: 'Consultores', path: '/admin/consultores', icon: Users },
   { name: 'Configurações', path: '/configuracoes', icon: Settings },
 ];
@@ -113,7 +114,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <p className="px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5">Menu Principal</p>
           <nav className="flex flex-col gap-2">
             {menuItems.filter(item => {
-              if (item.path === '/admin/consultores' || item.path === '/') {
+              if (item.path.startsWith('/admin') || item.path === '/') {
                 return profile?.role === 'ADMIN';
               }
               return true;

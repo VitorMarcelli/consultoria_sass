@@ -25,7 +25,10 @@ const mapLabels: Record<string, string> = {
   'frentes': 'Frentes de Atuação',
   'painel': 'Painel',
   'imports': 'Importações',
-  'relatorios': 'Relatórios'
+  'relatorios': 'Relatórios',
+  'admin': 'Administração',
+  'administradores': 'Administradores Globais',
+  'consultores': 'Consultores'
 };
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
