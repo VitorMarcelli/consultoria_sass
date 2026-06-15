@@ -83,13 +83,20 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     <div className="flex flex-col h-full overflow-hidden w-full">
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between px-3 mt-4">
-        <div className="flex items-center">
-          <div className="flex-shrink-0 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-sky-400 shadow-md shadow-emerald-500/20">
-            <Sparkles className="h-6 w-6 text-white" />
+        <div className="flex items-center group cursor-pointer pl-1">
+          {/* S. for collapsed state */}
+          <div className="flex-shrink-0 w-10 flex items-baseline justify-center lg:group-hover/sidebar:hidden transition-all">
+            <span className="text-2xl font-black tracking-tighter text-white leading-none">S</span>
+            <span className="text-teal-400 font-black text-2xl leading-none">.</span>
           </div>
-          <div className={textTransitionClasses}>
-            <span className="text-xl font-black tracking-tight text-white block">Sevilha</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block -mt-1">Performance</span>
+          
+          {/* Full logo for expanded state */}
+          <div className={`flex-col lg:hidden lg:group-hover/sidebar:flex ${textTransitionClasses}`}>
+            <div className="flex items-baseline">
+              <span className="text-xl font-black tracking-tighter text-white leading-none">Sevilha</span>
+              <span className="text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+            </div>
+            <span className="text-[9px] font-bold text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
           </div>
         </div>
         {/* Close button for mobile */}

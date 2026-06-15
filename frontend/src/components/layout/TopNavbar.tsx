@@ -64,13 +64,18 @@ export default function TopNavbar() {
       <div className="w-full h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/40 dark:border-slate-800/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-between px-4 lg:px-6 transition-all duration-300">
         
         {/* Logo Section */}
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-sky-400 shadow-md shadow-emerald-500/20 group hover:scale-105 transition-transform cursor-pointer">
-            <Sparkles className="h-5 w-5 text-white" />
+        <div className="flex items-center group cursor-pointer">
+          <div className="hidden sm:flex flex-col">
+            <div className="flex items-baseline">
+              <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">Sevilha</span>
+              <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+            </div>
+            <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
           </div>
-          <div className="hidden sm:block">
-            <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none block">Sevilha</span>
-            <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest block leading-none">Performance</span>
+          {/* Mobile version (just S.) */}
+          <div className="sm:hidden flex items-baseline">
+            <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">S</span>
+            <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none">.</span>
           </div>
         </div>
 
