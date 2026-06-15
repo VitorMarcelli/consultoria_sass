@@ -1,10 +1,12 @@
 'use client';
 
-import { Palette, Monitor, Moon, Sun, LayoutTemplate, Brush, Check } from 'lucide-react';
+import { Palette, Monitor, Moon, Sun, LayoutTemplate, Brush, Check, PanelLeft, PanelTop } from 'lucide-react';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUIStore } from '@/store/useUIStore';
 
 export default function AppearanceForm() {
   const { theme, setTheme, accentColor, setAccentColor, density, setDensity } = useTheme();
+  const { navigationLayout, setNavigationLayout } = useUIStore();
 
   const accentColors = [
     { name: 'Índigo (Padrão)', value: 'indigo', bg: 'bg-indigo-600', ring: 'ring-indigo-600' },
@@ -95,6 +97,53 @@ export default function AppearanceForm() {
             <div className="px-3 pb-3 flex items-center justify-between">
               <span className={`text-sm font-bold ${theme === 'system' ? 'text-teal-600 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'}`}>Sistema</span>
               <Monitor className={`h-5 w-5 ${theme === 'system' ? 'text-teal-500' : 'text-slate-400'}`} />
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation Layout Section */}
+      <div className="rounded-container border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
+        <div className="mb-8 flex items-center gap-4">
+          <div className="p-3 rounded-inner bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+            <PanelLeft className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Layout de Navegação</h2>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+              Escolha entre a barra lateral clássica ou a nova navegação flutuante no topo.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button 
+            onClick={() => setNavigationLayout('sidebar')}
+            className={`group text-left border-2 rounded-inner p-4 transition-all flex items-center gap-4 ${
+              navigationLayout === 'sidebar' ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-500/5 ring-4 ring-teal-500/10 dark:ring-teal-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+            }`}
+          >
+            <div className={`p-3 rounded-xl ${navigationLayout === 'sidebar' ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+              <PanelLeft className="h-6 w-6" />
+            </div>
+            <div>
+              <div className={`font-bold ${navigationLayout === 'sidebar' ? 'text-teal-900 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'}`}>Barra Lateral</div>
+              <div className="text-xs font-medium text-slate-500 mt-1">Menu na esquerda, retrátil</div>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setNavigationLayout('topbar')}
+            className={`group text-left border-2 rounded-inner p-4 transition-all flex items-center gap-4 ${
+              navigationLayout === 'topbar' ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-500/5 ring-4 ring-teal-500/10 dark:ring-teal-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+            }`}
+          >
+            <div className={`p-3 rounded-xl ${navigationLayout === 'topbar' ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+              <PanelTop className="h-6 w-6" />
+            </div>
+            <div>
+              <div className={`font-bold ${navigationLayout === 'topbar' ? 'text-teal-900 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'}`}>Barra Flutuante</div>
+              <div className="text-xs font-medium text-slate-500 mt-1">Menu no topo da tela, dinâmico</div>
             </div>
           </button>
         </div>
