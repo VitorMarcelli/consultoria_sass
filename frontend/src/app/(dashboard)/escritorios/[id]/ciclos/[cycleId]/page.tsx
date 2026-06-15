@@ -6,6 +6,7 @@ import { apiRequest } from '@/utils/api';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { StatsCard } from '@/components/ui/StatsCard';
 
 const COLORS = ['#0d9488', '#f43f5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#64748b'];
 
@@ -79,83 +80,33 @@ export default function CycleOverviewPage({
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-  const KpiCard = ({ title, value, icon: Icon, delay, subtitle, colorClass }: any) => (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start gap-4 relative overflow-hidden">
-      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${colorClass}`}>
-        <Icon className="w-6 h-6" />
-      </div>
-      <div>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</p>
-        <h3 className="text-2xl font-black text-slate-900 mt-1">{value}</h3>
-        {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
-      </div>
-    </motion.div>
-  );
+  const cycleStats = [
+    { name: 'Receita do Ciclo', value: formatCurrency(totalRevenue), total: `${clientsCount} clientes`, color: 'text-emerald-500', stripColor: 'bg-emerald-500', icon: DollarSign, progress: 100, desc: 'Entradas' },
+    { name: 'Custo Operacional', value: formatCurrency(totalPersonnelCost), total: `${teamCount} alocados`, color: 'text-rose-500', stripColor: 'bg-rose-500', icon: Activity, progress: totalRevenue > 0 ? (totalPersonnelCost/totalRevenue)*100 : 0, desc: 'Folha' },
+    { name: 'Margem Contrib.', value: formatCurrency(contributionMargin), total: 'Receita - Custo', color: 'text-teal-500', stripColor: 'bg-teal-500', icon: TrendingUp, progress: totalRevenue > 0 ? (contributionMargin/totalRevenue)*100 : 0, desc: 'Lucro do Ciclo' },
+    { name: 'Eficiência Op.', value: `${kpiPersonnelCostPercent.toFixed(1)}%`, total: 'Custo / Receita', color: kpiPersonnelCostPercent > 50 ? 'text-amber-500' : 'text-blue-500', stripColor: kpiPersonnelCostPercent > 50 ? 'bg-amber-500' : 'bg-blue-500', icon: PieChartIcon, progress: kpiPersonnelCostPercent, desc: 'Comprometimento' },
+  ];
+
+  const secondaryStats = [
+    { name: 'Ticket Médio', value: formatCurrency(avgTicket), total: 'Receita / Clientes', color: 'text-indigo-500', stripColor: 'bg-indigo-500', icon: DollarSign, progress: 100, desc: 'Por Cliente' },
+    { name: 'Custo Médio/Colab', value: formatCurrency(avgCostPerEmployee), total: 'Custo / Colab', color: 'text-slate-500', stripColor: 'bg-slate-500', icon: Users, progress: 100, desc: 'Por Funcionário' },
+    { name: 'Clientes / Colab', value: clientsPerEmployee.toFixed(1), total: 'Carteira', color: 'text-violet-500', stripColor: 'bg-violet-500', icon: Users2, progress: 100, desc: 'Proporção' },
+  ];
 
   return (
     <div className="space-y-6 pb-12">
       {/* Fileira de KPIs Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <KpiCard 
-          title="Receita do Ciclo" 
-          value={formatCurrency(totalRevenue)} 
-          icon={DollarSign} 
-          delay={0.1} 
-          colorClass="bg-emerald-50 text-emerald-600"
-          subtitle={`${clientsCount} clientes ativos`}
-        />
-        <KpiCard 
-          title="Custo Operacional (Folha)" 
-          value={formatCurrency(totalPersonnelCost)} 
-          icon={Activity} 
-          delay={0.2} 
-          colorClass="bg-rose-50 text-rose-600"
-          subtitle={`${teamCount} colaboradores alocados`}
-        />
-        <KpiCard 
-          title="Margem de Contribuição" 
-          value={formatCurrency(contributionMargin)} 
-          icon={TrendingUp} 
-          delay={0.3} 
-          colorClass="bg-teal-50 text-teal-600"
-          subtitle="Receita - Custo Operacional"
-        />
-        <KpiCard 
-          title="Eficiência Operacional" 
-          value={`${kpiPersonnelCostPercent.toFixed(1)}%`} 
-          icon={PieChartIcon} 
-          delay={0.4} 
-          colorClass={kpiPersonnelCostPercent > 50 ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}
-          subtitle="Comprometimento da Receita"
-        />
+        {cycleStats.map((stat, i) => (
+          <StatsCard key={i} stat={stat as any} />
+        ))}
       </div>
 
       {/* Fileira de KPIs Secundários */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <KpiCard 
-          title="Ticket Médio" 
-          value={formatCurrency(avgTicket)} 
-          icon={DollarSign} 
-          delay={0.5} 
-          colorClass="bg-indigo-50 text-indigo-600"
-          subtitle="Receita / Clientes"
-        />
-        <KpiCard 
-          title="Custo Médio por Colaborador" 
-          value={formatCurrency(avgCostPerEmployee)} 
-          icon={Users} 
-          delay={0.6} 
-          colorClass="bg-slate-50 text-slate-600"
-          subtitle="Custo / Colaboradores"
-        />
-        <KpiCard 
-          title="Clientes / Colaborador" 
-          value={`${clientsPerEmployee.toFixed(1)}`} 
-          icon={Users2} 
-          delay={0.7} 
-          colorClass="bg-violet-50 text-violet-600"
-          subtitle="Proporção da carteira"
-        />
+        {secondaryStats.map((stat, i) => (
+          <StatsCard key={i} stat={stat as any} />
+        ))}
       </div>
 
       {/* Sessão de Gráficos */}

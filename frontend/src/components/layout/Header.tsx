@@ -64,6 +64,12 @@ export default function Header({ onToggleSidebar, isTopbar = false }: HeaderProp
     // Se for o ID do escritório, substituir pelo nome
     if (isOfficeContext && index === 1) {
       label = officeName || 'Carregando...';
+    } else if (part.length === 36 && part.includes('-')) {
+      const prevPart = pathParts[index - 1];
+      if (prevPart === 'ciclos') label = 'Gestão do Ciclo';
+      else if (prevPart === 'clientes') label = 'Detalhes do Cliente';
+      else if (prevPart === 'frentes') label = 'Detalhes da Frente';
+      else label = 'Detalhes';
     }
 
     breadcrumbs.push({ label, href: currentPath });

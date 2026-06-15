@@ -6,6 +6,7 @@ import { Loader2, TrendingUp, Users, DollarSign, PieChart as PieChartIcon, Activ
 import { apiRequest } from '@/utils/api';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { StatsCard } from '@/components/ui/StatsCard';
 
 const COLORS = ['#0d9488', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
 
@@ -123,55 +124,36 @@ export default function PainelGerencialPage({ params }: { params: Promise<{ id: 
         >
           {/* Main KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-teal-500/30">
-                  <DollarSign className="w-6 h-6" />
-                </div>
-                <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">Entradas</span>
-              </div>
-              <h3 className="font-semibold text-slate-500 text-sm uppercase tracking-wider mb-1">Receita Total do Ciclo</h3>
-              <p className="text-4xl font-black text-slate-900 tracking-tight">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalRevenue)}
-              </p>
-            </motion.div>
-            
-            <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-500/30">
-                  <Users className="w-6 h-6" />
-                </div>
-                <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">Saídas</span>
-              </div>
-              <h3 className="font-semibold text-slate-500 text-sm uppercase tracking-wider mb-1">Custo c/ Pessoal Ativo</h3>
-              <p className="text-4xl font-black text-slate-900 tracking-tight">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalPersonnelCost)}
-              </p>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl"></div>
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-teal-400 backdrop-blur-md border border-white/10">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <span className="bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">Eficiência</span>
-              </div>
-              <h3 className="font-semibold text-slate-400 text-sm uppercase tracking-wider mb-1 relative z-10">Gasto com Pessoal (%)</h3>
-              <p className="text-4xl font-black text-white tracking-tight relative z-10">
-                {stats.kpiPersonnelCostPercent.toFixed(1)}<span className="text-2xl text-slate-400">%</span>
-              </p>
-              
-              {/* Progress bar visual */}
-              <div className="w-full bg-slate-800 h-2 rounded-full mt-4 relative z-10 overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(stats.kpiPersonnelCostPercent, 100)}%` }}
-                  transition={{ duration: 1, delay: 0.5 }}
-                  className={`h-full rounded-full ${stats.kpiPersonnelCostPercent > 60 ? 'bg-red-500' : stats.kpiPersonnelCostPercent > 40 ? 'bg-amber-400' : 'bg-emerald-400'}`}
-                />
-              </div>
-            </motion.div>
+            <StatsCard stat={{
+              name: 'Receita Total',
+              value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalRevenue),
+              total: 'Entradas',
+              color: 'text-emerald-500',
+              stripColor: 'bg-emerald-500',
+              icon: DollarSign,
+              progress: 100,
+              desc: 'Receita Total do Ciclo'
+            }} />
+            <StatsCard stat={{
+              name: 'Custo c/ Pessoal',
+              value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalPersonnelCost),
+              total: 'Saídas',
+              color: 'text-rose-500',
+              stripColor: 'bg-rose-500',
+              icon: Users,
+              progress: stats.totalRevenue > 0 ? (stats.totalPersonnelCost / stats.totalRevenue) * 100 : 0,
+              desc: 'Folha de pagamento'
+            }} />
+            <StatsCard stat={{
+              name: 'Eficiência',
+              value: `${stats.kpiPersonnelCostPercent.toFixed(1)}%`,
+              total: 'Gasto com Pessoal (%)',
+              color: stats.kpiPersonnelCostPercent > 50 ? 'text-amber-500' : 'text-blue-500',
+              stripColor: stats.kpiPersonnelCostPercent > 50 ? 'bg-amber-500' : 'bg-blue-500',
+              icon: TrendingUp,
+              progress: stats.kpiPersonnelCostPercent,
+              desc: 'Taxa de comprometimento'
+            }} />
           </div>
 
           {/* Charts Row */}
