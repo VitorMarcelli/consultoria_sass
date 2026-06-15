@@ -166,9 +166,47 @@ export default function DashboardHome() {
 
   if (loading && clients.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-40 space-y-4">
-        <Loader2 className="h-10 w-10 text-teal-600 animate-spin" />
-        <p className="text-slate-500 font-bold text-sm tracking-wide">Sincronizando painel corporativo em tempo real...</p>
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+          <div className="space-y-3">
+            <div className="h-8 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+            <div className="h-4 w-96 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+          </div>
+          <div className="flex gap-3">
+            <div className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+            <div className="h-10 w-40 bg-teal-100 dark:bg-teal-900/30 rounded-full"></div>
+          </div>
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 rounded-md"></div>
+                <div className="h-8 w-8 bg-slate-100 dark:bg-slate-800 rounded-full"></div>
+              </div>
+              <div className="h-8 w-32 bg-slate-200 dark:bg-slate-700 rounded-lg mt-4"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Graph/Table Area Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-[400px] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6">
+            <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded-md mb-6"></div>
+            <div className="h-[300px] w-full bg-slate-50 dark:bg-slate-800/50 rounded-xl"></div>
+          </div>
+          <div className="h-[400px] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6">
+             <div className="h-6 w-32 bg-slate-200 dark:bg-slate-800 rounded-md mb-6"></div>
+             <div className="space-y-4">
+               {[1, 2, 3, 4, 5].map((i) => (
+                 <div key={i} className="h-12 w-full bg-slate-50 dark:bg-slate-800/50 rounded-lg"></div>
+               ))}
+             </div>
+          </div>
+        </div>
       </div>
     );
   }
