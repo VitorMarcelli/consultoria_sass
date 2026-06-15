@@ -9,6 +9,7 @@ import NotificationDropdown from './NotificationDropdown';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
+  isTopbar?: boolean;
 }
 
 const mapLabels: Record<string, string> = {
@@ -31,7 +32,7 @@ const mapLabels: Record<string, string> = {
   'consultores': 'Consultores'
 };
 
-export default function Header({ onToggleSidebar }: HeaderProps) {
+export default function Header({ onToggleSidebar, isTopbar = false }: HeaderProps) {
   const pathname = usePathname();
   const [officeName, setOfficeName] = useState<string>('');
   
@@ -112,7 +113,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           />
         </div>
 
-        <NotificationDropdown />
+        {!isTopbar && <NotificationDropdown />}
       </div>
     </header>
   );
