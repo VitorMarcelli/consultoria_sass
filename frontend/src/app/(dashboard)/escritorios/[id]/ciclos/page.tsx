@@ -189,12 +189,19 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
       <AnimatePresence>
         {isModalOpen && (
           <Portal>
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4">
+            <div className="fixed inset-0 z-[100] pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsModalOpen(false)}
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-auto"
+              />
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative border border-slate-100 overflow-hidden z-[110]"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-[calc(100%-2rem)] max-w-lg rounded-3xl p-8 shadow-2xl border border-slate-100 overflow-y-auto max-h-[90vh] z-[110] pointer-events-auto"
               >
             {/* Background decors */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-teal-50/50 rounded-bl-full -z-0 pointer-events-none"></div>
