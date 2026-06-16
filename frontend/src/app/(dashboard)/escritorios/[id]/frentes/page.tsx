@@ -123,85 +123,139 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6"
+          className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30 shrink-0">
-              <Network className="w-7 h-7" />
+          {/* Decorative background element */}
+          <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-amber-100 to-orange-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-500/30 shrink-0 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+              <Network className="w-8 h-8" />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Ativação de Frentes</h2>
-              <p className="text-slate-500 font-medium mt-1">Selecione quais grandes áreas estão ativas neste escritório.</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Frentes de Atuação</h2>
+              <p className="text-slate-500 font-medium mt-2 leading-relaxed max-w-xl">
+                Configure as frentes ativas neste escritório. Elas guiarão a criação de células e a alocação de clientes.
+              </p>
             </div>
           </div>
         </motion.div>
 
         <motion.div 
-          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 p-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 p-8 relative"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500" />
+          
+          <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+            Selecione as Frentes
+            <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">
+              {fronts.filter(f => f.isActive).length} ativas
+            </span>
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {fronts.map((front, idx) => (
               <motion.div
                 key={front.name}
-                whileHover={{ scale: isAdmin ? 1.02 : 1 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.05 }}
+                whileHover={{ scale: isAdmin ? 1.02 : 1, y: isAdmin ? -2 : 0 }}
                 whileTap={{ scale: isAdmin ? 0.98 : 1 }}
                 onClick={() => toggleFront(idx)}
-                className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center ${
+                className={`group relative p-6 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center overflow-hidden ${
                   front.isActive 
-                    ? 'border-amber-500 bg-amber-50 shadow-md shadow-amber-500/10' 
-                    : 'border-slate-100 bg-slate-50 opacity-60 hover:opacity-100'
-                }`}
+                    ? 'border-amber-500 bg-amber-50/50 shadow-md shadow-amber-500/10' 
+                    : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-sm'
+                } ${!isAdmin && 'cursor-default pointer-events-none'}`}
               >
-                <span className={`font-bold ${front.isActive ? 'text-amber-800' : 'text-slate-500'}`}>
+                {/* Subtle gradient background for active cards */}
+                {front.isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-100/50 to-transparent pointer-events-none" />
+                )}
+
+                <span className={`font-bold text-lg relative z-10 transition-colors ${
+                  front.isActive ? 'text-amber-900' : 'text-slate-500 group-hover:text-slate-700'
+                }`}>
                   {front.name}
                 </span>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                  front.isActive ? 'bg-amber-500 text-white' : 'bg-slate-200 text-transparent'
+                
+                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  front.isActive 
+                    ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md shadow-amber-500/30' 
+                    : 'bg-slate-100 text-slate-300 group-hover:bg-amber-100 group-hover:text-amber-400'
                 }`}>
-                  <Check className="w-4 h-4" />
+                  <Check className={`w-4 h-4 transition-transform duration-300 ${front.isActive ? 'scale-100' : 'scale-75'}`} />
                 </div>
               </motion.div>
             ))}
           </div>
 
           {isAdmin && (
-            <div className="mt-8 pt-8 border-t border-slate-100 flex items-center gap-3 max-w-md">
-              <input 
-                type="text" 
-                value={newFrontName}
-                onChange={e => setNewFrontName(e.target.value)}
-                placeholder="Ex: Comercial, Auditoria..."
-                className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-              />
-              <button 
-                onClick={handleAddCustomFront}
-                className="bg-slate-900 text-white p-3 rounded-xl hover:bg-slate-800 transition-all shadow-md"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
+            <div className="mt-10 pt-8 border-t border-slate-100">
+              <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-slate-400" /> Adicionar Nova Frente
+              </h4>
+              <div className="flex flex-col sm:flex-row items-center gap-3 max-w-lg relative group">
+                <input 
+                  type="text" 
+                  value={newFrontName}
+                  onChange={e => setNewFrontName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddCustomFront()}
+                  placeholder="Ex: Comercial, Auditoria..."
+                  className="flex-1 w-full pl-5 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:bg-white transition-all shadow-sm"
+                />
+                <button 
+                  onClick={handleAddCustomFront}
+                  disabled={!newFrontName.trim()}
+                  className="absolute right-1.5 top-1.5 bottom-1.5 aspect-square bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-amber-500 focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all shadow-md disabled:opacity-50 disabled:hover:bg-slate-900 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           )}
         </motion.div>
 
-        <div className="pt-2 flex justify-end">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="flex justify-end"
+        >
           {isAdmin ? (
             <button 
               onClick={handleSaveAndNext}
               disabled={isSaving}
-              className="bg-teal-600 text-white px-10 py-4 rounded-2xl hover:bg-teal-700 transition-all font-bold text-sm flex items-center gap-2 shadow-xl shadow-teal-600/20 disabled:opacity-50"
+              className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all font-bold text-sm flex items-center gap-3 shadow-xl shadow-teal-600/20 hover:shadow-teal-600/40 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/20 overflow-hidden"
             >
-              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-              {isSaving ? 'Salvando...' : 'Salvar e Avançar para Estruturas'}
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+              <span className="relative z-10 flex items-center gap-2">
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Salvando Configurações...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-5 h-5" />
+                    Salvar e Avançar para Estruturas
+                  </>
+                )}
+              </span>
             </button>
           ) : (
             <button 
               onClick={() => router.push(`/escritorios/${id}/estruturas`)}
-              className="bg-teal-600 text-white px-10 py-4 rounded-2xl hover:bg-teal-700 transition-all font-bold text-sm flex items-center gap-2 shadow-xl shadow-teal-600/20"
+              className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all font-bold text-sm flex items-center gap-3 shadow-xl shadow-teal-600/20 hover:shadow-teal-600/40 hover:-translate-y-0.5 overflow-hidden"
             >
-              Avançar para Estruturas
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+              <span className="relative z-10">Avançar para Estruturas</span>
             </button>
           )}
-        </div>
+        </motion.div>
       </>
       )}
     </div>
