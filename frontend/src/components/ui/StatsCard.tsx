@@ -43,11 +43,11 @@ export const StatsCard = ({ stat }: { stat: StatsCardProps }) => {
           {stat.value}
         </h3>
         <div className="relative h-5 mt-2 overflow-hidden">
-          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 absolute inset-0 transition-all duration-300 transform group-hover:-translate-y-full opacity-100 group-hover:opacity-0">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 absolute inset-0 transition-all duration-300 transform group-hover:-translate-y-full opacity-100 group-hover:opacity-0 truncate">
             {stat.desc}
           </p>
-          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 absolute inset-0 transition-all duration-300 transform translate-y-full group-hover:translate-y-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
-            <span className="w-1 h-1 rounded-full bg-slate-400"></span> {stat.name}
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 absolute inset-0 transition-all duration-300 transform translate-y-full group-hover:translate-y-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 truncate">
+            <span className="w-1 h-1 rounded-full bg-slate-400 shrink-0"></span> <span className="truncate">{stat.name}</span>
           </p>
         </div>
       </div>
