@@ -111,6 +111,7 @@ export default function CycleClientsPage({
         method: 'POST',
         body: JSON.stringify({
           tenantId: id,
+          cycleId: cycleId,
           data: lines
         })
       });
