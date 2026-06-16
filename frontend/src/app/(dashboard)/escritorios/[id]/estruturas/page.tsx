@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, GitMerge, Plus, Trash2 } from 'lucide-react';
+import { Loader2, GitMerge, Plus, Trash2, Check } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -135,15 +135,19 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6"
+        className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-teal-500/30 shrink-0">
-            <GitMerge className="w-7 h-7" />
+        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-teal-100 to-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
+        <div className="flex items-center gap-5 relative z-10">
+          <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-teal-500/30 shrink-0 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+            <GitMerge className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Células</h2>
-            <p className="text-slate-500 font-medium mt-1">Crie subgrupos ou células específicas dentro de cada Frente Ativa.</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Células de Operação</h2>
+            <p className="text-slate-500 font-medium mt-2 leading-relaxed max-w-xl">
+              Crie subgrupos ou células específicas dentro de cada Frente Ativa para organizar suas equipes e fluxos.
+            </p>
           </div>
         </div>
       </motion.div>
@@ -166,38 +170,52 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8"
+          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 p-8 relative"
         >
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
+          
+          <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+            Estrutura de Subgrupos
+            <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg">
+              {subdivisions.length} criados
+            </span>
+          </h3>
+
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-[11px] text-slate-400 uppercase tracking-widest bg-slate-50/80 border-b border-slate-200">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead className="text-[11px] text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <tr>
-                  <th className="px-8 py-5 font-bold">Frente Operacional</th>
-                  <th className="px-8 py-5 font-bold">Nome da Célula / Subgrupo (Opcional)</th>
-                  <th className="px-8 py-5 text-right font-bold w-32">Ações</th>
+                  <th className="pb-4 font-bold text-left w-1/3">Frente Operacional</th>
+                  <th className="pb-4 font-bold text-left">Nome da Célula / Subgrupo (Opcional)</th>
+                  <th className="pb-4 font-bold text-right w-32">Ações</th>
                 </tr>
               </thead>
               <motion.tbody 
                 variants={tableVariants}
                 initial="hidden"
                 animate="show"
-                className="divide-y divide-slate-100"
+                className="divide-y divide-slate-50"
               >
                 <AnimatePresence>
                   {subdivisions.map((sub) => (
                     <motion.tr 
                       variants={rowVariants}
                       key={sub.id} 
-                      className="bg-white hover:bg-slate-50/80 transition-colors group"
+                      className="group transition-colors hover:bg-slate-50/50"
                     >
-                      <td className="px-8 py-5 font-bold text-slate-900 text-base">{sub.frontName}</td>
-                      <td className="px-8 py-5">
+                      <td className="py-5 pr-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-teal-400 shadow-sm shadow-teal-400/50" />
+                          <span className="font-bold text-slate-800 text-base">{sub.frontName}</span>
+                        </div>
+                      </td>
+                      <td className="py-5 pr-4">
                         <input 
                           type="text" 
                           value={sub.subName}
                           placeholder="Ex: Célula Simples Nacional"
                           disabled={!isAdmin}
-                          className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300 placeholder:font-normal disabled:bg-slate-50 disabled:text-slate-400 shadow-sm disabled:shadow-none"
+                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 focus:bg-white transition-all hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-400 shadow-sm disabled:shadow-none"
                           onChange={(e) => {
                             const newSubs = [...subdivisions];
                             newSubs.find(s => s.id === sub.id)!.subName = e.target.value;
@@ -205,20 +223,20 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
                           }}
                         />
                       </td>
-                      <td className="px-8 py-5 text-right">
+                      <td className="py-5 pl-4 text-right">
                         {isAdmin && (
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                             <button 
                               onClick={() => handleAddRow(sub.frontId, sub.frontName)} 
                               title="Adicionar mais uma célula nesta frente"
-                              className="p-3 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
+                              className="p-2.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
                             >
                               <Plus className="w-5 h-5" />
                             </button>
                             <button 
                               onClick={() => handleDeleteRow(sub.id)} 
                               title="Remover esta célula"
-                              className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                              className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                             >
                               <Trash2 className="w-5 h-5" />
                             </button>
@@ -234,25 +252,39 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
         </motion.div>
       )}
 
-      <div className="pt-2 flex justify-end">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="flex justify-end"
+      >
         {isAdmin ? (
           <button 
             onClick={handleSaveAndNext}
             disabled={isSaving || loading || fronts.length === 0}
-            className="bg-teal-600 text-white px-10 py-4 rounded-2xl hover:bg-teal-700 transition-all font-bold text-sm flex items-center gap-2 disabled:opacity-50 shadow-xl shadow-teal-600/20"
+            className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/30"
           >
-            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-            {isSaving ? 'Salvando...' : 'Salvar e Avançar para Equipe'}
+            {isSaving ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Salvando Configurações...
+              </>
+            ) : (
+              <>
+                <Check className="w-5 h-5" />
+                Salvar e Avançar para Equipe
+              </>
+            )}
           </button>
         ) : (
           <button 
             onClick={() => router.push(`/escritorios/${id}/colaboradores`)}
-            className="bg-teal-600 text-white px-10 py-4 rounded-2xl hover:bg-teal-700 transition-all font-bold text-sm flex items-center gap-2 shadow-xl shadow-teal-600/20"
+            className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1"
           >
             Avançar para Equipe
           </button>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
