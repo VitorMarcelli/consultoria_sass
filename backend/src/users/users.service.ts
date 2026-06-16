@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient } from '@supabase/supabase-js';
 import { CreateConsultantDto } from './dto/create-consultant.dto';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class UsersService {
@@ -131,10 +132,18 @@ export class UsersService {
     }
 
     const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    let serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!serviceRoleKey && process.env.SUPABASE_JWT_SECRET) {
+      serviceRoleKey = jwt.sign(
+        { role: 'service_role', iss: 'supabase' },
+        process.env.SUPABASE_JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+    }
 
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new BadRequestException('Configuração do Supabase ausente no servidor.');
+      throw new BadRequestException('ERRO CRÍTICO: Configuração do Supabase ausente (URL ou JWT_SECRET não configurados).');
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {

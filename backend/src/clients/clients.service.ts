@@ -46,17 +46,17 @@ export class ClientsService {
         ie: data.ie || null,
         im: data.im || null,
         cnae: data.cnae || null,
-        foundationDate: data.foundationDate ? new Date(data.foundationDate) : null,
-        certificateExpiration: data.certificateExpiration ? new Date(data.certificateExpiration) : null,
-        tradeName: data.tradeName || null,
-        taxRegime: data.taxRegime || null,
-        segment: data.segment || null,
-        revenueBracket: data.revenueBracket || null,
-        hasEconomicGroup: data.hasEconomicGroup || false,
-        economicGroupName: data.economicGroupName || null,
-        monthlyFee: data.monthlyFee ? Number(data.monthlyFee) : null,
-        classification: data.classification || null,
-        observations: data.observations || null,
+        foundationDate: (data.foundationDate?.toString().trim() === '') ? null : (data.foundationDate ? new Date(data.foundationDate) : undefined),
+        certificateExpiration: (data.certificateExpiration?.toString().trim() === '') ? null : (data.certificateExpiration ? new Date(data.certificateExpiration) : undefined),
+        tradeName: data.tradeName,
+        taxRegime: data.taxRegime,
+        segment: data.segment,
+        revenueBracket: data.revenueBracket,
+        hasEconomicGroup: data.hasEconomicGroup,
+        economicGroupName: data.economicGroupName,
+        monthlyFee: (data.monthlyFee !== undefined && data.monthlyFee !== null && data.monthlyFee.toString().trim() !== '') ? Number(data.monthlyFee) : ((data.monthlyFee === '' || data.monthlyFee?.toString().trim() === '') ? null : undefined),
+        classification: data.classification,
+        observations: data.observations,
       },
     });
 
@@ -147,6 +147,8 @@ export class ClientsService {
           data: clientData
         });
       }
+      
+      importedCount++;
 
       // Fetch employees for name resolution (memoized per bulk run)
       const allEmployees = await tenantPrisma.employee.findMany();
@@ -336,14 +338,15 @@ export class ClientsService {
     }
 
     const updateData: any = { ...data };
-    if (data.foundationDate) {
-      updateData.foundationDate = new Date(data.foundationDate);
+    
+    if (data.foundationDate !== undefined) {
+      updateData.foundationDate = (data.foundationDate?.toString().trim() === '') ? null : new Date(data.foundationDate);
     }
-    if (data.certificateExpiration) {
-      updateData.certificateExpiration = new Date(data.certificateExpiration);
+    if (data.certificateExpiration !== undefined) {
+      updateData.certificateExpiration = (data.certificateExpiration?.toString().trim() === '') ? null : new Date(data.certificateExpiration);
     }
     if (data.monthlyFee !== undefined) {
-      updateData.monthlyFee = data.monthlyFee ? Number(data.monthlyFee) : null;
+      updateData.monthlyFee = (data.monthlyFee?.toString().trim() === '') ? null : Number(data.monthlyFee);
     }
 
     return tenantPrisma.client.update({

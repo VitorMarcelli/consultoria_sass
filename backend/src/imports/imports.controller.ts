@@ -1,4 +1,4 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Request, BadRequestException, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ImportsService } from './imports.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -10,8 +10,12 @@ export class ImportsController {
 
   @Post('clients')
   @UseInterceptors(FileInterceptor('file'))
-  async importClients(@Request() req: any, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('O arquivo CSV não foi enviado.');
-    return this.importsService.importClients(req.user.id, file.buffer);
+  async importClients(
+    @Body('tenantId') tenantId: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    if (!tenantId) throw new BadRequestException('tenantId é obrigatório.');
+    if (!file) throw new BadRequestException('O arquivo não foi enviado.');
+    return this.importsService.importClients(tenantId, file.buffer);
   }
 }

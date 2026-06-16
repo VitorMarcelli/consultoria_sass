@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, Loader2, Building2, Plus, Upload, Trash2, Edit2 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { apiRequest } from '@/utils/api';
 import ClientModal from '@/components/ClientModal';
 import CsvImportModal from '@/components/CsvImportModal';
@@ -90,16 +91,25 @@ export default function CycleClientsPage({
   const handleImportCsv = async (file: File) => {
     setIsSaving(true);
     try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim().length > 0);
+      let lines: any[] = [];
       
-      if (lines.length <= 1) {
+      if (file.name.endsWith('.xlsx')) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        lines = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as any[];
+      } else {
+        const text = await file.text();
+        const workbook = XLSX.read(text, { type: 'string' });
+        lines = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as any[];
+      }
+      
+      if (lines.length === 0) {
         throw new Error('Arquivo vazio ou sem registros válidos');
       }
       
       await new Promise(r => setTimeout(r, 1500));
       
-      alert(`Simulação: Importação de ${lines.length - 1} registros concluída.`);
+      alert(`Simulação: Importação de ${lines.length} registros concluída.`);
       setIsImportModalOpen(false);
       await loadClients();
     } catch (err: any) {

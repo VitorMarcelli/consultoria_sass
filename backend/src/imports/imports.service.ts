@@ -26,22 +26,33 @@ export class ImportsService {
         
         try {
           let count = 0;
-          for (const record of records) {
-            const row = record as any;
-            const name = row['Razão Social'] || row['razaoSocial'] || row['name'];
-            if (!name) continue; // Skip empty/invalid rows
-            
-            const cnpj = row['CNPJ'] || row['cnpj'] || null;
-            
-            if (cnpj) {
-              const existing = await prisma.client.findUnique({ where: { cnpj } });
-              if (existing) {
-                await prisma.client.update({
-                  where: { id: existing.id },
-                  data: {
-                    name,
-                    tradeName: row['Nome Fantasia'] || row['nomeFantasia'] || null,
-                    status: row['Status'] || row['status'] || 'ACTIVE',
+            for (const record of records) {
+              const row = record as any;
+              
+              // Helper to find a key case-insensitively
+              const getVal = (keys: string[]) => {
+                const foundKey = Object.keys(row).find(k => 
+                  keys.some(expected => k.toLowerCase().trim() === expected.toLowerCase().trim())
+                );
+                return foundKey ? row[foundKey] : null;
+              };
+
+              const name = getVal(['Razão Social', 'Razao Social', 'razaoSocial', 'name', 'Nome']);
+              if (!name) continue; // Skip empty/invalid rows
+              
+              const cnpj = getVal(['CNPJ', 'cnpj']);
+              const tradeName = getVal(['Nome Fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
+              const statusVal = getVal(['Status', 'status']) || 'ACTIVE';
+              
+              if (cnpj) {
+                const existing = await prisma.client.findUnique({ where: { cnpj } });
+                if (existing) {
+                  await prisma.client.update({
+                    where: { id: existing.id },
+                    data: {
+                      name,
+                      tradeName: tradeName || null,
+                      status: statusVal,
                   }
                 });
                 count++;
@@ -53,8 +64,8 @@ export class ImportsService {
               data: {
                 name,
                 cnpj,
-                tradeName: row['Nome Fantasia'] || row['nomeFantasia'] || null,
-                status: row['Status'] || row['status'] || 'ACTIVE',
+                tradeName: tradeName || null,
+                status: statusVal,
               }
             });
             count++;
