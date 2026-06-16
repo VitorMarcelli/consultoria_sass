@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards, Request, Patch, Body, Post } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Request, Patch, Body, Post, Delete } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateConsultantDto } from './dto/create-consultant.dto';
@@ -50,5 +50,13 @@ export class UsersController {
     @Body() body: CreateConsultantDto
   ) {
     return this.usersService.createConsultant(req.user.id, body);
+  }
+
+  @Delete('consultant/:id')
+  async deleteConsultant(
+    @Request() req: any,
+    @Param('id') id: string
+  ) {
+    return this.usersService.deleteConsultant(req.user.id, id);
   }
 }

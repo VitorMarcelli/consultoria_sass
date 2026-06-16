@@ -229,4 +229,48 @@ export class UsersService {
       throw new BadRequestException('Falha ao registrar dados no banco. O usuário foi descartado de forma segura.');
     }
   }
+
+  async deleteConsultant(adminId: string, consultantId: string) {
+    const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
+    if (admin?.role !== 'ADMIN') {
+      throw new ForbiddenException('Apenas administradores podem excluir consultores.');
+    }
+
+    const consultant = await this.prisma.user.findUnique({ where: { id: consultantId } });
+    if (!consultant || consultant.role !== 'CONSULTANT') {
+      throw new NotFoundException('Consultor não encontrado.');
+    }
+
+    // 1. Find and update the tenant
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { consultantId: consultant.id }
+    });
+
+    if (tenant) {
+      await this.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { 
+          consultantId: null,
+          status: 'DISCONTINUED'
+        }
+      });
+    }
+
+    // 2. Delete user from Prisma
+    await this.prisma.user.delete({ where: { id: consultantId } });
+
+    // 3. Delete from Supabase Auth
+    try {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (supabaseUrl && serviceRoleKey) {
+        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+        await supabaseAdmin.auth.admin.deleteUser(consultantId);
+      }
+    } catch (e) {
+      console.error('Falha ao deletar usuário no Supabase Auth:', e);
+    }
+
+    return { message: 'Consultor removido e escritório descontinuado.' };
+  }
 }
