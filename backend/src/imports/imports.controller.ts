@@ -22,10 +22,11 @@ export class ImportsController {
   @Post('clients-json')
   async importClientsJson(
     @Body('tenantId') tenantId: string,
+    @Body('cycleId') cycleId: string | undefined,
     @Body('data') data: any[]
   ) {
     if (!tenantId) throw new BadRequestException('tenantId é obrigatório.');
     if (!data || !Array.isArray(data)) throw new BadRequestException('O array de dados é obrigatório.');
-    return this.importsService.importClientsJson(tenantId, data);
+    return this.importsService.importClientsJson(tenantId, data, cycleId);
   }
 }
