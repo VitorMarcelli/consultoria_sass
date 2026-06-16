@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Plus, Play, CheckCircle, Loader2, ArrowRight, Trash2, FolderClock, Users } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Portal } from '@/components/ui/Portal';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -185,13 +186,16 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
       )}
 
       {/* Modal Modernizado */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative border border-slate-100 overflow-hidden"
-          >
+      <AnimatePresence>
+        {isModalOpen && (
+          <Portal>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative border border-slate-100 overflow-hidden z-[110]"
+              >
             {/* Background decors */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-teal-50/50 rounded-bl-full -z-0 pointer-events-none"></div>
             
@@ -283,9 +287,11 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
                 </div>
               </form>
             </div>
-          </motion.div>
-        </div>
-      )}
+              </motion.div>
+            </div>
+          </Portal>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
