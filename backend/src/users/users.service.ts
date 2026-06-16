@@ -85,6 +85,12 @@ export class UsersService {
     return user;
   }
 
+  async findAll() {
+    return this.prisma.user.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async findAllByTenant(tenantId: string) {
     return this.prisma.user.findMany({
       where: { tenantId },
@@ -205,6 +211,12 @@ export class UsersService {
           role: 'CONSULTANT',
           tenantId: tenant.id
         }
+      });
+
+      // 4. Link Consultant to their Tenant
+      await this.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { consultantId: authUserId }
       });
 
       return user;
