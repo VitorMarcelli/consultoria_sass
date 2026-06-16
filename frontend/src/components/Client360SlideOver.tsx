@@ -10,6 +10,7 @@ import {
   Briefcase, Activity, Sparkles, ChevronRight, Trash2, Plus, Loader2, Settings
 } from 'lucide-react';
 import FrontClassificationForm from './FrontClassificationForm';
+import { Portal } from '@/components/ui/Portal';
 
 interface Client360SlideOverProps {
   isOpen: boolean;
@@ -177,26 +178,28 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Overlay with blur */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100]"
-          />
+    <Portal>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Overlay with blur */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100]"
+            />
 
-          {/* SlideOver Panel */}
-          <motion.div 
-            initial={{ x: '100%', opacity: 0.5, scale: 0.98 }}
-            animate={{ x: 0, opacity: 1, scale: 1 }}
-            exit={{ x: '100%', opacity: 0, scale: 0.98 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className="fixed inset-y-2 right-2 w-full max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-[110] flex flex-col border border-white/50 rounded-[2.5rem] overflow-hidden"
-          >
+            {/* SlideOver Panel */}
+            <motion.div 
+              initial={{ x: '100%', opacity: 0.5, scale: 0.98 }}
+              animate={{ x: 0, opacity: 1, scale: 1 }}
+              exit={{ x: '100%', opacity: 0, scale: 0.98 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
+              className="fixed inset-y-2 right-2 w-full max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-[110] flex flex-col border border-white/50 rounded-[2.5rem] overflow-hidden"
+            >
             {/* Header (Ultra Premium) */}
             <div className="relative bg-[#0A1A1E] p-8 sm:p-10 text-white shrink-0 overflow-hidden">
               {/* Dynamic Background Effects */}
@@ -729,7 +732,8 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
             </div>
           </motion.div>
         </>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </Portal>
   );
 }
