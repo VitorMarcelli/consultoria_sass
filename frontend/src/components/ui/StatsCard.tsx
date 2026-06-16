@@ -39,13 +39,17 @@ export const StatsCard = ({ stat }: { stat: StatsCardProps }) => {
       </div>
 
       <div className="relative z-10">
-        <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter flex items-baseline gap-2">
+        <h3 className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tighter truncate">
           {stat.value}
-          <span className="text-sm font-bold text-slate-400 tracking-normal opacity-0 group-hover:opacity-100 transition-opacity">
-             / {stat.name}
-          </span>
         </h3>
-        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-2">{stat.desc}</p>
+        <div className="relative h-5 mt-2 overflow-hidden">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 absolute inset-0 transition-all duration-300 transform group-hover:-translate-y-full opacity-100 group-hover:opacity-0">
+            {stat.desc}
+          </p>
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 absolute inset-0 transition-all duration-300 transform translate-y-full group-hover:translate-y-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-slate-400"></span> {stat.name}
+          </p>
+        </div>
       </div>
     </motion.div>
   );
