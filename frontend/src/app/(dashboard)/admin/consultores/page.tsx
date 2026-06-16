@@ -29,6 +29,11 @@ export default function ConsultoresPage() {
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
+  // Delete modal states
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [consultantToDelete, setConsultantToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -114,9 +119,26 @@ export default function ConsultoresPage() {
     }
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Tem certeza que deseja remover este consultor do sistema? Ele perderá acesso a todos os dados.')) {
-      setConsultores(consultores.filter(c => c.id !== id));
+  const confirmDelete = (consultor: any) => {
+    setConsultantToDelete(consultor);
+    setDeleteModalOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!consultantToDelete) return;
+    setIsDeleting(true);
+    try {
+      await apiRequest(`/users/consultant/${consultantToDelete.id}`, {
+        method: 'DELETE'
+      });
+      setConsultores(consultores.filter(c => c.id !== consultantToDelete.id));
+      alert('Consultor removido e escritório descontinuado com sucesso!');
+      setDeleteModalOpen(false);
+      setConsultantToDelete(null);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao remover consultor.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -280,7 +302,7 @@ export default function ConsultoresPage() {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => handleDelete(consultor.id)}
+                            onClick={() => confirmDelete(consultor)}
                             className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50"
                             title="Revogar acesso"
                           >
@@ -389,6 +411,55 @@ export default function ConsultoresPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+      {/* Modal de Confirmação de Exclusão */}
+      <AnimatePresence>
+        {deleteModalOpen && consultantToDelete && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setDeleteModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white/90 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-2xl z-50 overflow-hidden"
+            >
+              <div className="p-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Trash2 className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900">Excluir Consultor?</h2>
+                <p className="text-sm font-medium text-slate-500">
+                  Tem certeza que deseja remover <b>{consultantToDelete.name}</b> do sistema? 
+                </p>
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold p-4 rounded-xl mt-4 text-left">
+                  O Escritório atrelado a este consultor será automaticamente desvinculado e marcado como <b>DESCONTINUADO</b>. Você poderá visualizá-lo e reativá-lo na aba de Escritórios posteriormente.
+                </div>
+              </div>
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <button 
+                  onClick={() => setDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="flex-1 py-3 text-sm font-bold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={executeDelete}
+                  disabled={isDeleting}
+                  className="flex-1 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-lg shadow-red-600/20 disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, Excluir'}
+                </button>
+              </div>
             </motion.div>
           </>
         )}
