@@ -10,15 +10,14 @@ export class ImportsService {
     private readonly prismaManager: PrismaClientManager,
   ) {}
 
-  private async getTenantPrisma(userId: string) {
-    const user = await this.globalPrisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Usuário não encontrado.');
-    const schemaName = `tenant_${user.tenantId.replace(/-/g, '_')}`;
+  private async getTenantPrisma(tenantId: string) {
+    if (!tenantId) throw new NotFoundException('ID do escritório não informado.');
+    const schemaName = `tenant_${tenantId.replace(/-/g, '_')}`;
     return this.prismaManager.getClient(schemaName);
   }
 
-  async importClients(userId: string, fileBuffer: Buffer) {
-    const prisma = await this.getTenantPrisma(userId);
+  async importClients(tenantId: string, fileBuffer: Buffer) {
+    const prisma = await this.getTenantPrisma(tenantId);
     
     return new Promise((resolve, reject) => {
       parse(fileBuffer, { columns: true, skip_empty_lines: true }, async (err, records) => {
@@ -77,8 +76,8 @@ export class ImportsService {
       });
     });
   }
-  async importClientsJson(userId: string, records: any[]) {
-    const prisma = await this.getTenantPrisma(userId);
+  async importClientsJson(tenantId: string, records: any[]) {
+    const prisma = await this.getTenantPrisma(tenantId);
     let count = 0;
 
     for (const record of records) {
