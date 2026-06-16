@@ -4,6 +4,8 @@ import { apiRequest } from '@/utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import FrontClassificationForm from '@/components/FrontClassificationForm';
 
+import { Portal } from '@/components/ui/Portal';
+
 interface ClientCycleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -164,11 +166,11 @@ export default function ClientCycleModal({ isOpen, onClose, tenantId, cycleId, o
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 pointer-events-none">
+    <Portal>
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[100] pointer-events-none">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -446,7 +448,9 @@ export default function ClientCycleModal({ isOpen, onClose, tenantId, cycleId, o
             )}
           </div>
         </motion.div>
-      </div>
-    </AnimatePresence>
+          </div>
+        )}
+      </AnimatePresence>
+    </Portal>
   );
 }
