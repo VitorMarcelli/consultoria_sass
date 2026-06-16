@@ -186,7 +186,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100]"
           />
 
           {/* SlideOver Panel */}
@@ -195,7 +195,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
             animate={{ x: 0, opacity: 1, scale: 1 }}
             exit={{ x: '100%', opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className="fixed inset-y-2 right-2 w-full max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-50 flex flex-col border border-white/50 rounded-[2.5rem] overflow-hidden"
+            className="fixed inset-y-2 right-2 w-full max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-[110] flex flex-col border border-white/50 rounded-[2.5rem] overflow-hidden"
           >
             {/* Header (Ultra Premium) */}
             <div className="relative bg-[#0A1A1E] p-8 sm:p-10 text-white shrink-0 overflow-hidden">
