@@ -253,8 +253,12 @@ export class TenantsService {
 
   async findAll(user?: any) {
     const whereClause: any = {};
-    if (user && user.role === 'CONSULTANT') {
-      whereClause.consultantId = user.id;
+    
+    if (user && user.id) {
+      const dbUser = await this.prisma.user.findUnique({ where: { id: user.id } });
+      if (dbUser && dbUser.role === 'CONSULTANT') {
+        whereClause.consultantId = dbUser.id;
+      }
     }
 
     return this.prisma.tenant.findMany({
