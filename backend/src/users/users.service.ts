@@ -134,9 +134,10 @@ export class UsersService {
     const supabaseUrl = process.env.SUPABASE_URL;
     let serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!serviceRoleKey && process.env.SUPABASE_JWT_SECRET) {
+    if (!serviceRoleKey && process.env.SUPABASE_JWT_SECRET && supabaseUrl) {
+      const ref = supabaseUrl.split('//')[1]?.split('.')[0];
       serviceRoleKey = jwt.sign(
-        { role: 'service_role', iss: 'supabase' },
+        { role: 'service_role', iss: 'supabase', ref },
         process.env.SUPABASE_JWT_SECRET,
         { expiresIn: '1h' }
       );
