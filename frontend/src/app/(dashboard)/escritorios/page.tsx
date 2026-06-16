@@ -247,16 +247,16 @@ export default function EscritoriosPage() {
                     </div>
 
                     <div>
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="flex items-center gap-4">
+                      <div className="flex items-start justify-between mb-6 relative">
+                        <div className="flex items-center gap-4 w-full">
                           <div className="w-14 h-14 shrink-0 rounded-[1.25rem] bg-gradient-to-br from-teal-50 to-white border border-teal-100/50 flex items-center justify-center text-teal-600 shadow-sm relative overflow-hidden group-hover:scale-110 transition-transform duration-500">
                             <Building2 className="w-6 h-6 relative z-10" />
                           </div>
-                          <div className="min-w-0 pr-16 relative z-10">
+                          <div className="min-w-0 flex-1 pr-20 relative z-10">
                             <h3 className="font-bold text-xl text-slate-900 tracking-tight truncate group-hover:text-teal-700 transition-colors" title={escritorio.name}>{escritorio.name}</h3>
-                            <p className="text-sm font-medium text-slate-500 mt-1 flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
-                              {escritorio._count?.users || 0} usuários vinculados
+                            <p className="text-sm font-medium text-slate-500 mt-1 flex items-center gap-1.5 truncate">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block shrink-0"></span>
+                              <span className="truncate">{escritorio._count?.users || 0} usuários vinculados</span>
                             </p>
                           </div>
                         </div>
