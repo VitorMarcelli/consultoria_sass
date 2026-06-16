@@ -251,8 +251,14 @@ export class TenantsService {
     return tenant;
   }
 
-  async findAll() {
+  async findAll(user?: any) {
+    const whereClause: any = {};
+    if (user && user.role === 'CONSULTANT') {
+      whereClause.consultantId = user.id;
+    }
+
     return this.prisma.tenant.findMany({
+      where: whereClause,
       include: {
         _count: {
           select: { users: true },
