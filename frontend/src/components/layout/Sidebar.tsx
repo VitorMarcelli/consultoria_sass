@@ -202,7 +202,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     <>
       {/* Desktop Sidebar (Collapsible on Hover) */}
       <aside 
-        className="group/sidebar w-[80px] hover:w-[260px] transition-[width] duration-300 ease-in-out flex-col justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] rounded-[2rem] m-4 hidden lg:flex relative z-40 py-4 overflow-hidden"
+        className="group/sidebar w-[80px] hover:w-[260px] transition-[width] duration-300 ease-in-out flex-col justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] rounded-[2rem] m-4 hidden lg:flex relative z-[60] py-4 overflow-hidden"
       >
         {sidebarContent}
       </aside>

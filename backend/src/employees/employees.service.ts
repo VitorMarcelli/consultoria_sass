@@ -46,11 +46,11 @@ export class EmployeesService {
             cycleId: data.cycleId,
             frontId: data.frontId,
             subdivisionId: data.subdivisionId || null,
-            dailyAvailableTime: data.allocatedHours ? parseFloat(data.allocatedHours) : 8,
-            predictableRecurrentTimePercentage: data.predictableRecurrentTimePercentage !== undefined ? parseFloat(data.predictableRecurrentTimePercentage) : null,
-            unpredictableRecurrentTimePercentage: data.unpredictableRecurrentTimePercentage !== undefined ? parseFloat(data.unpredictableRecurrentTimePercentage) : null,
-            allocationStartDate: data.allocationStartDate ? new Date(data.allocationStartDate) : null,
-            allocationEndDate: data.allocationEndDate ? new Date(data.allocationEndDate) : null,
+            dailyAvailableTime: (data.allocatedHours !== null && data.allocatedHours !== undefined && data.allocatedHours !== '') ? parseFloat(data.allocatedHours) : 8,
+            predictableRecurrentTimePercentage: (data.predictableRecurrentTimePercentage !== null && data.predictableRecurrentTimePercentage !== undefined && data.predictableRecurrentTimePercentage !== '') ? parseFloat(data.predictableRecurrentTimePercentage) : null,
+            unpredictableRecurrentTimePercentage: (data.unpredictableRecurrentTimePercentage !== null && data.unpredictableRecurrentTimePercentage !== undefined && data.unpredictableRecurrentTimePercentage !== '') ? parseFloat(data.unpredictableRecurrentTimePercentage) : null,
+            allocationStartDate: (data.allocationStartDate && data.allocationStartDate !== '') ? new Date(data.allocationStartDate) : null,
+            allocationEndDate: (data.allocationEndDate && data.allocationEndDate !== '') ? new Date(data.allocationEndDate) : null,
             status: data.allocationStatus || 'ACTIVE',
           }
         });
@@ -70,7 +70,7 @@ export class EmployeesService {
         role: data.role,
         level: data.level !== undefined ? data.level : undefined,
         status: data.status,
-        grossSalary: data.grossSalary !== undefined ? (data.grossSalary ? parseFloat(data.grossSalary) : null) : undefined,
+        grossSalary: data.grossSalary !== undefined ? (data.grossSalary?.toString().trim() ? parseFloat(data.grossSalary) : null) : undefined,
         observations: data.observations !== undefined ? data.observations : undefined,
       }
     });

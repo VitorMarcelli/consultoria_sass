@@ -104,32 +104,41 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        // Retorna array de objetos com as chaves sendo o nome das colunas
+        lines = XLSX.utils.sheet_to_json(worksheet) as any[];
         
-        if (rows.length <= 1) {
+        if (lines.length === 0) {
           throw new Error('A planilha parece estar vazia ou conter apenas o cabeçalho.');
         }
-
-        lines = rows.slice(1);
       } else {
         const text = await file.text();
-        const textLines = text.split('\n').filter(line => line.trim().length > 0);
+        const workbook = XLSX.read(text, { type: 'string' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
         
-        if (textLines.length <= 1) {
+        lines = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+        if (lines.length === 0) {
           throw new Error('O arquivo CSV parece estar vazio ou conter apenas o cabeçalho.');
         }
-
-        lines = textLines.slice(1).map(line => line.split(/[;,]/));
       }
 
-      const clientsPayload = lines.map((columns: any[]) => {
-        const c = (idx: number) => {
-           const val = columns[idx];
-           if (val === undefined || val === null) return '';
-           return String(val).trim();
+      const clientsPayload = lines.map((row: any) => {
+        // Função auxiliar para achar o valor por nomes possíveis de coluna
+        const getVal = (keys: string[]) => {
+          const foundKey = Object.keys(row).find(k => 
+            keys.some(expected => k.toLowerCase().trim() === expected.toLowerCase().trim())
+          );
+          const val = foundKey ? row[foundKey] : undefined;
+          return (val === undefined || val === null) ? '' : String(val).trim();
         };
-        const b = (idx: number) => c(idx).toUpperCase() === 'SIM';
-        const n = (idx: number) => c(idx) ? Number(c(idx).replace(/[^0-9.-]+/g,"")) : undefined;
+
+        const c = getVal;
+        const b = (keys: string[]) => c(keys).toUpperCase() === 'SIM';
+        const n = (keys: string[]) => {
+          const val = c(keys);
+          return val ? Number(val.replace(/[^0-9.-]+/g,"")) : undefined;
+        };
 
         const mapRegime: Record<string, string> = { 'Simples Nacional': 'SIMPLES_NACIONAL', 'Lucro Presumido': 'LUCRO_PRESUMIDO', 'Lucro Real': 'LUCRO_REAL' };
         const mapStatus: Record<string, string> = { 'Ativo': 'ACTIVE', 'Inativo': 'INACTIVE' };
@@ -147,76 +156,76 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         const m = (val: string, dict: Record<string, string>) => val ? (dict[val] || val) : '';
 
         // Geral
-        const name = c(0);
-        const tradeName = c(1);
-        const cnpj = c(2);
-        const city = c(3);
-        const state = c(4);
-        const taxRegime = m(c(5), mapRegime);
-        const segment = c(6);
-        const revenueBracket = c(7);
-        const hasEconomicGroup = !!c(8);
-        const economicGroupName = c(8);
-        const monthlyFee = n(9);
-        const classification = c(10);
-        const status = m(c(11), mapStatus) || 'ACTIVE';
-        const fiscal = b(12);
-        const contabil = b(13);
-        const dp = b(14);
-        const observations = c(15);
+        const name = c(['Razão Social', 'razaoSocial', 'name', 'Nome', 'Cliente']);
+        const tradeName = c(['Nome Fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
+        const cnpj = c(['CNPJ', 'cnpj']);
+        const city = c(['Cidade', 'city']);
+        const state = c(['UF', 'Estado', 'state']);
+        const taxRegime = m(c(['Regime Tributário', 'Regime Tributario', 'taxRegime']), mapRegime);
+        const segment = c(['Segmento', 'segment']);
+        const revenueBracket = c(['Faixa de Faturamento', 'revenueBracket']);
+        const hasEconomicGroup = !!c(['Possui Grupo Econômico', 'Possui Grupo Economico', 'hasEconomicGroup']);
+        const economicGroupName = c(['Nome do Grupo Econômico', 'Nome do Grupo Economico', 'economicGroupName']);
+        const monthlyFee = n(['Honorário Mensal', 'Honorario Mensal', 'monthlyFee']);
+        const classification = c(['Classificação', 'Classificacao', 'classification']);
+        const status = m(c(['Status', 'status']), mapStatus) || 'ACTIVE';
+        const fiscal = b(['Fiscal']);
+        const contabil = b(['Contábil', 'Contabil']);
+        const dp = b(['DP', 'Departamento Pessoal']);
+        const observations = c(['Observações', 'Observacoes', 'observations']);
 
         // Fiscal
-        const fiscalLeaderName = c(16);
-        const fiscalOp1Name = c(17);
-        const fiscalOp2Name = c(18);
-        const fiscalFrequency = c(19);
-        const fiscalComplexity = n(20);
-        const fiscalNotesVolume = m(c(21), mapVolume);
-        const fiscalOutNotesVolume = c(22);
-        const fiscalInNotesVolume = c(23);
-        const fiscalAutomationLevel = m(c(24), mapAuto);
-        const fiscalHasSpecialRegime = !!c(25);
-        const fiscalSpecialRegimeDesc = c(25);
-        const fiscalInNfe = c(26);
-        const fiscalOutNfe = c(27);
-        const fiscalNfse = c(28);
-        const fiscalSendingChannels = c(29);
-        const fiscalSystem = m(c(30), mapSystem);
-        const fiscalNotesPlatform = m(c(31), mapPlatform);
-        const fiscalMeetsDeadlines = c(32);
-        const fiscalParticulars = c(33);
+        const fiscalLeaderName = c(['Líder Fiscal', 'Lider Fiscal', 'fiscalLeaderName']);
+        const fiscalOp1Name = c(['Operador 1 Fiscal', 'fiscalOp1Name']);
+        const fiscalOp2Name = c(['Operador 2 Fiscal', 'fiscalOp2Name']);
+        const fiscalFrequency = c(['Frequência Fiscal', 'Frequencia Fiscal', 'fiscalFrequency']);
+        const fiscalComplexity = n(['Complexidade Fiscal', 'fiscalComplexity']);
+        const fiscalNotesVolume = m(c(['Volume de Notas (Mensal)', 'fiscalNotesVolume']), mapVolume);
+        const fiscalOutNotesVolume = c(['Volume Notas Saída', 'Volume Notas Saida', 'fiscalOutNotesVolume']);
+        const fiscalInNotesVolume = c(['Volume Notas Entrada', 'fiscalInNotesVolume']);
+        const fiscalAutomationLevel = m(c(['Nível de Automação', 'Nivel de Automacao', 'fiscalAutomationLevel']), mapAuto);
+        const fiscalHasSpecialRegime = !!c(['Possui Regime Especial', 'fiscalHasSpecialRegime']);
+        const fiscalSpecialRegimeDesc = c(['Descrição do Regime Especial', 'Descricao do Regime Especial', 'fiscalSpecialRegimeDesc']);
+        const fiscalInNfe = c(['Meios Recebimento NFe Entrada', 'fiscalInNfe']);
+        const fiscalOutNfe = c(['Meios Recebimento NFe Saída', 'fiscalOutNfe']);
+        const fiscalNfse = c(['Meios Recebimento NFSe', 'fiscalNfse']);
+        const fiscalSendingChannels = c(['Canais de Envio (Impostos)', 'fiscalSendingChannels']);
+        const fiscalSystem = m(c(['Sistema Fiscal', 'fiscalSystem']), mapSystem);
+        const fiscalNotesPlatform = m(c(['Plataforma Busca de Notas', 'fiscalNotesPlatform']), mapPlatform);
+        const fiscalMeetsDeadlines = c(['Cliente Cumpre Prazos', 'fiscalMeetsDeadlines']);
+        const fiscalParticulars = c(['Particularidades Fiscais', 'fiscalParticulars']);
 
         // DP
-        const dpLeaderName = c(34);
-        const dpOp1Name = c(35);
-        const dpOp2Name = c(36);
-        const dpFrequency = c(37);
-        const dpComplexity = n(38);
-        const dpEmployeesCount = n(39);
-        const dpProlaboreCount = n(40);
-        const dpDomesticsCount = n(41);
-        const dpPointReceipt = m(c(42), mapPoint);
-        const dpVariablesLaunch = c(43);
-        const dpProcessingType = m(c(44), mapProcType);
-        const dpSheetSending = c(45);
-        const dpFrequentAdmissions = b(46);
-        const dpParticulars = c(47);
+        const dpLeaderName = c(['Líder DP', 'Lider DP', 'dpLeaderName']);
+        const dpOp1Name = c(['Operador 1 DP', 'dpOp1Name']);
+        const dpOp2Name = c(['Operador 2 DP', 'dpOp2Name']);
+        const dpFrequency = c(['Frequência DP', 'Frequencia DP', 'dpFrequency']);
+        const dpComplexity = n(['Complexidade DP', 'dpComplexity']);
+        const dpEmployeesCount = n(['Qtd Vidas (Funcionários)', 'dpEmployeesCount']);
+        const dpProlaboreCount = n(['Qtd Pró-Labore', 'dpProlaboreCount']);
+        const dpDomesticsCount = n(['Qtd Domésticas', 'dpDomesticsCount']);
+        const dpPointReceipt = m(c(['Recebimento de Ponto', 'dpPointReceipt']), mapPoint);
+        const dpVariablesLaunch = c(['Lançamento Variáveis', 'Lancamento Variaveis', 'dpVariablesLaunch']);
+        const dpProcessingType = m(c(['Tipo de Processamento', 'dpProcessingType']), mapProcType);
+        const dpSheetSending = c(['Envio da Folha', 'dpSheetSending']);
+        const dpFrequentAdmissions = b(['Admissões/Demissões Frequentes', 'dpFrequentAdmissions']);
+        const dpParticulars = c(['Particularidades DP', 'dpParticulars']);
 
         // Contábil
-        const contabilLeaderName = c(48);
-        const contabilOp1Name = c(49);
-        const contabilOp2Name = c(50);
-        const contabilFrequency = c(51);
-        const contabilComplexity = n(52);
-        const contabilBookkeeping = m(c(53), mapBookkeeping);
-        const contabilLastClosing = c(54);
-        const contabilClosingPeriod = m(c(55), mapPeriod);
-        const contabilReceiptFreq = c(56);
-        const contabilReceiptMethod = c(57);
-        const contabilIntegration = m(c(58), mapInteg);
-        const contabilTrialBalance = c(59);
-        const contabilLaunches = m(c(60), mapLaunches);
-        const contabilParticulars = c(61);
+        const contabilLeaderName = c(['Líder Contábil', 'Lider Contabil', 'contabilLeaderName']);
+        const contabilOp1Name = c(['Operador 1 Contábil', 'Operador 1 Contabil', 'contabilOp1Name']);
+        const contabilOp2Name = c(['Operador 2 Contábil', 'Operador 2 Contabil', 'contabilOp2Name']);
+        const contabilFrequency = c(['Frequência Contábil', 'Frequencia Contabil', 'contabilFrequency']);
+        const contabilComplexity = n(['Complexidade Contábil', 'Complexidade Contabil', 'contabilComplexity']);
+        const contabilBookkeeping = m(c(['Regime Contábil', 'Regime Contabil', 'contabilBookkeeping']), mapBookkeeping);
+        const contabilLastClosing = c(['Último Mês Fechado', 'Ultimo Mes Fechado', 'contabilLastClosing']);
+        const contabilClosingPeriod = m(c(['Periodicidade Fechamento', 'contabilClosingPeriod']), mapPeriod);
+        const contabilReceiptFreq = c(['Frequência de Recebimento Docs', 'Frequencia de Recebimento Docs', 'contabilReceiptFreq']);
+        const contabilReceiptMethod = c(['Meio de Recebimento Docs', 'contabilReceiptMethod']);
+        const contabilIntegration = m(c(['Integração/Automação', 'Integracao/Automacao', 'contabilIntegration']), mapInteg);
+        const contabilTrialBalance = c(['Necessidade Balancete', 'contabilTrialBalance']);
+        const contabilLaunches = m(c(['Volume de Lançamentos', 'Volume de Lancamentos', 'contabilLaunches']), mapLaunches);
+        const contabilParticulars = c(['Particularidades Contábeis', 'Particularidades Contabeis', 'contabilParticulars']);
         
         return { 
           name, tradeName, cnpj, city, state, 
