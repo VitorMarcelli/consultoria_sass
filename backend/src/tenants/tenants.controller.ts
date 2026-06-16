@@ -13,8 +13,8 @@ export class TenantsController {
   }
 
   @Get()
-  findAll() {
-    return this.tenantsService.findAll();
+  findAll(@Request() req: any) {
+    return this.tenantsService.findAll(req.user);
   }
 
   @Get(':id')
