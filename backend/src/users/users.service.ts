@@ -4,9 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 import { CreateConsultantDto } from './dto/create-consultant.dto';
 import * as jwt from 'jsonwebtoken';
 
+import { TenantsService } from '../tenants/tenants.service';
+
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenantsService: TenantsService
+  ) {}
 
   async findMe(userId: string, email?: string) {
     let user = await this.prisma.user.findUnique({
@@ -191,15 +196,12 @@ export class UsersService {
 
     const authUserId = authData.id;
     try {
-      // 2. Create Tenant (Escritório)
+      // 2. Create Tenant (Escritório) with schema generation
       const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 6);
       
-      const tenant = await this.prisma.tenant.create({
-        data: {
-          name: `Escritório de ${data.name}`,
-          slug,
-          status: 'ACTIVE'
-        }
+      const tenant = await this.tenantsService.create({
+        name: `Escritório de ${data.name}`,
+        slug,
       });
 
       // 3. Create User in Prisma
