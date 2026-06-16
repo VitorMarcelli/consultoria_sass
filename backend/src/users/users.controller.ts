@@ -24,8 +24,14 @@ export class UsersController {
 
   @Get()
   async findAll(@Request() req: any) {
-    // Return users belonging to the same tenant as the logged-in user
     const dbUser = await this.usersService.findMe(req.user.id, req.user.email);
+    
+    // Se for ADMIN, pode ver todos os usuários do sistema
+    if (dbUser.role === 'ADMIN') {
+      return this.usersService.findAll();
+    }
+
+    // Caso contrário, vê apenas os do mesmo tenant
     return this.usersService.findAllByTenant(dbUser.tenantId);
   }
 
