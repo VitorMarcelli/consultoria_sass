@@ -107,13 +107,19 @@ export default function CycleClientsPage({
         throw new Error('Arquivo vazio ou sem registros válidos');
       }
       
-      await new Promise(r => setTimeout(r, 1500));
+      const response = await apiRequest('/imports/clients-json', {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId: id,
+          data: lines
+        })
+      });
       
-      alert(`Simulação: Importação de ${lines.length} registros concluída.`);
+      alert(response.message || `Importação de ${response.count} registros concluída com sucesso!`);
       setIsImportModalOpen(false);
       await loadClients();
     } catch (err: any) {
-      throw new Error(err.message || 'Falha ao ler arquivo');
+      throw new Error(err.message || 'Falha ao importar arquivo');
     } finally {
       setIsSaving(false);
     }

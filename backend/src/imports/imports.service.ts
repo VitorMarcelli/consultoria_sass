@@ -77,4 +77,55 @@ export class ImportsService {
       });
     });
   }
+  async importClientsJson(userId: string, records: any[]) {
+    const prisma = await this.getTenantPrisma(userId);
+    let count = 0;
+
+    for (const record of records) {
+      const row = record as any;
+      
+      // Helper to find a key case-insensitively
+      const getVal = (keys: string[]) => {
+        const foundKey = Object.keys(row).find(k => 
+          keys.some(expected => k.toLowerCase().trim() === expected.toLowerCase().trim())
+        );
+        return foundKey ? row[foundKey] : null;
+      };
+
+      const name = getVal(['Razão Social', 'Razao Social', 'razaoSocial', 'name', 'Nome']);
+      if (!name) continue; // Skip empty/invalid rows
+      
+      const cnpj = getVal(['CNPJ', 'cnpj']);
+      const tradeName = getVal(['Nome Fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
+      const statusVal = getVal(['Status', 'status']) || 'ACTIVE';
+      
+      if (cnpj) {
+        const existing = await prisma.client.findUnique({ where: { cnpj } });
+        if (existing) {
+          await prisma.client.update({
+            where: { id: existing.id },
+            data: {
+              name,
+              tradeName: tradeName || null,
+              status: statusVal,
+            }
+          });
+          count++;
+          continue;
+        }
+      }
+      
+      await prisma.client.create({
+        data: {
+          name,
+          cnpj,
+          tradeName: tradeName || null,
+          status: statusVal,
+        }
+      });
+      count++;
+    }
+    
+    return { success: true, count, message: `Foram importados/atualizados ${count} clientes com sucesso.` };
+  }
 }

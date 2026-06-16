@@ -18,4 +18,14 @@ export class ImportsController {
     if (!file) throw new BadRequestException('O arquivo não foi enviado.');
     return this.importsService.importClients(tenantId, file.buffer);
   }
+
+  @Post('clients-json')
+  async importClientsJson(
+    @Body('tenantId') tenantId: string,
+    @Body('data') data: any[]
+  ) {
+    if (!tenantId) throw new BadRequestException('tenantId é obrigatório.');
+    if (!data || !Array.isArray(data)) throw new BadRequestException('O array de dados é obrigatório.');
+    return this.importsService.importClientsJson(tenantId, data);
+  }
 }
