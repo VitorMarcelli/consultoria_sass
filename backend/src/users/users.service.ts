@@ -132,19 +132,10 @@ export class UsersService {
     }
 
     const supabaseUrl = process.env.SUPABASE_URL;
-    let serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!serviceRoleKey && process.env.SUPABASE_JWT_SECRET && supabaseUrl) {
-      const ref = supabaseUrl.split('//')[1]?.split('.')[0];
-      serviceRoleKey = jwt.sign(
-        { role: 'service_role', iss: 'supabase', ref },
-        process.env.SUPABASE_JWT_SECRET,
-        { expiresIn: '1h' }
-      );
-    }
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new BadRequestException('ERRO CRÍTICO: Configuração do Supabase ausente (URL ou JWT_SECRET não configurados).');
+      throw new BadRequestException('ERRO CRÍTICO: Configuração do Supabase ausente no servidor.');
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
@@ -155,21 +146,44 @@ export class UsersService {
     });
 
     // 1. Create User in Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password || 'Sevilha123!',
-      email_confirm: true,
-      user_metadata: {
-        name: data.name
-      }
-    });
+    let authData, authError;
+    
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      // Se tiver a chave admin, usa admin.createUser para burlar confirmação de email
+      const result = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: data.password || 'Sevilha123!',
+        email_confirm: true,
+        user_metadata: {
+          name: data.name
+        }
+      });
+      authData = result.data.user;
+      authError = result.error;
+    } else {
+      // Se tiver só anon_key, usa signUp normal
+      const result = await supabaseAdmin.auth.signUp({
+        email: data.email,
+        password: data.password || 'Sevilha123!',
+        options: {
+          data: {
+            name: data.name
+          }
+        }
+      });
+      authData = result.data.user;
+      authError = result.error;
+    }
 
     if (authError) {
       throw new BadRequestException(`Erro no Auth: ${authError.message}`);
     }
 
-    const authUserId = authData.user.id;
+    if (!authData || !authData.id) {
+      throw new BadRequestException('Erro no Auth: Usuário não retornado pelo Supabase.');
+    }
 
+    const authUserId = authData.id;
     try {
       // 2. Create Tenant (Escritório)
       const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 6);
