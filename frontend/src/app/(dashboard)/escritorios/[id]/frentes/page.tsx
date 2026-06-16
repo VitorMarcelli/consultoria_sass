@@ -165,10 +165,10 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
                 whileHover={{ scale: isAdmin ? 1.02 : 1, y: isAdmin ? -2 : 0 }}
                 whileTap={{ scale: isAdmin ? 0.98 : 1 }}
                 onClick={() => toggleFront(idx)}
-                className={`group relative p-6 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center overflow-hidden ${
+                className={`group relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex justify-between items-center ${
                   front.isActive 
-                    ? 'border-amber-500 bg-amber-50/50 shadow-md shadow-amber-500/10' 
-                    : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-sm'
+                    ? 'border-amber-500 bg-amber-50/50 shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30' 
+                    : 'border-slate-200 bg-white hover:border-amber-400 hover:shadow-md hover:shadow-amber-500/10'
                 } ${!isAdmin && 'cursor-default pointer-events-none'}`}
               >
                 {/* Subtle gradient background for active cards */}
@@ -184,10 +184,10 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
                 
                 <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                   front.isActive 
-                    ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md shadow-amber-500/30' 
-                    : 'bg-slate-100 text-slate-300 group-hover:bg-amber-100 group-hover:text-amber-400'
+                    ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md shadow-orange-500/40' 
+                    : 'bg-slate-100 text-slate-400 group-hover:bg-amber-100 group-hover:text-amber-500'
                 }`}>
-                  <Check className={`w-4 h-4 transition-transform duration-300 ${front.isActive ? 'scale-100' : 'scale-75'}`} />
+                  <Check className={`w-4 h-4 transition-transform duration-300 ${front.isActive ? 'scale-100' : 'scale-0'}`} />
                 </div>
               </motion.div>
             ))}
@@ -229,30 +229,26 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
             <button 
               onClick={handleSaveAndNext}
               disabled={isSaving}
-              className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all font-bold text-sm flex items-center gap-3 shadow-xl shadow-teal-600/20 hover:shadow-teal-600/40 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/20 overflow-hidden"
+              className="bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/30"
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-              <span className="relative z-10 flex items-center gap-2">
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Salvando Configurações...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-5 h-5" />
-                    Salvar e Avançar para Estruturas
-                  </>
-                )}
-              </span>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Salvando Configurações...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Salvar e Avançar para Estruturas
+                </>
+              )}
             </button>
           ) : (
             <button 
               onClick={() => router.push(`/escritorios/${id}/estruturas`)}
-              className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all font-bold text-sm flex items-center gap-3 shadow-xl shadow-teal-600/20 hover:shadow-teal-600/40 hover:-translate-y-0.5 overflow-hidden"
+              className="bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1"
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-              <span className="relative z-10">Avançar para Estruturas</span>
+              Avançar para Estruturas
             </button>
           )}
         </motion.div>
