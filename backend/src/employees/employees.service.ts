@@ -25,16 +25,30 @@ export class EmployeesService {
   async create(tenantId: string, data: any) {
     const tenantPrisma = await this.getTenantPrisma(tenantId);
     
+    // Helper to safely parse floats
+    const safeParseFloat = (val: any, fallback: any = null) => {
+      if (val === null || val === undefined || val === '') return fallback;
+      const parsed = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : parseFloat(val);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
+    // Helper to safely parse dates
+    const safeParseDate = (val: any) => {
+      if (!val || val === '') return null;
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
     // Inicia uma transação para garantir que a criação do funcionário e sua alocação no ciclo (se houver) aconteçam de forma segura.
     return tenantPrisma.$transaction(async (tx) => {
       const employee = await tx.employee.create({
         data: {
           name: data.name,
-          email: data.email,
+          email: data.email || null,
           role: data.role,
           level: data.level || null,
           status: data.status || 'ACTIVE',
-          grossSalary: data.grossSalary ? parseFloat(data.grossSalary) : null,
+          grossSalary: safeParseFloat(data.grossSalary),
           observations: data.observations || null,
         }
       });
@@ -46,11 +60,11 @@ export class EmployeesService {
             cycleId: data.cycleId,
             frontId: data.frontId,
             subdivisionId: data.subdivisionId || null,
-            dailyAvailableTime: (data.allocatedHours !== null && data.allocatedHours !== undefined && data.allocatedHours !== '') ? parseFloat(data.allocatedHours) : 8,
-            predictableRecurrentTimePercentage: (data.predictableRecurrentTimePercentage !== null && data.predictableRecurrentTimePercentage !== undefined && data.predictableRecurrentTimePercentage !== '') ? parseFloat(data.predictableRecurrentTimePercentage) : null,
-            unpredictableRecurrentTimePercentage: (data.unpredictableRecurrentTimePercentage !== null && data.unpredictableRecurrentTimePercentage !== undefined && data.unpredictableRecurrentTimePercentage !== '') ? parseFloat(data.unpredictableRecurrentTimePercentage) : null,
-            allocationStartDate: (data.allocationStartDate && data.allocationStartDate !== '') ? new Date(data.allocationStartDate) : null,
-            allocationEndDate: (data.allocationEndDate && data.allocationEndDate !== '') ? new Date(data.allocationEndDate) : null,
+            dailyAvailableTime: safeParseFloat(data.allocatedHours, 8),
+            predictableRecurrentTimePercentage: safeParseFloat(data.predictableRecurrentTimePercentage),
+            unpredictableRecurrentTimePercentage: safeParseFloat(data.unpredictableRecurrentTimePercentage),
+            allocationStartDate: safeParseDate(data.allocationStartDate),
+            allocationEndDate: safeParseDate(data.allocationEndDate),
             status: data.allocationStatus || 'ACTIVE',
           }
         });
