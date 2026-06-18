@@ -55,6 +55,7 @@ export class TenantsService {
             "name" TEXT NOT NULL,
             "email" TEXT,
             "role" TEXT NOT NULL,
+            "level" TEXT,
             "grossSalary" DOUBLE PRECISION,
             "status" TEXT NOT NULL DEFAULT 'ACTIVE',
             "observations" TEXT,
@@ -97,6 +98,10 @@ export class TenantsService {
             "subdivisionId" TEXT,
             "leaderId" TEXT,
             "dailyAvailableTime" DOUBLE PRECISION,
+            "predictableRecurrentTimePercentage" DOUBLE PRECISION,
+            "unpredictableRecurrentTimePercentage" DOUBLE PRECISION,
+            "allocationStartDate" TIMESTAMP(3),
+            "allocationEndDate" TIMESTAMP(3),
             "status" TEXT NOT NULL DEFAULT 'ACTIVE',
             "observations" TEXT,
             CONSTRAINT "EmployeeCycleAllocation_pkey" PRIMARY KEY ("id")
