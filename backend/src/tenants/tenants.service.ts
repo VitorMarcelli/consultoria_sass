@@ -1,5 +1,6 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { execSync } from 'child_process';
 
 @Injectable()
 export class TenantsService {
@@ -37,213 +38,20 @@ export class TenantsService {
     try {
       await this.prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}";`);
       
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."OperationalFront" (
-            "id" TEXT NOT NULL,
-            "name" TEXT NOT NULL,
-            "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-            "observations" TEXT,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "OperationalFront_pkey" PRIMARY KEY ("id")
-        )
-      `);
+      const dbUrl = new URL(process.env.DATABASE_URL!);
+      dbUrl.searchParams.set('schema', schemaName);
+      
+      const directUrl = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL!);
+      directUrl.searchParams.set('schema', schemaName);
 
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."Employee" (
-            "id" TEXT NOT NULL,
-            "name" TEXT NOT NULL,
-            "email" TEXT,
-            "role" TEXT NOT NULL,
-            "level" TEXT,
-            "grossSalary" DOUBLE PRECISION,
-            "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-            "observations" TEXT,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "Employee_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."Subdivision" (
-            "id" TEXT NOT NULL,
-            "frontId" TEXT NOT NULL,
-            "name" TEXT NOT NULL,
-            "leaderId" TEXT,
-            "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-            "observations" TEXT,
-            CONSTRAINT "Subdivision_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."ManagementCycle" (
-            "id" TEXT NOT NULL,
-            "month" INTEGER NOT NULL,
-            "year" INTEGER NOT NULL,
-            "status" TEXT NOT NULL DEFAULT 'OPEN',
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "ManagementCycle_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."EmployeeCycleAllocation" (
-            "id" TEXT NOT NULL,
-            "cycleId" TEXT NOT NULL,
-            "employeeId" TEXT NOT NULL,
-            "frontId" TEXT NOT NULL,
-            "subdivisionId" TEXT,
-            "leaderId" TEXT,
-            "dailyAvailableTime" DOUBLE PRECISION,
-            "predictableRecurrentTimePercentage" DOUBLE PRECISION,
-            "unpredictableRecurrentTimePercentage" DOUBLE PRECISION,
-            "allocationStartDate" TIMESTAMP(3),
-            "allocationEndDate" TIMESTAMP(3),
-            "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-            "observations" TEXT,
-            CONSTRAINT "EmployeeCycleAllocation_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."ClientCycleSnapshot" (
-            "id" TEXT NOT NULL,
-            "cycleId" TEXT NOT NULL,
-            "clientId" TEXT NOT NULL,
-            "frontId" TEXT NOT NULL,
-            "subdivisionId" TEXT,
-            "taxRegime" TEXT,
-            "segment" TEXT,
-            "monthlyFee" DOUBLE PRECISION,
-            "classification" TEXT,
-            "complexity" INTEGER,
-            "frequency" TEXT,
-            "particulars" TEXT,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "ClientCycleSnapshot_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."Client" (
-          "id" TEXT NOT NULL,
-          "name" TEXT NOT NULL,
-          "tradeName" TEXT,
-          "cnpj" TEXT,
-          "city" TEXT,
-          "state" TEXT,
-          "taxRegime" TEXT,
-          "segment" TEXT,
-          "revenueBracket" TEXT,
-          "hasEconomicGroup" BOOLEAN NOT NULL DEFAULT false,
-          "economicGroupName" TEXT,
-          "email" TEXT,
-          "phone" TEXT,
-          "contactName" TEXT,
-          "address" TEXT,
-          "neighborhood" TEXT,
-          "zipCode" TEXT,
-          "ie" TEXT,
-          "im" TEXT,
-          "cnae" TEXT,
-          "foundationDate" TIMESTAMP(3),
-          "certificateExpiration" TIMESTAMP(3),
-          "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-          "monthlyFee" DOUBLE PRECISION,
-          "classification" TEXT,
-          "observations" TEXT,
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "Client_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."ClientFrontClassification" (
-            "id" TEXT NOT NULL,
-            "clientId" TEXT NOT NULL,
-            "frontId" TEXT NOT NULL,
-            "actsInFront" TEXT NOT NULL,
-            "leaderId" TEXT,
-            "operator1Id" TEXT,
-            "operator2Id" TEXT,
-            "frequency" TEXT,
-            "complexity" INTEGER,
-            "particulars" TEXT,
-            CONSTRAINT "ClientFrontClassification_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."ClientTaxInfo" (
-            "id" TEXT NOT NULL,
-            "classificationId" TEXT NOT NULL,
-            CONSTRAINT "ClientTaxInfo_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."ClientHrInfo" (
-            "id" TEXT NOT NULL,
-            "classificationId" TEXT NOT NULL,
-            CONSTRAINT "ClientHrInfo_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."ClientAccountingInfo" (
-            "id" TEXT NOT NULL,
-            "classificationId" TEXT NOT NULL,
-            CONSTRAINT "ClientAccountingInfo_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."Delivery" (
-            "id" TEXT NOT NULL,
-            "clientId" TEXT NOT NULL,
-            "frontId" TEXT NOT NULL,
-            "subdivisionId" TEXT,
-            "competence" TEXT NOT NULL,
-            "originalName" TEXT NOT NULL,
-            "standardizedName" TEXT NOT NULL,
-            "deliveryClass" TEXT,
-            "deliveryGroup" TEXT,
-            "deliveryType" TEXT,
-            "periodicity" TEXT,
-            "responsibleId" TEXT NOT NULL,
-            "leaderId" TEXT,
-            "status" TEXT NOT NULL DEFAULT 'PREVISTA',
-            "legalDeadline" TIMESTAMP(3),
-            "internalDeadline" TIMESTAMP(3),
-            "executionDeadline" TIMESTAMP(3),
-            "observations" TEXT,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "Delivery_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "${schemaName}"."TimeReview" (
-            "id" TEXT NOT NULL,
-            "deliveryId" TEXT NOT NULL,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "TimeReview_pkey" PRIMARY KEY ("id")
-        )
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE UNIQUE INDEX IF NOT EXISTS "Client_cnpj_key" ON "${schemaName}"."Client"("cnpj")
-      `);
-
-      await this.prisma.$executeRawUnsafe(`
-        CREATE UNIQUE INDEX IF NOT EXISTS "ClientFrontClassification_clientId_frontId_key" ON "${schemaName}"."ClientFrontClassification"("clientId", "frontId")
-      `);
+      execSync('npx prisma db push --accept-data-loss --skip-generate', {
+        env: {
+          ...process.env,
+          DATABASE_URL: dbUrl.toString(),
+          DIRECT_URL: directUrl.toString(),
+        },
+        stdio: 'pipe' // Keep it quiet unless error
+      });
 
       console.log(`Schema e tabelas criadas dinamicamente para o Tenant: ${tenant.name} (${schemaName})`);
     } catch (err: any) {
