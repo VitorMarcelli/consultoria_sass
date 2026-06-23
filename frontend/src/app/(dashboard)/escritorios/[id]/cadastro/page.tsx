@@ -193,7 +193,21 @@ export default function CadastroEscritorioPage({ params }: { params: Promise<{ i
                 className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500/50 focus:bg-white transition-all hover:border-slate-300 shadow-sm"
                 placeholder="00.000.000/0000-00"
                 value={cnpj}
-                onChange={(e) => setCnpj(e.target.value)}
+                maxLength={18}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/\D/g, '');
+                  if (v.length > 14) v = v.slice(0, 14);
+                  if (v.length > 12) {
+                    v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5');
+                  } else if (v.length > 8) {
+                    v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/, '$1.$2.$3/$4');
+                  } else if (v.length > 5) {
+                    v = v.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, '$1.$2.$3');
+                  } else if (v.length > 2) {
+                    v = v.replace(/^(\d{2})(\d{1,3}).*/, '$1.$2');
+                  }
+                  setCnpj(v);
+                }}
               />
             </div>
             <div className="space-y-2.5">
