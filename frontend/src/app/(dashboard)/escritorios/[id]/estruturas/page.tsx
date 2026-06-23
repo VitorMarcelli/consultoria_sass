@@ -101,7 +101,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
         }
       }
       
-      router.push(`/escritorios/${id}/colaboradores`);
+      router.push(`/escritorios/${id}/ciclos`);
     } catch (err) {
       console.error(err);
       alert('Erro ao salvar as células.');
@@ -272,16 +272,16 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
             ) : (
               <>
                 <Check className="w-5 h-5" />
-                Salvar e Avançar para Equipe
+                Salvar e Avançar para Ciclos
               </>
             )}
           </button>
         ) : (
           <button 
-            onClick={() => router.push(`/escritorios/${id}/colaboradores`)}
+            onClick={() => router.push(`/escritorios/${id}/ciclos`)}
             className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1"
           >
-            Avançar para Equipe
+            Avançar para Ciclos
           </button>
         )}
       </motion.div>
