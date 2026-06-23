@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, Plus, Trash2, Loader2, Users } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import * as XLSX from 'xlsx';
+import CsvImportModal from '@/components/CsvImportModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const tableVariants = {
@@ -27,6 +28,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
 
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [colaboradores, setColaboradores] = useState<{id: string, nome: string, cargo: string, nivel: string, email: string, salario_bruto: string, status: string, observations: string, dbId?: string}[]>([]);
 
   useEffect(() => {
@@ -117,53 +119,57 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImportCsv = async (file: File) => {
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+          
+          const newRows = data.map((row: any) => {
+            const keys = Object.keys(row);
+            const getVal = (possibleNames: string[]) => {
+              const key = keys.find(k => possibleNames.some(pn => k.toLowerCase().includes(pn)));
+              return key ? row[key] : '';
+            };
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-        
-        const newRows = data.map((row: any) => {
-          // Tenta encontrar colunas por nomes comuns (case-insensitive)
-          const keys = Object.keys(row);
-          const getVal = (possibleNames: string[]) => {
-            const key = keys.find(k => possibleNames.some(pn => k.toLowerCase().includes(pn)));
-            return key ? row[key] : '';
-          };
+            return {
+              id: crypto.randomUUID(),
+              nome: getVal(['nome', 'name', 'colaborador', 'funcionário']),
+              cargo: getVal(['cargo', 'papel', 'role', 'função', 'funcao']),
+              nivel: getVal(['nível', 'nivel', 'senioridade']) || '',
+              email: getVal(['email', 'e-mail']),
+              salario_bruto: getVal(['salário', 'salario', 'bruto', 'remuneração']) || '',
+              status: 'ACTIVE',
+              observations: getVal(['obs', 'observações', 'observacao', 'observacoes']) || ''
+            };
+          }).filter(r => r.nome || r.cargo);
 
-          return {
-            id: crypto.randomUUID(),
-            nome: getVal(['nome', 'name', 'colaborador']),
-            cargo: getVal(['cargo', 'papel', 'role', 'função', 'funcao']),
-            nivel: getVal(['nível', 'nivel', 'senioridade']) || '',
-            email: getVal(['email', 'e-mail']),
-            salario_bruto: getVal(['salário', 'salario', 'bruto', 'remuneração']) || '',
-            status: 'ACTIVE',
-            observations: getVal(['obs', 'observações', 'observacao', 'observacoes']) || ''
-          };
-        }).filter(r => r.nome || r.cargo);
-
-        if (newRows.length > 0) {
-          setColaboradores(prev => [...prev, ...newRows]);
-          alert(`${newRows.length} colaboradores importados da planilha! Clique em Salvar e Avançar para confirmar.`);
-        } else {
-          alert('Não foi possível encontrar colunas de Nome e Cargo na planilha.');
+          if (newRows.length > 0) {
+            setColaboradores(prev => {
+              // remove initial empty row if exists
+              if (prev.length === 1 && !prev[0].nome && !prev[0].cargo) {
+                return newRows;
+              }
+              return [...prev, ...newRows];
+            });
+            alert(`${newRows.length} colaboradores processados! Verifique na tela e clique em "Salvar e Ir Para Alocação".`);
+            setIsImportModalOpen(false);
+            resolve();
+          } else {
+            reject(new Error('Não foi possível encontrar colunas de Nome e Cargo na planilha.'));
+          }
+        } catch (err) {
+          console.error(err);
+          reject(new Error('Erro ao processar o arquivo.'));
         }
-      } catch (err) {
-        console.error(err);
-        alert('Erro ao processar o arquivo Excel.');
-      }
-    };
-    reader.readAsBinaryString(file);
-    // Limpar input
-    if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      reader.readAsBinaryString(file);
+    });
   };
 
   return (
@@ -183,15 +189,8 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            accept=".xlsx,.xls" 
-            className="hidden" 
-          />
           <button 
-            onClick={() => fileInputRef.current?.click()} 
+            onClick={() => setIsImportModalOpen(true)} 
             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
           >
             <Upload className="w-4 h-4" />
@@ -370,6 +369,16 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
           {isSaving ? 'Salvando...' : 'Salvar e Ir Para Alocação'}
         </button>
       </div>
+
+      <CsvImportModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportCsv}
+        title="Importar Equipe"
+        description="Faça upload da planilha da equipe do escritório (RH)."
+        templateUrl="/modelo_importacao_equipe.csv"
+        templateName="Baixar Planilha Modelo (.CSV)"
+      />
     </div>
   );
 }

@@ -8,9 +8,13 @@ interface CsvImportModalProps {
   onClose: () => void;
   onImport: (file: File) => Promise<void>;
   isLoading?: boolean;
+  title?: string;
+  description?: string;
+  templateUrl?: string;
+  templateName?: string;
 }
 
-export default function CsvImportModal({ isOpen, onClose, onImport, isLoading }: CsvImportModalProps) {
+export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, title = "Importar Clientes", description = "Faça upload de um arquivo CSV ou XLSX.", templateUrl = "/modelo_importacao_completo.xlsx", templateName = "Baixar Planilha Modelo (.XLSX)" }: CsvImportModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState('');
 
@@ -60,8 +64,8 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading }:
               >
                 <div className="flex items-center justify-between p-6 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Importar Clientes</h3>
-                    <p className="text-sm text-slate-500 mt-1">Faça upload de um arquivo CSV ou XLSX.</p>
+                    <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+                    <p className="text-sm text-slate-500 mt-1">{description}</p>
                   </div>
                   <button 
                     onClick={onClose}
@@ -86,11 +90,11 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading }:
                       <li>Para líderes e operadores, informe o nome exato.</li>
                     </ul>
                     <a 
-                      href="/modelo_importacao_completo.xlsx" 
-                      download="modelo_importacao_clientes_completo.xlsx"
+                      href={templateUrl} 
+                      download
                       className="text-teal-600 font-medium hover:underline text-sm inline-flex items-center gap-1"
                     >
-                      Baixar Planilha Modelo (.XLSX)
+                      {templateName}
                     </a>
                   </div>
 

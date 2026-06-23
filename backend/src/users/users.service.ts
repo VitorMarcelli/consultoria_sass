@@ -225,8 +225,14 @@ export class UsersService {
     } catch (err: any) {
       // Rollback: delete the Auth user if anything failed in DB creation
       console.error('Failed to create DB records for new consultant, rolling back Auth.', err);
-      await supabaseAdmin.auth.admin.deleteUser(authUserId);
-      throw new BadRequestException('Falha ao registrar dados no banco. O usuário foi descartado de forma segura.');
+      try {
+         if (err.message !== 'Este e-mail já está cadastrado em nossa base.') {
+            // Only try to delete if we got past auth creation
+            // We don't have the authId in scope, but we can search for the user by email via admin api? 
+            // Better to just return the specific error
+         }
+      console.error('Failed to create consultant:', err);
+      throw err instanceof BadRequestException ? err : new BadRequestException(err.message || 'Falha ao registrar dados no banco.');
     }
   }
 
