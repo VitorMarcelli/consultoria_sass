@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FrontClassificationForm from '@/components/FrontClassificationForm';
 
 import { Portal } from '@/components/ui/Portal';
+import { maskCnpj } from '@/utils/masks';
 
 interface ClientCycleModalProps {
   isOpen: boolean;
@@ -91,16 +92,7 @@ export default function ClientCycleModal({ isOpen, onClose, tenantId, cycleId, o
   };
 
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length > 14) value = value.slice(0, 14);
-    
-    // Format
-    value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-    value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-    value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-    value = value.replace(/(\d{4})(\d)/, '$1-$2');
-    
-    setCnpj(value);
+    setCnpj(maskCnpj(e.target.value));
   };
 
   const handleNextStep = () => {

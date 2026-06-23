@@ -18,6 +18,7 @@ import {
   PhoneCall,
   ScrollText
 } from 'lucide-react';
+import { maskCnpj, maskPhone, maskCep } from '@/utils/masks';
 import { apiRequest } from '@/utils/api';
 
 interface Client {
@@ -489,7 +490,8 @@ export default function ClientsPage() {
                         <input 
                           type="text"
                           value={formData.cnpj}
-                          onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                          maxLength={18}
+                          onChange={(e) => setFormData({ ...formData, cnpj: maskCnpj(e.target.value) })}
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                           disabled={formSubmitting}
                           required
@@ -560,7 +562,8 @@ export default function ClientsPage() {
                           <input 
                             type="text"
                             value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            maxLength={15}
+                            onChange={(e) => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
                             className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                           />
                         </div>
@@ -572,7 +575,8 @@ export default function ClientsPage() {
                           <input 
                             type="text"
                             value={formData.zipCode}
-                            onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                            maxLength={9}
+                            onChange={(e) => setFormData({ ...formData, zipCode: maskCep(e.target.value) })}
                             className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                           />
                         </div>
