@@ -11,6 +11,7 @@ const cycleTabs = [
   { id: 'equipe', label: 'Equipe Alocada', path: '/equipe' },
   { id: 'clientes', label: 'Base de Clientes', path: '/clientes' },
   { id: 'entregas', label: 'Entregas Mensais', path: '/entregas' },
+  { id: 'oportunidades', label: 'Oportunidades & BI', path: '/oportunidades' },
 ];
 
 export default function CycleLayout({
