@@ -17,6 +17,11 @@ export class DeliveriesController {
     }
   }
 
+  @Post('generate-monthly')
+  generateMonthlyDeliveries(@Body('tenantId') tenantId: string) {
+    return this.deliveriesService.generateMonthlyDeliveries(tenantId);
+  }
+
   @Post()
   create(@Body() createDto: any) {
     return this.deliveriesService.create(createDto.tenantId, createDto);

@@ -16,10 +16,14 @@ import { AllocationsModule } from './allocations/allocations.module';
 import { ManagementCyclesModule } from './management-cycles/management-cycles.module';
 import { ClientClassificationsModule } from './client-classifications/client-classifications.module';
 import { SystemOptionsModule } from './system-options/system-options.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TimesheetsModule } from './timesheets/timesheets.module';
+import { OpportunitiesModule } from './opportunities/opportunities.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     TenantsModule,
@@ -34,6 +38,8 @@ import { SystemOptionsModule } from './system-options/system-options.module';
     ManagementCyclesModule,
     ClientClassificationsModule,
     SystemOptionsModule,
+    TimesheetsModule,
+    OpportunitiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
