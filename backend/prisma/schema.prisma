@@ -163,6 +163,7 @@ model Employee {
   deliveriesLeader      Delivery[] @relation("DeliveryLeader")
 
   timeReviews TimeReview[]
+  timeLogs    TimeLog[]
 
   observations String?
   createdAt    DateTime @default(now())
@@ -212,6 +213,8 @@ model Client {
   frontClassifications ClientFrontClassification[]
   deliveries           Delivery[]
   cycleSnapshots       ClientCycleSnapshot[]
+  timeLogs             TimeLog[]
+  opportunities        Opportunity[]
 }
 
 model ClientFrontClassification {
@@ -339,6 +342,7 @@ model Delivery {
   observations String?
 
   timeReviews TimeReview[]
+  timeLogs    TimeLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -455,4 +459,66 @@ model EmployeeCycleAllocation {
   observations String?
 
   @@unique([cycleId, employeeId, frontId])
+}
+
+// ==========================================
+// CAMADA TASS: TEMPOS, ENTREGAS E OPORTUNIDADES
+// ==========================================
+
+model DeliveryTemplate {
+  id                    String   @id @default(uuid())
+  taxRegime             String?  // Simples Nacional, Lucro Presumido, Lucro Real...
+  segment               String?
+  size                  String?
+  standardizedName      String
+  deliveryClass         String?  // ARP, ARNP...
+  deliveryGroup         String?  // Imposto, Folha...
+  deliveryType          String?  // ICMS, DAS...
+  periodicity           String?  // Mensal, Anual...
+  baseLegalDeadlineDays Int?     // Dia do mês seguinte para vencimento legal (ex: 20)
+  defaultComplexity     Int?     // 0, 1, 2, 3
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimeLog {
+  id                  String    @id @default(uuid())
+  deliveryId          String?
+  delivery            Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  
+  clientId            String
+  client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  employeeId          String
+  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  startTime           DateTime
+  endTime             DateTime?
+  durationMinutes     Int?
+  costAmount          Float?    // Calculado a partir de grossSalary / horas mensais
+  activityDescription String?
+  status              String    @default("RUNNING") // RUNNING, PAUSED, FINISHED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Opportunity {
+  id                                    String   @id @default(uuid())
+  clientId                              String
+  client                                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  title                                 String
+  category                              String   // UPSELL, CROSSSELL, RETENTION
+  triggerType                           String   // EXCESS_HOURS, NFE_VOLUME_SPIKE, FREQUENT_ADMISSIONS, MANUAL
+  potentialValue                        Float?
+  status                                String   @default("IDENTIFIED") // IDENTIFIED, PROPOSAL_SENT, WON, LOST, DISCARDED
+  observations                          String?
+
+  hasStructuralReadinessForClientPortal Boolean  @default(true)
+  clientPortalSummary                   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
