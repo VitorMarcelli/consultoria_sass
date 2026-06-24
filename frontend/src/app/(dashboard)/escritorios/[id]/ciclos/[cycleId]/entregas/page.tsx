@@ -33,6 +33,19 @@ interface Delivery {
   responsibleId?: string;
 }
 
+const tableVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const rowVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
+};
+
 export default function CycleDeliveriesPage({
   params,
 }: {
@@ -219,25 +232,39 @@ export default function CycleDeliveriesPage({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            <CheckSquare className="h-7 w-7 text-teal-500" />
-            Entregas Mensais & Conformidade
-          </h2>
-          <p className="text-slate-500 font-medium text-sm mt-1">
-            Motor de Matriz de Conformidade Automática do ciclo, monitoramento de rotinas e Slide-overs 360º.
-          </p>
+      {/* Top Header / Banner Premium */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden"
+      >
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
+        
+        {/* Decorative background element */}
+        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-teal-100 to-emerald-50 dark:from-teal-900/30 dark:to-emerald-900/10 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
+        <div className="flex items-center gap-5 relative z-10">
+          <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-teal-500/30 shrink-0 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+            <CheckSquare className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Entregas Mensais & Conformidade
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 font-medium mt-2 leading-relaxed max-w-xl text-sm">
+              Motor de Matriz de Conformidade Automática do ciclo, monitoramento de rotinas e Slide-overs 360º.
+            </p>
+          </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleGenerateMonthly}
             disabled={generatingMonthly}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 text-sm font-extrabold shadow-lg shadow-teal-600/20 transition-all disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-teal-500 text-white px-6 py-3.5 text-sm font-bold shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
           >
             {generatingMonthly ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -249,47 +276,50 @@ export default function CycleDeliveriesPage({
 
           <button 
             onClick={handleOpenCreateModal}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 dark:bg-slate-100 text-white dark:text-slate-950 px-5 py-3 text-sm font-extrabold shadow-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-all active:scale-95 duration-200"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 py-3.5 text-sm font-bold shadow-lg shadow-slate-900/20 dark:shadow-slate-100/20 hover:bg-slate-800 dark:hover:bg-slate-200 hover:-translate-y-0.5 transition-all active:scale-95 duration-200"
           >
             <Plus className="h-4 w-4" />
             Nova Obrigação
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Painel de Matriz de Conformidade (Dashboard Extra Premium) */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden border border-slate-700/50">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-teal-500/10 to-transparent pointer-events-none blur-2xl"></div>
-        
+      {/* Painel de Matriz de Conformidade (Dashboard Extra Premium Luminous) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-slate-50 dark:bg-slate-950/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden"
+      >
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
           <div className="flex flex-col gap-2 max-w-xl">
-            <span className="text-[10px] font-black text-teal-400 uppercase tracking-[0.2em] bg-teal-500/10 px-3 py-1 rounded-full w-max border border-teal-500/20">
+            <span className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] bg-teal-500/10 px-3 py-1 rounded-full w-max border border-teal-500/20">
               Índice de Conformidade do Ciclo
             </span>
-            <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-white">
+            <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white mt-1">
               {complianceRate}% das obrigações no prazo
             </h2>
-            <p className="text-slate-400 text-sm font-medium leading-relaxed">
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed mt-1">
               O motor automático avalia e cria rotinas atreladas a frentes e responsáveis para este ciclo mensal. Acompanhe os comprovantes de entrega pelo painel 360º.
             </p>
           </div>
 
           <div className="flex flex-wrap sm:flex-nowrap gap-4 w-full lg:w-auto">
-            <div className="flex-1 sm:flex-none p-5 bg-slate-800/80 backdrop-blur-xl border border-slate-700/60 rounded-3xl flex flex-col items-center text-center min-w-[130px]">
-              <span className="text-3xl font-black text-white tracking-tight">{totalCount}</span>
+            <div className="flex-1 sm:flex-none p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center text-center min-w-[140px] shadow-sm">
+              <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">{totalCount}</span>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Total Mapeado</span>
             </div>
-            <div className="flex-1 sm:flex-none p-5 bg-emerald-500/10 backdrop-blur-xl border border-emerald-500/20 rounded-3xl flex flex-col items-center text-center min-w-[130px]">
-              <span className="text-3xl font-black text-emerald-400 tracking-tight">{completedCount}</span>
-              <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider mt-1">Concluídas</span>
+            <div className="flex-1 sm:flex-none p-6 bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex flex-col items-center text-center min-w-[140px] shadow-sm">
+              <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">{completedCount}</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mt-1">Concluídas</span>
             </div>
-            <div className="flex-1 sm:flex-none p-5 bg-amber-500/10 backdrop-blur-xl border border-amber-500/20 rounded-3xl flex flex-col items-center text-center min-w-[130px]">
-              <span className="text-3xl font-black text-amber-400 tracking-tight">{pendingCount}</span>
-              <span className="text-xs font-bold text-amber-500 uppercase tracking-wider mt-1">Em Andamento</span>
+            <div className="flex-1 sm:flex-none p-6 bg-amber-50/50 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col items-center text-center min-w-[140px] shadow-sm">
+              <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">{pendingCount}</span>
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider mt-1">Em Andamento</span>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Busca e Filtros */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -428,88 +458,100 @@ export default function CycleDeliveriesPage({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-sm">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="overflow-x-auto border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-sm"
+        >
+          <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+            <thead className="bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Competência</th>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Obrigação / Rotina</th>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Frente</th>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Responsável</th>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider text-right">Ações</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Competência</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Obrigação / Rotina</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Frente</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Responsável</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {filteredDeliveries.map((delivery) => (
-                <tr 
-                  key={delivery.id} 
-                  onClick={() => openSlideOver360(delivery)}
-                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
-                >
-                  <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">
-                    {delivery.competence}
-                  </td>
-                  <td className="px-6 py-4 font-extrabold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                    {delivery.client?.name || '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="font-extrabold text-slate-900 dark:text-white">{delivery.standardizedName}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{delivery.originalName}</p>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-slate-600 dark:text-slate-400">
-                    {delivery.front?.name || '-'}
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-300">
-                    {delivery.responsible?.name || '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    {delivery.status === 'CONCLUIDA' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Concluída
-                      </span>
-                    )}
-                    {delivery.status === 'ANDAMENTO' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                        <Clock className="w-3.5 h-3.5" />
-                        Em Andamento
-                      </span>
-                    )}
-                    {delivery.status === 'PREVISTA' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                        <Clock className="w-3.5 h-3.5" />
-                        Prevista
-                      </span>
-                    )}
-                    {delivery.status === 'INATIVA' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                        Inativa
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {deleteConfirmId === delivery.id ? (
-                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1" onClick={e => e.stopPropagation()}>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
-                          <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
-                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
-                        </div>
-                      ) : (
-                        <>
-                          <button onClick={(e) => handleOpenEditModal(delivery, e)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors mr-2">Editar</button>
-                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors">Excluir</button>
-                        </>
+            <motion.tbody 
+              variants={tableVariants}
+              initial="hidden"
+              animate="show"
+              className="divide-y divide-slate-100 dark:divide-slate-800/60"
+            >
+              <AnimatePresence>
+                {filteredDeliveries.map((delivery) => (
+                  <motion.tr 
+                    variants={rowVariants}
+                    key={delivery.id} 
+                    onClick={() => openSlideOver360(delivery)}
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-6 py-5 font-bold text-slate-700 dark:text-slate-300">
+                      {delivery.competence}
+                    </td>
+                    <td className="px-6 py-5 font-extrabold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                      {delivery.client?.name || '-'}
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="font-extrabold text-slate-900 dark:text-white">{delivery.standardizedName}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{delivery.originalName}</p>
+                    </td>
+                    <td className="px-6 py-5 font-medium text-slate-600 dark:text-slate-400">
+                      {delivery.front?.name || '-'}
+                    </td>
+                    <td className="px-6 py-5 font-semibold text-slate-700 dark:text-slate-300">
+                      {delivery.responsible?.name || '-'}
+                    </td>
+                    <td className="px-6 py-5">
+                      {delivery.status === 'CONCLUIDA' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Concluída
+                        </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+                      {delivery.status === 'ANDAMENTO' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                          <Clock className="w-3.5 h-3.5" />
+                          Em Andamento
+                        </span>
+                      )}
+                      {delivery.status === 'PREVISTA' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                          <Clock className="w-3.5 h-3.5" />
+                          Prevista
+                        </span>
+                      )}
+                      {delivery.status === 'INATIVA' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          Inativa
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {deleteConfirmId === delivery.id ? (
+                          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1" onClick={e => e.stopPropagation()}>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
+                            <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
+                          </div>
+                        ) : (
+                          <>
+                            <button onClick={(e) => handleOpenEditModal(delivery, e)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors mr-2">Editar</button>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors">Excluir</button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
+            </motion.tbody>
           </table>
-        </div>
+        </motion.div>
       )}
     </div>
   );
