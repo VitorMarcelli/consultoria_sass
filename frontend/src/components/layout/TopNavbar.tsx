@@ -23,8 +23,6 @@ import NotificationDropdown from './NotificationDropdown';
 const menuItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Escritórios', path: '/escritorios', icon: Building2 },
-  { name: 'Entregas', path: '/entregas', icon: CheckSquare },
-  { name: 'Oportunidades', path: '/oportunidades', icon: Zap },
   { name: 'Administradores', path: '/admin/administradores', icon: ShieldCheck },
   { name: 'Consultores', path: '/admin/consultores', icon: Users },
 ];
