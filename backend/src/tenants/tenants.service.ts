@@ -1,10 +1,45 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { execSync } from 'child_process';
 
 @Injectable()
-export class TenantsService {
+export class TenantsService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
+
+  async onModuleInit() {
+    console.log('Iniciando sincronização automática de schemas de tenants...');
+    try {
+      const tenants = await this.prisma.tenant.findMany();
+      for (const tenant of tenants) {
+        const schemaName = `tenant_${tenant.id.replace(/-/g, '_')}`;
+        console.log(`Sincronizando schema para o tenant: ${tenant.name} (${schemaName})...`);
+        try {
+          await this.prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}";`);
+          
+          const dbUrl = new URL(process.env.DATABASE_URL!);
+          dbUrl.searchParams.set('schema', schemaName);
+          
+          const directUrl = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL!);
+          directUrl.searchParams.set('schema', schemaName);
+
+          execSync('npx prisma db push --accept-data-loss --skip-generate', {
+            env: {
+              ...process.env,
+              DATABASE_URL: dbUrl.toString(),
+              DIRECT_URL: directUrl.toString(),
+            },
+            stdio: 'pipe'
+          });
+          console.log(`Schema ${schemaName} sincronizado com sucesso.`);
+        } catch (err: any) {
+          console.error(`Erro ao sincronizar schema ${schemaName}:`, err?.message || err);
+        }
+      }
+      console.log('Sincronização de todos os schemas concluída com sucesso!');
+    } catch (err: any) {
+      console.error('Erro geral ao buscar tenants para sincronização:', err?.message || err);
+    }
+  }
 
   async create(data: { name: string; cnpj?: string; slug: string; consultantId?: string }) {
     // 1. Verify if slug or cnpj already exists
