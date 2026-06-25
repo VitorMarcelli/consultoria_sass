@@ -135,7 +135,7 @@ export default function CycleOpportunitiesPage({
     try {
       await apiRequest(`/opportunities/${opId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus, tenantId: id })
       });
       fetchOpportunities();
     } catch (err: any) {
