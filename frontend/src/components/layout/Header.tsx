@@ -80,12 +80,14 @@ export default function Header({ onToggleSidebar, isTopbar = false }: HeaderProp
   return (
     <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between bg-white dark:bg-slate-900 px-6 lg:px-10 transition-colors border-b border-transparent dark:border-slate-800/60 rounded-t-container">
       <div className="flex items-center gap-4">
-        <button 
-          onClick={onToggleSidebar}
-          className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
+        {!isTopbar && (
+          <button 
+            onClick={onToggleSidebar}
+            className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        )}
         <div className="flex flex-col justify-center mt-1">
           <nav className="flex items-center text-[13px] font-medium text-slate-500 mb-1.5 overflow-hidden whitespace-nowrap">
             {breadcrumbs.map((bc, idx) => {

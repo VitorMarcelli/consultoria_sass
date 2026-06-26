@@ -14,7 +14,9 @@ import {
   Settings,
   Bell,
   CheckSquare,
-  Zap
+  Zap,
+  Menu,
+  X
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
@@ -38,6 +40,7 @@ export default function TopNavbar() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -66,20 +69,29 @@ export default function TopNavbar() {
     <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[96%] max-w-7xl h-16 z-50">
       <div className="w-full h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/40 dark:border-slate-800/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-between px-4 lg:px-6 transition-all duration-300">
         
-        {/* Logo Section */}
-        <div className="flex items-center group cursor-pointer">
-          <div className="hidden sm:flex flex-col">
-            <div className="flex items-baseline">
-              <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">Sevilha</span>
-              <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+        {/* Mobile Menu Button & Logo Section */}
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <Link href="/" className="flex items-center group cursor-pointer">
+            <div className="hidden sm:flex flex-col">
+              <div className="flex items-baseline">
+                <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">Sevilha</span>
+                <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+              </div>
+              <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
             </div>
-            <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
-          </div>
-          {/* Mobile version (just S.) */}
-          <div className="sm:hidden flex items-baseline">
-            <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">S</span>
-            <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none">.</span>
-          </div>
+            {/* Mobile version (just S.) */}
+            <div className="sm:hidden flex items-baseline">
+              <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">S</span>
+              <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none">.</span>
+            </div>
+          </Link>
         </div>
 
         {/* Central Navigation */}
@@ -183,6 +195,105 @@ export default function TopNavbar() {
         </div>
 
       </div>
+
+      {/* Mobile Navigation Drawer (Cinematic Glassmorphism) */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] md:hidden flex justify-start"
+          >
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            />
+
+            {/* Sidebar Sheet */}
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className="relative w-80 max-w-[85%] h-screen bg-white dark:bg-slate-900 shadow-2xl flex flex-col z-10 border-r border-slate-200 dark:border-slate-800"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
+                <div className="flex flex-col">
+                  <div className="flex items-baseline">
+                    <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">Sevilha</span>
+                    <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
+                </div>
+                <button 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">Menu Principal</div>
+                {menuItems.filter(item => {
+                  if (item.path.startsWith('/admin') || item.path === '/') {
+                    return profile?.role === 'ADMIN';
+                  }
+                  return true;
+                }).map((item) => {
+                  const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-sm transition-all duration-200 ${
+                        isActive
+                          ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Footer / Profile */}
+              {profile && (
+                <div className="p-4 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/50">
+                  <div className="flex items-center gap-3 mb-4 px-2">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center font-bold text-white shadow-inner">
+                      {getUserInitials(profile.name)}
+                    </div>
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{profile.name}</span>
+                      <span className="text-xs text-slate-500 truncate">{profile.email}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 font-bold text-sm rounded-xl transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair da Conta
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
