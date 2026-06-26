@@ -5,7 +5,7 @@ import { Mail, Lock, ArrowRight, Activity, Shield, Users, Sparkles } from 'lucid
 import { login } from './actions';
 import { useState, useEffect } from 'react';
 
-export default function LoginClient({ error }: { error?: string }) {
+export default function LoginClient({ error, revoked }: { error?: string; revoked?: boolean }) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -166,6 +166,18 @@ export default function LoginClient({ error }: { error?: string }) {
             </h2>
             <p className="mt-3 text-lg text-slate-500 font-medium">Insira suas credenciais para acessar o painel.</p>
           </motion.div>
+
+          {/* Revoked Alert */}
+          {revoked && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 shadow-sm"
+            >
+              <Shield className="h-5 w-5 flex-shrink-0 text-amber-600" />
+              <span className="text-sm font-semibold">Sua sessão foi desconectada ou iniciada em outro dispositivo. Faça login novamente para continuar.</span>
+            </motion.div>
+          )}
 
           {/* Error Alert */}
           {error && (
