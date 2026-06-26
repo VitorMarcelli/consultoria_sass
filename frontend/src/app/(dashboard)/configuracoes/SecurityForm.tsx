@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, KeyRound, ShieldCheck, Smartphone, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -12,7 +12,65 @@ export default function SecurityForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Connected Devices State
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+
   const supabase = createClient();
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${apiUrl}/auth/sessions`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setSessions(data);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar sessões:', err);
+      } finally {
+        setLoadingSessions(false);
+      }
+    };
+
+    fetchSessions();
+  }, [supabase.auth]);
+
+  const handleRevoke = async (sessionId: string) => {
+    setRevokingId(sessionId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/auth/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, isActive: false, status: 'REVOKED' } : s))
+        );
+      }
+    } catch (err) {
+      console.error('Erro ao desconectar sessão:', err);
+    } finally {
+      setRevokingId(null);
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,50 +210,90 @@ export default function SecurityForm() {
         </div>
       </div>
 
-      {/* Connected Devices (Visual Only) */}
+      {/* Connected Devices (Real-time Management) */}
       <div className="rounded-container border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 sm:p-10 transition-colors">
         <div className="mb-8 flex items-center gap-4">
           <div className="p-3 rounded-inner bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400">
             <Smartphone className="h-6 w-6" />
           </div>
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Dispositivos Conectados</h2>
-              <span className="text-[10px] font-bold uppercase bg-amber-50 dark:bg-amber-500/10 border border-amber-200/50 dark:border-amber-500/20 text-amber-700 dark:text-amber-500 px-2 py-0.5 rounded-md">Em Breve</span>
-            </div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Dispositivos Conectados</h2>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Gerencie e desconecte as sessões ativas nos seus dispositivos.
+              Gerencie e desconecte as sessões ativas nos seus dispositivos. Acesso simultâneo limitado por token de uso.
             </p>
           </div>
         </div>
 
-        <div className="space-y-3 opacity-60 pointer-events-none">
-          {/* Sessão 1 (Atual) */}
-          <div className="flex items-center justify-between p-4 rounded-inner border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                MacBook Pro - Google Chrome
-                <span className="text-[10px] font-bold uppercase bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-500 px-1.5 py-0.5 rounded">Sessão Atual</span>
-              </span>
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-                São Paulo, BR • Último acesso: Agora
-              </span>
+        {loadingSessions ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-400" />
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 rounded-inner border border-teal-200 dark:border-teal-800/50 bg-teal-50/20 dark:bg-teal-950/20">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  Sessão Web (Dispositivo Atual)
+                  <span className="text-[10px] font-bold uppercase bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-500 px-1.5 py-0.5 rounded">Sessão Atual</span>
+                </span>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  São Paulo, BR • Último acesso: Agora
+                </span>
+              </div>
             </div>
           </div>
-          
-          {/* Sessão 2 */}
-          <div className="flex items-center justify-between p-4 rounded-inner border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">iPhone 14 Pro - Safari</span>
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-                São Paulo, BR • Último acesso: Ontem às 14:30
-              </span>
-            </div>
-            <button className="text-sm font-bold text-rose-600 dark:text-rose-400 px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
-              Desconectar
-            </button>
+        ) : (
+          <div className="space-y-3">
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-inner border transition-all ${
+                  session.isCurrentSession
+                    ? 'border-teal-200 dark:border-teal-800/50 bg-teal-50/20 dark:bg-teal-950/20'
+                    : !session.isActive
+                    ? 'border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 opacity-70'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                }`}
+              >
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+                    {session.deviceFamily} - {session.browser}
+                    {session.isCurrentSession ? (
+                      <span className="text-[10px] font-bold uppercase bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-500 px-1.5 py-0.5 rounded">Sessão Atual</span>
+                    ) : !session.isActive ? (
+                      <span className="text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded">
+                        {session.status === 'SUPERSEDED' ? 'Desconectado (Substituído)' : 'Desconectado'}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase bg-blue-100 dark:bg-blue-500/10 border border-blue-200/50 dark:border-blue-500/20 text-blue-700 dark:text-blue-500 px-1.5 py-0.5 rounded">Ativo</span>
+                    )}
+                  </span>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                    {session.location || 'Localização Indisponível'} • {session.ipAddress} • Último acesso:{' '}
+                    {new Date(session.lastActive).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+
+                {!session.isCurrentSession && session.isActive && (
+                  <button
+                    type="button"
+                    onClick={() => handleRevoke(session.id)}
+                    disabled={revokingId === session.id}
+                    className="text-sm font-bold text-rose-600 dark:text-rose-400 px-4 py-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed self-end sm:self-center"
+                  >
+                    {revokingId === session.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {revokingId === session.id ? 'Desconectando...' : 'Desconectar'}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

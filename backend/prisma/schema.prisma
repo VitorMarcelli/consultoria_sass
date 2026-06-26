@@ -85,6 +85,22 @@ model User {
 
   notifications          Notification[]
   notificationPreference NotificationPreference?
+  sessions               UserSession[]
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String?
+  deviceFamily String
+  browser      String
+  ipAddress    String
+  location     String?
+  isActive     Boolean  @default(true)
+  status       String   @default("ACTIVE") // ACTIVE, SUPERSEDED, REVOKED
+  lastActive   DateTime @default(now())
+  createdAt    DateTime @default(now())
 }
 
 enum Role {
