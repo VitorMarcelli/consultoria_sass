@@ -188,17 +188,17 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
             <p className="text-slate-500 font-medium mt-1">Insira os colaboradores que atuam ativamente na operação.</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <button 
             onClick={() => setIsImportModalOpen(true)} 
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
+            className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm w-full sm:w-auto"
           >
             <Upload className="w-4 h-4" />
             Importar RH (Planilha)
           </button>
           <button 
             onClick={handleAddRow} 
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
+            className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             Adicionar Manual
@@ -214,7 +214,154 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8"
         >
-          <div className="overflow-x-auto">
+          {/* Visão Mobile: Cards Interativos (Opção A - Premium UX) */}
+          <div className="grid grid-cols-1 gap-6 p-4 md:hidden">
+            {colaboradores.map((colaborador, index) => (
+              <div key={colaborador.id} className="bg-slate-50/50 border border-slate-200/80 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-5 relative overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-200/60 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 border border-rose-100 font-black text-sm shrink-0">
+                      {index + 1}
+                    </div>
+                    <span className="font-bold text-slate-900 text-base truncate">
+                      {colaborador.nome || `Colaborador ${index + 1}`}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => handleDeleteRow(colaborador.id)} 
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-slate-100 bg-white"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome Completo</label>
+                    <input 
+                      type="text" 
+                      value={colaborador.nome}
+                      placeholder="Nome completo"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                      onChange={(e) => {
+                        const newRows = [...colaboradores];
+                        newRows.find(c => c.id === colaborador.id)!.nome = e.target.value;
+                        setColaboradores(newRows);
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo</label>
+                      <input 
+                        type="text" 
+                        value={colaborador.cargo}
+                        placeholder="Ex: Analista"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                        onChange={(e) => {
+                          const newRows = [...colaboradores];
+                          newRows.find(c => c.id === colaborador.id)!.cargo = e.target.value;
+                          setColaboradores(newRows);
+                        }}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nível</label>
+                      <select 
+                        value={colaborador.nivel}
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                        onChange={(e) => {
+                          const newRows = [...colaboradores];
+                          newRows.find(c => c.id === colaborador.id)!.nivel = e.target.value;
+                          setColaboradores(newRows);
+                        }}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="Estagiário">Estagiário</option>
+                        <option value="Júnior">Júnior</option>
+                        <option value="Pleno">Pleno</option>
+                        <option value="Sênior">Sênior</option>
+                        <option value="Especialista">Especialista</option>
+                        <option value="Gerente">Gerente</option>
+                        <option value="Diretor">Diretor</option>
+                        <option value="Sócio">Sócio</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">E-mail Profissional</label>
+                    <input 
+                      type="email" 
+                      value={colaborador.email}
+                      placeholder="email@escritorio.com"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                      onChange={(e) => {
+                        const newRows = [...colaboradores];
+                        newRows.find(c => c.id === colaborador.id)!.email = e.target.value;
+                        setColaboradores(newRows);
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Salário Bruto</label>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={colaborador.salario_bruto}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                        onChange={(e) => {
+                          const newRows = [...colaboradores];
+                          newRows.find(c => c.id === colaborador.id)!.salario_bruto = e.target.value;
+                          setColaboradores(newRows);
+                        }}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                      <select 
+                        value={colaborador.status}
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                        onChange={(e) => {
+                          const newRows = [...colaboradores];
+                          newRows.find(c => c.id === colaborador.id)!.status = e.target.value;
+                          setColaboradores(newRows);
+                        }}
+                      >
+                        <option value="ACTIVE">Ativo</option>
+                        <option value="INACTIVE">Inativo</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Observações</label>
+                    <input 
+                      type="text" 
+                      value={colaborador.observations}
+                      placeholder="Observações..."
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all hover:border-slate-300 shadow-sm"
+                      onChange={(e) => {
+                        const newRows = [...colaboradores];
+                        newRows.find(c => c.id === colaborador.id)!.observations = e.target.value;
+                        setColaboradores(newRows);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Visão Desktop: Tabela */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-[11px] text-slate-400 uppercase tracking-widest bg-slate-50/80 border-b border-slate-200 whitespace-nowrap">
                 <tr>
@@ -344,7 +491,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                         />
                       </td>
                       <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                           <button onClick={() => handleDeleteRow(colaborador.id)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
                             <Trash2 className="w-5 h-5" />
                           </button>
@@ -363,7 +510,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
         <button 
           onClick={handleSaveAndNext}
           disabled={isSaving}
-          className="bg-teal-600 text-white px-10 py-4 rounded-2xl hover:bg-teal-700 transition-all font-bold text-sm flex items-center gap-2 disabled:opacity-50 shadow-xl shadow-teal-600/20"
+          className="w-full sm:w-auto justify-center bg-teal-600 text-white px-10 py-4 rounded-2xl hover:bg-teal-700 transition-all font-bold text-sm flex items-center gap-2 disabled:opacity-50 shadow-xl shadow-teal-600/20"
         >
           {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
           {isSaving ? 'Salvando...' : 'Salvar e Ir Para Alocação'}

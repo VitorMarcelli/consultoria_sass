@@ -128,7 +128,7 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
           {/* Decorative background element */}
           <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-amber-100 to-orange-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
 
-          <div className="flex items-center gap-5 relative z-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 relative z-10">
             <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-500/30 shrink-0 transform rotate-3 hover:rotate-0 transition-transform duration-300">
               <Network className="w-8 h-8" />
             </div>
@@ -145,7 +145,7 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 p-8 relative"
+          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 p-6 sm:p-8 relative"
         >
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500" />
           
@@ -176,13 +176,13 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-100/50 to-transparent pointer-events-none" />
                 )}
 
-                <span className={`font-bold text-lg relative z-10 transition-colors ${
+                <span className={`font-bold text-lg relative z-10 transition-colors truncate pr-2 ${
                   front.isActive ? 'text-amber-900' : 'text-slate-500 group-hover:text-slate-700'
                 }`}>
                   {front.name}
                 </span>
                 
-                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
                   front.isActive 
                     ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md shadow-orange-500/40' 
                     : 'bg-slate-100 text-slate-400 group-hover:bg-amber-100 group-hover:text-amber-500'
@@ -223,13 +223,13 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="flex justify-end"
+          className="flex flex-col sm:flex-row justify-end w-full gap-3"
         >
           {isAdmin ? (
             <button 
               onClick={handleSaveAndNext}
               disabled={isSaving}
-              className="bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/30"
+              className="w-full sm:w-auto justify-center bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/30"
             >
               {isSaving ? (
                 <>
@@ -246,7 +246,7 @@ export default function AtivacaoFrentesPage({ params }: { params: Promise<{ id: 
           ) : (
             <button 
               onClick={() => router.push(`/escritorios/${id}/estruturas`)}
-              className="bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1"
+              className="w-full sm:w-auto justify-center bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1"
             >
               Avançar para Estruturas
             </button>

@@ -139,7 +139,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
       >
         <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-teal-100 to-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
 
-        <div className="flex items-center gap-5 relative z-10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 relative z-10">
           <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-teal-500/30 shrink-0 transform rotate-3 hover:rotate-0 transition-transform duration-300">
             <GitMerge className="w-8 h-8" />
           </div>
@@ -170,7 +170,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 p-8 relative"
+          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 p-6 sm:p-8 relative"
         >
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
           
@@ -181,7 +181,56 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
             </span>
           </h3>
 
-          <div className="overflow-x-auto">
+          {/* Visão Mobile: Cards Neumórficos (Opção A - Premium UX) */}
+          <div className="grid grid-cols-1 gap-6 p-4 md:hidden">
+            {subdivisions.map((sub) => (
+              <div key={sub.id} className="bg-slate-50/50 border border-slate-200/80 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-teal-400 shadow-sm shadow-teal-400/50 shrink-0" />
+                    <span className="font-bold text-slate-800 text-base truncate">{sub.frontName}</span>
+                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => handleAddRow(sub.frontId, sub.frontName)} 
+                        title="Adicionar mais uma célula nesta frente"
+                        className="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all border border-slate-100 bg-white shadow-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteRow(sub.id)} 
+                        title="Remover esta célula"
+                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all border border-slate-100 bg-white shadow-sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome da Célula / Subgrupo</label>
+                  <input 
+                    type="text" 
+                    value={sub.subName}
+                    placeholder="Ex: Célula Simples Nacional"
+                    disabled={!isAdmin}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-400 shadow-sm disabled:shadow-none"
+                    onChange={(e) => {
+                      const newSubs = [...subdivisions];
+                      newSubs.find(s => s.id === sub.id)!.subName = e.target.value;
+                      setSubdivisions(newSubs);
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Visão Desktop: Tabela */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead className="text-[11px] text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <tr>
@@ -225,7 +274,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
                       </td>
                       <td className="py-5 pl-4 text-right">
                         {isAdmin && (
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                             <button 
                               onClick={() => handleAddRow(sub.frontId, sub.frontName)} 
                               title="Adicionar mais uma célula nesta frente"
@@ -256,13 +305,13 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="flex justify-end"
+        className="flex flex-col sm:flex-row justify-end w-full gap-3"
       >
         {isAdmin ? (
           <button 
             onClick={handleSaveAndNext}
             disabled={isSaving || loading || fronts.length === 0}
-            className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/30"
+            className="w-full sm:w-auto justify-center group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-teal-600/30"
           >
             {isSaving ? (
               <>
@@ -279,7 +328,7 @@ export default function CadastroEstruturasPage({ params }: { params: Promise<{ i
         ) : (
           <button 
             onClick={() => router.push(`/escritorios/${id}/ciclos`)}
-            className="group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1"
+            className="w-full sm:w-auto justify-center group relative bg-gradient-to-r from-teal-600 to-teal-500 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-bold text-sm flex items-center gap-3 shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-1"
           >
             Avançar para Ciclos
           </button>

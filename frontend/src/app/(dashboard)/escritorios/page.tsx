@@ -188,26 +188,24 @@ export default function EscritoriosPage() {
           <p className="text-slate-500 font-medium text-sm mt-1.5">Gestão inteligente e acompanhamento da sua carteira</p>
         </div>
 
-        <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200/70 w-full sm:w-auto transition-shadow hover:shadow-md">
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex items-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200/70 w-full sm:w-72 transition-shadow hover:shadow-md">
+            <Search className="w-4 h-4 absolute left-4 text-slate-400" />
             <input 
               type="text" 
               placeholder="Buscar escritórios..."
-              className="w-full pl-9 pr-4 py-2 bg-transparent text-sm font-medium focus:outline-none placeholder:text-slate-400 text-slate-700"
+              className="w-full pl-9 pr-4 py-1.5 bg-transparent text-sm font-medium focus:outline-none placeholder:text-slate-400 text-slate-700"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
-          <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
-          
           <button 
             onClick={openCreateModal}
-            className="flex items-center justify-center shrink-0 px-5 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-all duration-300 font-bold text-sm shadow-[0_4px_12px_rgba(20,184,166,0.25)] hover:shadow-[0_6px_16px_rgba(20,184,166,0.35)] hover:-translate-y-0.5"
+            className="flex items-center justify-center shrink-0 px-5 py-3 sm:py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-all duration-300 font-bold text-sm shadow-[0_4px_12px_rgba(20,184,166,0.25)] hover:shadow-[0_6px_16px_rgba(20,184,166,0.35)] hover:-translate-y-0.5 w-full sm:w-auto"
           >
-            <Plus className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Novo Escritório</span>
+            <Plus className="w-4 h-4 mr-2" />
+            <span>Novo Escritório</span>
           </button>
         </div>
       </div>

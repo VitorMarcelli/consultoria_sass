@@ -52,17 +52,20 @@ export class JwtAuthGuard implements CanActivate {
 
       // Invalidação em tempo real: checar se a sessão do token está ativa (se houver registro no UserSession)
       try {
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
-          const deviceSessionId = request.headers['x-device-session-id'];
-          const sessionId = deviceSessionId || payload.session_id;
-          if (sessionId) {
-            const session = await this.prisma.userSession.findFirst({
-              where: { refreshToken: sessionId, userId: userData.id },
-            });
-            if (session && !session.isActive) {
-              throw new UnauthorizedException('Sessão desconectada ou substituída por outro dispositivo');
+        const isCreatingSession = request.method === 'POST' && request.url.includes('/auth/sessions');
+        if (!isCreatingSession) {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+            const deviceSessionId = request.headers['x-device-session-id'];
+            const sessionId = deviceSessionId || payload.session_id;
+            if (sessionId) {
+              const session = await this.prisma.userSession.findFirst({
+                where: { refreshToken: sessionId, userId: userData.id },
+              });
+              if (session && !session.isActive) {
+                throw new UnauthorizedException('Sessão desconectada ou substituída por outro dispositivo');
+              }
             }
           }
         }

@@ -105,7 +105,7 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
         >
           <Plus className="w-4 h-4" />
           Abrir Novo Ciclo
@@ -151,7 +151,7 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
                   </div>
                   <button 
                     onClick={() => handleDeleteCycle(cycle.id)}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100 border border-slate-100 lg:border-transparent bg-white lg:bg-transparent shadow-sm lg:shadow-none"
                     title="Excluir Ciclo"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -201,7 +201,7 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-[calc(100%-2rem)] max-w-lg rounded-3xl p-8 shadow-2xl border border-slate-100 overflow-y-auto max-h-[90vh] z-[110] pointer-events-auto"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-[calc(100%-2rem)] max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 overflow-y-auto max-h-[90vh] z-[110] pointer-events-auto"
               >
             {/* Background decors */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-teal-50/50 rounded-bl-full -z-0 pointer-events-none"></div>
@@ -213,13 +213,13 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
                     <Calendar className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Ciclo Mensal</h3>
-                    <p className="text-sm font-medium text-slate-500 mt-1">Configuração do novo período de gestão.</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Novo Ciclo Mensal</h3>
+                    <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">Configuração do novo período de gestão.</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                  className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0"
                   title="Fechar modal"
                 >
                   <span className="sr-only">Fechar</span>
@@ -231,13 +231,13 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
                 <div className="bg-white p-2 rounded-xl shadow-sm text-emerald-600 shrink-0">
                   <FolderClock className="w-5 h-5" />
                 </div>
-                <p className="text-sm text-emerald-800 font-medium leading-relaxed mt-0.5">
+                <p className="text-xs sm:text-sm text-emerald-800 font-medium leading-relaxed mt-0.5">
                   Ao confirmar, o sistema irá <strong className="font-bold text-emerald-900">clonar automaticamente</strong> a carteira de clientes, alocações e responsáveis do ciclo anterior para este novo mês, mantendo toda a amarração.
                 </p>
               </div>
               
               <form onSubmit={handleCreateCycle} className="space-y-8">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2.5">
                     <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider pl-1">Mês de Referência</label>
                     <div className="relative">
@@ -280,11 +280,11 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
                   </div>
                 </div>
                 
-                <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-colors">
+                <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 border-t border-slate-100">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-6 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-colors">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={isCreating} className="px-8 py-3.5 text-sm font-bold text-white bg-slate-900 hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-600/30 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:pointer-events-none">
+                  <button type="submit" disabled={isCreating} className="w-full sm:w-auto px-8 py-3.5 text-sm font-bold text-white bg-slate-900 hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-600/30 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:pointer-events-none">
                     {isCreating ? (
                       <><Loader2 className="w-5 h-5 animate-spin" /> Criando...</>
                     ) : (

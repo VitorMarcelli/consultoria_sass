@@ -342,7 +342,7 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1" title="Atividades Recorrentes Previsíveis">Temp. Recorr. Prev. (%)</label>
                     <input
@@ -371,7 +371,7 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Data Início Alocação</label>
                     <input
@@ -392,18 +392,18 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                   </div>
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className="pt-4 flex flex-col sm:flex-row gap-3">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 py-3 px-4 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                    className="w-full sm:w-auto flex-1 py-3 px-4 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading || !!allocError || fullyAllocated}
-                    className="flex-1 py-3 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto flex-1 py-3 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Alocação'}
                   </button>
