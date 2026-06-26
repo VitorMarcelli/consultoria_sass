@@ -70,7 +70,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
               animate={{ x: 0, opacity: 1, scale: 1 }}
               exit={{ x: '100%', opacity: 0, scale: 0.98 }}
               transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-              className="fixed inset-y-2 right-2 w-full max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-[110] flex flex-col border border-white/50 rounded-[2.5rem] overflow-hidden"
+              className="fixed inset-y-0 right-0 w-full sm:inset-y-2 sm:right-2 sm:w-[calc(100%-1rem)] max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-[110] flex flex-col border border-white/50 sm:rounded-[2.5rem] overflow-hidden"
             >
             {/* Header (Ultra Premium) */}
             <div className="relative bg-[#0A1A1E] p-8 sm:p-10 text-white shrink-0 overflow-hidden">
@@ -129,8 +129,8 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
             </div>
 
             {/* Modern Pill Tabs */}
-            <div className="px-8 pt-6 pb-2 shrink-0 bg-white border-b border-slate-100">
-              <div className="flex items-center p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-inner">
+            <div className="px-4 sm:px-8 pt-6 pb-2 shrink-0 bg-white border-b border-slate-100">
+              <div className="flex items-center p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-inner overflow-x-auto hide-scrollbar">
                 {tabs.map(tab => {
                   const isActive = activeTab === tab.id;
                   return (
@@ -157,7 +157,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto px-8 py-6 bg-[#FAFAFA] hide-scrollbar relative">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 bg-[#FAFAFA] hide-scrollbar relative">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -180,7 +180,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
                           </div>
                           <h3 className="text-lg font-black text-slate-800 tracking-tight">Equipe Envolvida</h3>
                         </div>
-                        <div className="p-6 grid grid-cols-2 gap-6">
+                        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
                           <div className="flex items-center gap-4 group">
                             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
                               <User className="w-6 h-6 text-slate-500" />
@@ -257,9 +257,9 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
                           Arquivos Anexados (1)
                         </h4>
                         
-                        <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex items-center justify-between group">
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center shrink-0">
                               <FileText className="w-6 h-6 text-rose-500" />
                             </div>
                             <div>
@@ -267,7 +267,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
                               <p className="text-[11px] font-medium text-slate-400 mt-0.5">Adicionado por Ana Analista • 145 KB</p>
                             </div>
                           </div>
-                          <button className="text-xs font-bold text-slate-500 hover:text-rose-500 px-3 py-1.5 bg-slate-50 hover:bg-rose-50 rounded-lg transition-colors">
+                          <button className="w-full sm:w-auto text-xs font-bold text-slate-500 hover:text-rose-500 px-3 py-1.5 bg-slate-50 hover:bg-rose-50 rounded-lg transition-colors">
                             Remover
                           </button>
                         </div>
@@ -281,7 +281,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
                       
                       {/* Caixa de Comentário */}
                       <div className="bg-white p-5 rounded-[2rem] border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)]">
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
                           <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
                             <User className="w-5 h-5 text-teal-700" />
                           </div>
@@ -291,7 +291,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery }: Deliver
                               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all resize-none h-24"
                             ></textarea>
                             <div className="flex justify-end mt-3">
-                              <button className="px-5 py-2 bg-slate-900 hover:bg-teal-600 text-white text-sm font-bold rounded-xl transition-colors shadow-md">
+                              <button className="w-full sm:w-auto px-5 py-2 bg-slate-900 hover:bg-teal-600 text-white text-sm font-bold rounded-xl transition-colors shadow-md">
                                 Enviar
                               </button>
                             </div>

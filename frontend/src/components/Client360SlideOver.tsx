@@ -198,7 +198,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
               animate={{ x: 0, opacity: 1, scale: 1 }}
               exit={{ x: '100%', opacity: 0, scale: 0.98 }}
               transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-              className="fixed inset-y-2 right-2 w-full max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-[110] flex flex-col border border-white/50 rounded-[2.5rem] overflow-hidden"
+              className="fixed inset-y-0 right-0 w-full sm:inset-y-2 sm:right-2 sm:w-[calc(100%-1rem)] max-w-2xl bg-slate-50/95 backdrop-blur-3xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] z-[110] flex flex-col border border-white/50 sm:rounded-[2.5rem] overflow-hidden"
             >
             {/* Header (Ultra Premium) */}
             <div className="relative bg-[#0A1A1E] p-8 sm:p-10 text-white shrink-0 overflow-hidden">
@@ -247,8 +247,8 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
             </div>
 
             {/* Modern Pill Tabs */}
-            <div className="px-8 pt-6 pb-2 shrink-0 bg-white border-b border-slate-100">
-              <div className="flex items-center p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-inner">
+            <div className="px-4 sm:px-8 pt-6 pb-2 shrink-0 bg-white border-b border-slate-100">
+              <div className="flex items-center p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-inner overflow-x-auto hide-scrollbar">
                 {tabs.map(tab => {
                   const isActive = activeTab === tab.id;
                   return (
@@ -275,7 +275,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto px-8 py-6 bg-[#FAFAFA] hide-scrollbar relative">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 bg-[#FAFAFA] hide-scrollbar relative">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -290,7 +290,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                     <div className="space-y-6">
                       
                       {/* Premium Metrics Row */}
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="bg-gradient-to-br from-white to-slate-50 p-5 rounded-[2rem] border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] relative overflow-hidden group">
                           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                             <DollarSign className="w-12 h-12 text-teal-600" />
@@ -325,7 +325,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                           </div>
                           <h3 className="text-lg font-black text-slate-800 tracking-tight">Dados Cadastrais</h3>
                         </div>
-                        <div className="p-6 grid grid-cols-2 gap-y-8 gap-x-6">
+                        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-6 sm:gap-y-8 gap-x-6">
                           <div className="group">
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                               Nome Fantasia
@@ -408,7 +408,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                   {/* === TAB 2: OPERACIONAL === */}
                   {activeTab === 'operations' && (
                     <div className="space-y-6">
-                      <div className="p-6 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-[2rem] shadow-lg shadow-teal-500/20 text-white relative overflow-hidden flex items-center gap-5">
+                      <div className="p-6 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-[2rem] shadow-lg shadow-teal-500/20 text-white relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center gap-5">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                         <div className="w-14 h-14 bg-white/20 border border-white/30 rounded-[1.2rem] flex items-center justify-center backdrop-blur-md shrink-0 z-10">
                           <PieChart className="w-7 h-7 text-white" />
@@ -421,7 +421,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                         </div>
                         <button 
                           onClick={() => setIsAllocatingFormOpen(!isAllocatingFormOpen)}
-                          className="bg-white text-teal-700 font-bold px-4 py-2 rounded-xl text-sm shadow-md hover:bg-teal-50 transition-colors flex items-center gap-2 z-10"
+                          className="w-full sm:w-auto bg-white text-teal-700 font-bold px-4 py-2 rounded-xl text-sm shadow-md hover:bg-teal-50 transition-colors flex items-center justify-center gap-2 z-10"
                         >
                           <Plus className="w-4 h-4" /> Alocar Frente
                         </button>
@@ -482,17 +482,17 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                 />
                               )}
 
-                              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200/60">
+                              <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-slate-200/60">
                                 <button
                                   onClick={() => setIsAllocatingFormOpen(false)}
-                                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
+                                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
                                 >
                                   Cancelar
                                 </button>
                                 <button
                                   onClick={handleAllocateNewFront}
                                   disabled={!selectedFront || isAllocating}
-                                  className="px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                   {isAllocating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Alocação'}
                                 </button>
@@ -509,7 +509,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                       ) : (
                         clientFronts.map((frontSnap, index) => (
                         <div key={index} className="bg-white p-6 rounded-[2rem] border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] group hover:border-teal-200 transition-colors">
-                          <div className="flex items-center justify-between mb-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <div className="flex items-center gap-3">
                               <div className="w-2 h-8 rounded-full bg-teal-500"></div>
                               <h4 className="text-lg font-black text-slate-800 tracking-tight">{frontSnap.frontName || 'Frente'}</h4>
@@ -551,24 +551,24 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                 value={editingClassificationData} 
                                 onChange={setEditingClassificationData} 
                               />
-                              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200/60 justify-end">
+                              <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-slate-200/60 sm:justify-end">
                                 <button
                                   onClick={() => setEditingFrontId(null)}
-                                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
+                                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
                                 >
                                   Cancelar
                                 </button>
                                 <button
                                   onClick={handleSaveFrontEdit}
                                   disabled={isSavingEdit}
-                                  className="px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                   {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Alterações'}
                                 </button>
                               </div>
                             </div>
                           ) : (
-                            <div className="grid grid-cols-2 gap-8 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
                               <div>
                                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                   <Activity className="w-3.5 h-3.5" /> Nível de Complexidade
@@ -599,9 +599,9 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                   {/* === TAB 3: ENTREGAS === */}
                   {activeTab === 'deliveries' && (
                     <div className="space-y-6">
-                      <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center">
+                          <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center shrink-0">
                             <CheckCircle2 className="w-5 h-5 text-indigo-600" />
                           </div>
                           <div>
@@ -609,16 +609,16 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                             <p className="text-xs font-medium text-slate-500 mt-0.5">Visão consolidada de todas as áreas</p>
                           </div>
                         </div>
-                        <button className="text-sm font-bold text-white bg-slate-900 hover:bg-teal-600 px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-md">
+                        <button className="w-full sm:w-auto text-sm font-bold text-white bg-slate-900 hover:bg-teal-600 px-4 py-2 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md">
                           Calendário Completo <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
 
                       <div className="space-y-4">
                         {mockDeliveries.map((delivery) => (
-                          <div key={delivery.id} className="bg-white p-5 rounded-[1.5rem] border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] flex items-center justify-between hover:border-teal-300 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer group">
+                          <div key={delivery.id} className="bg-white p-5 rounded-[1.5rem] border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-teal-300 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer group">
                             <div className="flex items-center gap-5">
-                              <div className={`w-12 h-12 rounded-[1rem] flex items-center justify-center border-2 ${
+                              <div className={`w-12 h-12 rounded-[1rem] flex items-center justify-center border-2 shrink-0 ${
                                 delivery.status === 'Concluído' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
                                 delivery.status === 'Atrasado' ? 'bg-rose-50 border-rose-200 text-rose-600' :
                                 'bg-amber-50 border-amber-200 text-amber-500'
@@ -629,7 +629,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                               </div>
                               <div>
                                 <p className="text-base font-black text-slate-800 group-hover:text-teal-700 transition-colors tracking-tight">{delivery.name}</p>
-                                <div className="flex items-center gap-3 mt-1.5">
+                                <div className="flex flex-wrap items-center gap-3 mt-1.5">
                                   <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
                                     <Calendar className="w-3.5 h-3.5 opacity-70" /> {delivery.deadline}
                                   </span>
@@ -640,7 +640,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                 </div>
                               </div>
                             </div>
-                            <span className={`text-[11px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-xl border ${
+                            <span className={`w-full sm:w-auto text-center text-[11px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-xl border ${
                               delivery.status === 'Concluído' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                               delivery.status === 'Atrasado' ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.15)]' :
                               'bg-amber-50 text-amber-700 border-amber-200'
@@ -664,7 +664,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                   {/* === TAB 4: FINANCEIRO === */}
                   {activeTab === 'financial' && (
                     <div className="space-y-6">
-                      <div className="grid grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-[2rem] shadow-lg shadow-emerald-500/20 text-white relative overflow-hidden">
                           <div className="absolute top-0 right-0 p-4 opacity-10">
                             <CheckCircle2 className="w-16 h-16" />
@@ -698,9 +698,9 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                             { month: 'Abril/2026', status: 'Pago', date: '10/04/2026' },
                             { month: 'Março/2026', status: 'Pago', date: '10/03/2026' },
                           ].map((fatura, idx) => (
-                            <div key={idx} className="p-5 flex items-center justify-between hover:bg-slate-50/80 transition-colors group">
+                            <div key={idx} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors group">
                               <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl border flex flex-col items-center justify-center ${
+                                <div className={`w-12 h-12 rounded-xl border flex flex-col items-center justify-center shrink-0 ${
                                   fatura.status === 'Pago' ? 'bg-emerald-50/50 border-emerald-100/50 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500'
                                 }`}>
                                   <span className="text-[10px] font-black uppercase">{fatura.month.split('/')[0].substring(0,3)}</span>
@@ -710,7 +710,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                   <p className="text-[11px] font-bold text-slate-400 mt-0.5">Vencimento: {fatura.date}</p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-6">
+                              <div className="flex items-center justify-between sm:justify-end gap-6">
                                 <p className="text-base font-black text-slate-800">{formatCurrency(client.monthlyFee)}</p>
                                 <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
                                   fatura.status === 'Pago' 

@@ -66,54 +66,48 @@ export default function TopNavbar() {
   };
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[96%] max-w-7xl h-16 z-50">
-      <div className="w-full h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/40 dark:border-slate-800/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-between px-4 lg:px-6 transition-all duration-300">
-        
-        {/* Mobile Menu Button & Logo Section */}
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setMobileMenuOpen(true)}
-            className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <Link href="/" className="flex items-center group cursor-pointer">
-            <div className="hidden sm:flex flex-col">
-              <div className="flex items-baseline">
-                <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">Sevilha</span>
-                <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+    <>
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[96%] max-w-7xl h-16 z-50">
+        <div className="w-full h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/40 dark:border-slate-800/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-between px-4 lg:px-6 transition-all duration-300">
+          
+          {/* Logo Section */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center group cursor-pointer">
+              <div className="hidden sm:flex flex-col">
+                <div className="flex items-baseline">
+                  <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">Sevilha</span>
+                  <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none ml-0.5">.</span>
+                </div>
+                <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
               </div>
-              <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] block mt-1">Performance</span>
-            </div>
-            {/* Mobile version (just S.) */}
-            <div className="sm:hidden flex items-baseline">
-              <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">S</span>
-              <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none">.</span>
-            </div>
-          </Link>
-        </div>
+              {/* Mobile version (just S.) */}
+              <div className="sm:hidden flex items-baseline">
+                <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">S</span>
+                <span className="text-teal-600 dark:text-teal-400 font-black text-2xl leading-none">.</span>
+              </div>
+            </Link>
+          </div>
 
-        {/* Central Navigation */}
-        <nav 
-          onMouseLeave={() => setHoveredTab(null)}
-          className="hidden md:flex items-center bg-slate-200/50 dark:bg-slate-950/50 p-1.5 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] border border-slate-300/50 dark:border-slate-800/50 transition-all duration-500"
-        >
-          {menuItems.filter(item => {
-            if (item.path.startsWith('/admin') || item.path === '/') {
-              return profile?.role === 'ADMIN';
-            }
-            return true;
-          }).map((item) => {
-            const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
-            
-            return (
-              <div
-                key={item.name}
-                className="overflow-hidden whitespace-nowrap origin-center"
-              >
-                <Link 
-                  href={item.path} 
+          {/* Central Navigation */}
+          <nav 
+            onMouseLeave={() => setHoveredTab(null)}
+            className="hidden md:flex items-center bg-slate-200/50 dark:bg-slate-950/50 p-1.5 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] border border-slate-300/50 dark:border-slate-800/50 transition-all duration-500"
+          >
+            {menuItems.filter(item => {
+              if (item.path.startsWith('/admin') || item.path === '/') {
+                return profile?.role === 'ADMIN';
+              }
+              return true;
+            }).map((item) => {
+              const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+              
+              return (
+                <div
+                  key={item.name}
+                  className="overflow-hidden whitespace-nowrap origin-center"
+                >
+                  <Link 
+                    href={item.path} 
                     className="relative flex px-5 py-2.5 mx-0.5 rounded-full outline-none group"
                     onMouseEnter={() => setHoveredTab(item.name)}
                   >
@@ -144,56 +138,65 @@ export default function TopNavbar() {
                       </span>
                     </div>
                   </Link>
-              </div>
-            );
-          })}
-
-        </nav>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-2 lg:gap-3">
-          
-          {/* Settings Button (Isolated) */}
-          <Link href="/configuracoes" className="group flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 rounded-full transition-colors border border-slate-200/50 dark:border-slate-700/50">
-            <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:rotate-45 transition-transform duration-300" />
-            <span className="hidden lg:block text-xs font-bold text-slate-700 dark:text-slate-200">Ajustes</span>
-          </Link>
-
-          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
-
-          <NotificationDropdown />
-
-          {/* Profile */}
-          {profile ? (
-            <div className="flex items-center gap-2 pl-1 group cursor-pointer relative">
-              <div className="hidden lg:flex flex-col items-end">
-                <span className="text-xs font-bold text-slate-900 dark:text-white">{profile.name.split(' ')[0]}</span>
-                <span className="text-[9px] font-bold text-slate-500 uppercase">{profile.role === 'ADMIN' ? 'SuperAdmin' : 'Consultor'}</span>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center font-bold text-white shadow-inner relative ring-2 ring-transparent group-hover:ring-teal-500 transition-all">
-                {getUserInitials(profile.name)}
-                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-800"></span>
-              </div>
-              
-              {/* Dropdown Menu on Hover */}
-              <div className="absolute top-full right-0 mt-4 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden">
-                <div className="p-3 border-b border-slate-100 dark:border-slate-800">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{profile.name}</p>
-                  <p className="text-xs text-slate-500">{profile.email}</p>
                 </div>
-                <div className="p-2">
-                  <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors">
-                    <LogOut className="w-4 h-4" />
-                    Sair da Conta
-                  </button>
+              );
+            })}
+          </nav>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-2 lg:gap-3">
+            
+            {/* Settings Button (Isolated) */}
+            <Link href="/configuracoes" className="group flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 rounded-full transition-colors border border-slate-200/50 dark:border-slate-700/50">
+              <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:rotate-45 transition-transform duration-300" />
+              <span className="hidden lg:block text-xs font-bold text-slate-700 dark:text-slate-200">Ajustes</span>
+            </Link>
+
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+
+            <NotificationDropdown />
+
+            {/* Profile */}
+            {profile ? (
+              <div className="flex items-center gap-2 pl-1 group cursor-pointer relative">
+                <div className="hidden lg:flex flex-col items-end">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{profile.name.split(' ')[0]}</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase">{profile.role === 'ADMIN' ? 'SuperAdmin' : 'Consultor'}</span>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center font-bold text-white shadow-inner relative ring-2 ring-transparent group-hover:ring-teal-500 transition-all">
+                  {getUserInitials(profile.name)}
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-800"></span>
+                </div>
+                
+                {/* Dropdown Menu on Hover */}
+                <div className="absolute top-full right-0 mt-4 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden">
+                  <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{profile.name}</p>
+                    <p className="text-xs text-slate-500">{profile.email}</p>
+                  </div>
+                  <div className="p-2">
+                    <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors">
+                      <LogOut className="w-4 h-4" />
+                      Sair da Conta
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse"></div>
-          )}
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse"></div>
+            )}
+
+            {/* Mobile Menu Button (Moved to far right) */}
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors ml-1"
+              aria-label="Abrir menu de navegação"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
+
         </div>
-
       </div>
 
       {/* Mobile Navigation Drawer (Cinematic Glassmorphism) */}
@@ -294,6 +297,6 @@ export default function TopNavbar() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

@@ -200,13 +200,13 @@ export default function CycleOpportunitiesPage({
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative z-10 shrink-0">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleTriggerScan}
             disabled={scanning}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3.5 text-sm font-bold shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3.5 text-sm font-bold shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
           >
             {scanning ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -218,7 +218,7 @@ export default function CycleOpportunitiesPage({
 
           <button 
             onClick={handleOpenCreateModal}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 py-3.5 text-sm font-bold shadow-lg shadow-slate-900/20 dark:shadow-slate-100/20 hover:bg-slate-800 dark:hover:bg-slate-200 hover:-translate-y-0.5 transition-all active:scale-95 duration-200"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 py-3.5 text-sm font-bold shadow-lg shadow-slate-900/20 dark:shadow-slate-100/20 hover:bg-slate-800 dark:hover:bg-slate-200 hover:-translate-y-0.5 transition-all active:scale-95 duration-200"
           >
             <Plus className="h-4 w-4" />
             Nova Oportunidade
@@ -324,7 +324,7 @@ export default function CycleOpportunitiesPage({
                   <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-amber-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Aditivo Contratual - Folha de Pagamento" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoria</label>
                     <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-amber-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
@@ -345,9 +345,9 @@ export default function CycleOpportunitiesPage({
                   <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full h-24 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 text-sm font-medium outline-none focus:border-amber-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white resize-none" placeholder="Informe os detalhes observados na operação..." />
                 </div>
 
-                <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-3 text-sm font-extrabold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="px-6 py-3 text-sm font-extrabold text-white bg-amber-500 hover:bg-amber-600 rounded-2xl transition-colors flex items-center gap-2 shadow-lg shadow-amber-500/20">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-5 py-3 text-sm font-extrabold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">Cancelar</button>
+                  <button type="submit" disabled={submitting} className="w-full sm:w-auto px-6 py-3 text-sm font-extrabold text-white bg-amber-500 hover:bg-amber-600 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     Cadastrar
                   </button>
@@ -433,7 +433,7 @@ export default function CycleOpportunitiesPage({
                 </div>
 
                 {/* Ações de Funil */}
-                <div className="flex items-center justify-between gap-2 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                   {op.status !== 'GANHA' && op.status !== 'PERDIDA' && (
                     <>
                       <button 

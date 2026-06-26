@@ -258,13 +258,13 @@ export default function CycleDeliveriesPage({
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative z-10 shrink-0">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleGenerateMonthly}
             disabled={generatingMonthly}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-teal-500 text-white px-6 py-3.5 text-sm font-bold shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-teal-500 text-white px-6 py-3.5 text-sm font-bold shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
           >
             {generatingMonthly ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -276,7 +276,7 @@ export default function CycleDeliveriesPage({
 
           <button 
             onClick={handleOpenCreateModal}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 py-3.5 text-sm font-bold shadow-lg shadow-slate-900/20 dark:shadow-slate-100/20 hover:bg-slate-800 dark:hover:bg-slate-200 hover:-translate-y-0.5 transition-all active:scale-95 duration-200"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 py-3.5 text-sm font-bold shadow-lg shadow-slate-900/20 dark:shadow-slate-100/20 hover:bg-slate-800 dark:hover:bg-slate-200 hover:-translate-y-0.5 transition-all active:scale-95 duration-200"
           >
             <Plus className="h-4 w-4" />
             Nova Obrigação
@@ -377,7 +377,7 @@ export default function CycleDeliveriesPage({
                 {selectedDelivery ? 'Editar Entrega / Obrigação' : 'Nova Entrega / Obrigação'}
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Cliente</label>
                     <select required value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
@@ -391,7 +391,7 @@ export default function CycleDeliveriesPage({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Frente</label>
                     <select required value={formData.frontId} onChange={e => setFormData({...formData, frontId: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
@@ -408,7 +408,7 @@ export default function CycleDeliveriesPage({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Padronizado (Macro)</label>
                     <input required type="text" value={formData.standardizedName} onChange={e => setFormData({...formData, standardizedName: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Apuração PIS/COFINS" />
@@ -428,9 +428,9 @@ export default function CycleDeliveriesPage({
                   <input required type="text" value={formData.originalName} onChange={e => setFormData({...formData, originalName: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Apuração PIS/COFINS Lucro Real" />
                 </div>
 
-                <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-3 text-sm font-extrabold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="px-6 py-3 text-sm font-extrabold text-white bg-teal-600 hover:bg-teal-700 rounded-2xl transition-colors flex items-center gap-2 shadow-lg shadow-teal-600/20">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-5 py-3 text-sm font-extrabold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">Cancelar</button>
+                  <button type="submit" disabled={submitting} className="w-full sm:w-auto px-6 py-3 text-sm font-extrabold text-white bg-teal-600 hover:bg-teal-700 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-teal-600/20">
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     Salvar
                   </button>
@@ -458,100 +458,188 @@ export default function CycleDeliveriesPage({
           </p>
         </div>
       ) : (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="overflow-x-auto border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-sm"
-        >
-          <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
-            <thead className="bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-              <tr>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Competência</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Obrigação / Rotina</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Frente</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Responsável</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Ações</th>
-              </tr>
-            </thead>
-            <motion.tbody 
-              variants={tableVariants}
-              initial="hidden"
-              animate="show"
-              className="divide-y divide-slate-100 dark:divide-slate-800/60"
-            >
-              <AnimatePresence>
-                {filteredDeliveries.map((delivery) => (
-                  <motion.tr 
-                    variants={rowVariants}
-                    key={delivery.id} 
-                    onClick={() => openSlideOver360(delivery)}
-                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-6 py-5 font-bold text-slate-700 dark:text-slate-300">
+        <>
+          {/* Visualização em Cards para Mobile */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            <AnimatePresence>
+              {filteredDeliveries.map((delivery) => (
+                <motion.div
+                  variants={rowVariants}
+                  initial="hidden"
+                  animate="show"
+                  key={delivery.id}
+                  onClick={() => openSlideOver360(delivery)}
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer space-y-4"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                    <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
                       {delivery.competence}
-                    </td>
-                    <td className="px-6 py-5 font-extrabold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                      {delivery.client?.name || '-'}
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="font-extrabold text-slate-900 dark:text-white">{delivery.standardizedName}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{delivery.originalName}</p>
-                    </td>
-                    <td className="px-6 py-5 font-medium text-slate-600 dark:text-slate-400">
-                      {delivery.front?.name || '-'}
-                    </td>
-                    <td className="px-6 py-5 font-semibold text-slate-700 dark:text-slate-300">
-                      {delivery.responsible?.name || '-'}
-                    </td>
-                    <td className="px-6 py-5">
+                    </span>
+                    <div>
                       {delivery.status === 'CONCLUIDA' && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Concluída
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                          <CheckCircle2 className="w-3 h-3" /> Concluída
                         </span>
                       )}
                       {delivery.status === 'ANDAMENTO' && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                          <Clock className="w-3.5 h-3.5" />
-                          Em Andamento
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                          <Clock className="w-3 h-3" /> Em Andamento
                         </span>
                       )}
                       {delivery.status === 'PREVISTA' && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                          <Clock className="w-3.5 h-3.5" />
-                          Prevista
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                          <Clock className="w-3 h-3" /> Prevista
                         </span>
                       )}
                       {delivery.status === 'INATIVA' && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                           Inativa
                         </span>
                       )}
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {deleteConfirmId === delivery.id ? (
-                          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1" onClick={e => e.stopPropagation()}>
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
-                            <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
-                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
-                          </div>
-                        ) : (
-                          <>
-                            <button onClick={(e) => handleOpenEditModal(delivery, e)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors mr-2">Editar</button>
-                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors">Excluir</button>
-                          </>
-                        )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                      {delivery.standardizedName}
+                    </h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                      {delivery.originalName}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/50 text-xs">
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cliente</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block mt-0.5">{delivery.client?.name || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Frente</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300 truncate block mt-0.5">{delivery.front?.name || '-'}</span>
+                    </div>
+                    <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Responsável</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block mt-0.5">{delivery.responsible?.name || '-'}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-end gap-2">
+                    {deleteConfirmId === delivery.id ? (
+                      <div className="flex items-center justify-between w-full gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2" onClick={e => e.stopPropagation()}>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
+                        <div className="flex gap-1">
+                          <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
+                        </div>
                       </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </motion.tbody>
-          </table>
-        </motion.div>
+                    ) : (
+                      <div className="flex items-center gap-2 w-full">
+                        <button onClick={(e) => handleOpenEditModal(delivery, e)} className="flex-1 text-center text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl transition-colors">Editar</button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="flex-1 text-center text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl transition-colors">Excluir</button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* Visualização em Tabela para Desktop */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="hidden md:block overflow-x-auto border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-sm"
+          >
+            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+              <thead className="bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Competência</th>
+                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Cliente</th>
+                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Obrigação / Rotina</th>
+                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Frente</th>
+                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Responsável</th>
+                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Ações</th>
+                </tr>
+              </thead>
+              <motion.tbody 
+                variants={tableVariants}
+                initial="hidden"
+                animate="show"
+                className="divide-y divide-slate-100 dark:divide-slate-800/60"
+              >
+                <AnimatePresence>
+                  {filteredDeliveries.map((delivery) => (
+                    <motion.tr 
+                      variants={rowVariants}
+                      key={delivery.id} 
+                      onClick={() => openSlideOver360(delivery)}
+                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                    >
+                      <td className="px-6 py-5 font-bold text-slate-700 dark:text-slate-300">
+                        {delivery.competence}
+                      </td>
+                      <td className="px-6 py-5 font-extrabold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                        {delivery.client?.name || '-'}
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="font-extrabold text-slate-900 dark:text-white">{delivery.standardizedName}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{delivery.originalName}</p>
+                      </td>
+                      <td className="px-6 py-5 font-medium text-slate-600 dark:text-slate-400">
+                        {delivery.front?.name || '-'}
+                      </td>
+                      <td className="px-6 py-5 font-semibold text-slate-700 dark:text-slate-300">
+                        {delivery.responsible?.name || '-'}
+                      </td>
+                      <td className="px-6 py-5">
+                        {delivery.status === 'CONCLUIDA' && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Concluída
+                          </span>
+                        )}
+                        {delivery.status === 'ANDAMENTO' && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                            <Clock className="w-3.5 h-3.5" />
+                            Em Andamento
+                          </span>
+                        )}
+                        {delivery.status === 'PREVISTA' && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            <Clock className="w-3.5 h-3.5" />
+                            Prevista
+                          </span>
+                        )}
+                        {delivery.status === 'INATIVA' && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            Inativa
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {deleteConfirmId === delivery.id ? (
+                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1" onClick={e => e.stopPropagation()}>
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
+                              <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
+                              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
+                            </div>
+                          ) : (
+                            <>
+                              <button onClick={(e) => handleOpenEditModal(delivery, e)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors mr-2">Editar</button>
+                              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors">Excluir</button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              </motion.tbody>
+            </table>
+          </motion.div>
+        </>
       )}
     </div>
   );

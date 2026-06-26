@@ -36,7 +36,8 @@ export async function login(formData: FormData) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Device-Session-Id': deviceSessionId
         },
         body: JSON.stringify({ userAgent, ipAddress, deviceSessionId }),
       })

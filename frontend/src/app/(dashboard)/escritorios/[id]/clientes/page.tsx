@@ -320,17 +320,17 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
             <p className="text-slate-500 font-medium mt-1">Gerencie as empresas e contas atendidas pelo escritório.</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <button 
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
+            className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm w-full sm:w-auto"
           >
             <Upload className="w-4 h-4" />
             Importar Planilha
           </button>
           <button 
             onClick={openNewClient}
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
+            className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             Novo Cliente
@@ -354,12 +354,72 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
               className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all hover:border-slate-300 shadow-sm"
             />
           </div>
-          <div className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+          <div className="w-full sm:w-auto text-center text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
             Total: <span className="text-slate-900">{filteredClientes.length}</span>
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        {/* Visão Mobile: Cards Neumórficos (Opção A - Premium UX) */}
+        <div className="grid grid-cols-1 gap-4 p-4 md:hidden">
+          {isLoading ? (
+            <div className="py-20 text-center text-slate-500">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-teal-500" />
+              <p className="font-bold text-sm">Carregando carteira de clientes...</p>
+            </div>
+          ) : filteredClientes.length === 0 ? (
+            <div className="py-20 text-center text-slate-500">
+              <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-inner">
+                <Building2 className="w-10 h-10 text-slate-300" />
+              </div>
+              <p className="font-bold text-slate-700 text-lg mb-1">Nenhum cliente cadastrado</p>
+              <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Tente buscar por outro termo ou cadastre as empresas usando o botão "Novo Cliente".</p>
+            </div>
+          ) : (
+            filteredClientes.map((cliente) => (
+              <div key={cliente.id} className="bg-slate-50/50 border border-slate-200/80 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100 shrink-0">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-slate-900 text-base tracking-tight truncate">{cliente.name}</h4>
+                      <p className="text-xs font-semibold text-slate-500 truncate">{cliente.cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {formatStatus(cliente.status)}
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between shadow-inner text-xs">
+                  <span className="font-bold text-slate-400 uppercase tracking-wider">Regime</span>
+                  <span className="font-bold text-slate-700">{formatRegime(cliente.taxRegime)}</span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-end gap-2">
+                  <button 
+                    onClick={() => openEditClient(cliente)}
+                    className="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-teal-50 hover:border-teal-200 text-slate-700 hover:text-teal-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    Editar
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(cliente.id)}
+                    className="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Visão Desktop: Tabela */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-[11px] text-slate-400 uppercase tracking-widest bg-slate-50/80 border-b border-slate-200">
               <tr>
@@ -421,7 +481,7 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
                         {formatStatus(cliente.status)}
                       </td>
                       <td className="px-8 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                           <button 
                             onClick={() => openEditClient(cliente)}
                             className="p-2 text-slate-400 hover:text-teal-600 transition-colors rounded-xl hover:bg-teal-50"

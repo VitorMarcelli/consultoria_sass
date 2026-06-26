@@ -178,7 +178,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                       />
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Cargo / Papel *</label>
                         <input
@@ -210,7 +210,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Salário Bruto (R$)</label>
                         <input
@@ -262,7 +262,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                   <div className="space-y-4">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">Alocação no Ciclo</h3>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Frente *</label>
                         <select
@@ -294,7 +294,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Horas Alocadas/Dia *</label>
                         <input
@@ -312,7 +312,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1" title="Atividades Recorrentes Previsíveis">Temp. Recorr. Prev. (%)</label>
                         <input
@@ -341,7 +341,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Data Início Alocação</label>
                         <input
@@ -364,18 +364,18 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                   </div>
                 </div>
 
-                <div className="pt-6 mt-6 border-t border-slate-100 flex gap-3">
+                <div className="pt-6 mt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 py-4 px-4 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                    className="w-full sm:w-auto flex-1 py-4 px-4 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 py-4 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-teal-600/30"
+                    className="w-full sm:w-auto flex-1 py-4 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-teal-600/30"
                   >
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Criar e Alocar'}
                   </button>

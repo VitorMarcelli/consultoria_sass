@@ -94,12 +94,12 @@ export default function PainelGerencialPage({ params }: { params: Promise<{ id: 
         </div>
         
         {cycles.length > 0 && (
-          <div className="bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-white shadow-sm flex items-center">
-            <span className="text-sm font-bold text-slate-500 px-3 uppercase tracking-wider">Ciclo</span>
+          <div className="bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-white shadow-sm flex items-center justify-between w-full sm:w-auto">
+            <span className="text-sm font-bold text-slate-500 px-3 uppercase tracking-wider shrink-0">Ciclo</span>
             <select 
               value={selectedCycleId}
               onChange={(e) => setSelectedCycleId(e.target.value)}
-              className="pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-teal-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+              className="w-full sm:w-auto pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-teal-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
             >
               {cycles.map(c => (
                 <option key={c.id} value={c.id}>
@@ -157,9 +157,9 @@ export default function PainelGerencialPage({ params }: { params: Promise<{ id: 
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:h-[400px]">
             {/* Pie Chart */}
-            <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-sm flex flex-col h-full">
+            <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-sm flex flex-col min-h-[350px] lg:min-h-0 h-full">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-teal-50 text-teal-600 rounded-lg">
                   <PieChartIcon className="w-5 h-5" />
@@ -174,8 +174,8 @@ export default function PainelGerencialPage({ params }: { params: Promise<{ id: 
                         data={pieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={80}
-                        outerRadius={120}
+                        innerRadius={70}
+                        outerRadius={110}
                         paddingAngle={5}
                         dataKey="value"
                       >
@@ -199,7 +199,7 @@ export default function PainelGerencialPage({ params }: { params: Promise<{ id: 
             </motion.div>
 
             {/* Bar Chart */}
-            <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-sm flex flex-col h-full min-w-0">
+            <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-sm flex flex-col min-h-[350px] lg:min-h-0 h-full min-w-0">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-teal-50 text-teal-600 rounded-lg">
                   <TrendingUp className="w-5 h-5" />
@@ -208,13 +208,13 @@ export default function PainelGerencialPage({ params }: { params: Promise<{ id: 
               </div>
               <div className="flex-1 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart data={barData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} />
                     <YAxis 
                       axisLine={false} 
                       tickLine={false} 
-                      width={80}
+                      width={65}
                       tickFormatter={(value) => value >= 1000 ? `R$${(value / 1000).toFixed(0)}k` : `R$${value}`}
                     />
                     <Tooltip 

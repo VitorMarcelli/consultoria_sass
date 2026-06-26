@@ -242,16 +242,16 @@ export default function DashboardHome() {
               Aqui está o panorama integrado da sua consultoria. Seus dados estão 100% isolados dinamicamente no seu respectivo schema de banco de dados.
             </p>
           </div>
-          <div className="flex shrink-0 gap-3">
+          <div className="flex flex-col sm:flex-row shrink-0 gap-3 w-full md:w-auto">
             <button 
               onClick={() => router.push('/configuracoes')}
-              className="rounded-xl border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-bold text-white hover:bg-white/10 transition-all active:scale-95 duration-200 shadow-sm"
+              className="w-full sm:w-auto rounded-xl border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-bold text-white hover:bg-white/10 transition-all active:scale-95 duration-200 shadow-sm"
             >
               Configurações
             </button>
             <button 
               onClick={handleExportReport}
-              className="rounded-xl bg-white px-6 py-3.5 text-sm font-black text-teal-700 shadow-xl hover:bg-slate-50 transition-all active:scale-95 duration-200"
+              className="w-full sm:w-auto rounded-xl bg-white px-6 py-3.5 text-sm font-black text-teal-700 shadow-xl hover:bg-slate-50 transition-all active:scale-95 duration-200"
             >
               Exportar Relatório
             </button>
@@ -284,27 +284,27 @@ export default function DashboardHome() {
             <div className="absolute right-0 top-0 -mt-20 -mr-20 h-64 w-64 rounded-full bg-white/10 blur-[60px] pointer-events-none"></div>
             <div className="absolute left-0 bottom-0 -mb-20 -ml-20 h-64 w-64 rounded-full bg-indigo-400/20 blur-[60px] pointer-events-none"></div>
 
-            <div className="relative z-10 flex items-center justify-between mb-8">
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <div>
                 <h3 className="text-xl font-black tracking-tight text-white">Desempenho da Consultoria</h3>
                 <p className="text-sm font-medium text-indigo-200 mt-1">Evolução de MRR e Contas Ativas (Semestre)</p>
               </div>
-              <div className="flex bg-indigo-700/50 p-1.5 rounded-2xl backdrop-blur-sm border border-indigo-500/30">
+              <div className="flex bg-indigo-700/50 p-1.5 rounded-2xl backdrop-blur-sm border border-indigo-500/30 w-fit">
                  <button className="px-4 py-2 rounded-xl bg-white text-indigo-600 font-black text-xs shadow-sm">MRR Geral</button>
                  <button className="px-4 py-2 rounded-xl text-indigo-200 hover:text-white font-bold text-xs transition-colors">Contas</button>
               </div>
             </div>
 
             {/* Custom Interactive SVG Line Chart */}
-            <div className="relative h-64 w-full rounded-2xl p-4 flex items-end">
-              <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none">
+            <div className="relative h-64 w-full rounded-2xl p-4 flex items-end overflow-x-auto custom-scrollbar">
+              <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none min-w-[400px]">
                 {[1, 2, 3].map((_, i) => (
                   <div key={i} className="w-full border-b border-indigo-400/20"></div>
                 ))}
               </div>
 
               {/* Dynamic Bars with Hover Tooltips */}
-              <div className="relative w-full h-48 flex items-end justify-between px-2 sm:px-6 z-10">
+              <div className="relative w-full min-w-[400px] h-48 flex items-end justify-between px-2 sm:px-6 z-10">
                 {chartData.map((data, index) => {
                   const maxVal = Math.max(...chartData.map(d => d.value));
                   const percentageTotal = (data.value / maxVal) * 100;
@@ -364,14 +364,14 @@ export default function DashboardHome() {
             {/* Soft background shape */}
             <div className="absolute left-0 bottom-0 w-full h-32 bg-gradient-to-t from-slate-50 to-transparent dark:from-slate-800/30 pointer-events-none"></div>
 
-            <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
               <div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Escritórios Recentes</h3>
                 <p className="text-sm font-medium text-slate-500 mt-1">Últimos setups realizados no portal</p>
               </div>
               <button 
                 onClick={() => router.push('/escritorios')} 
-                className="text-xs font-black text-slate-600 dark:text-slate-300 hover:text-slate-900 flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-full transition-all hover:scale-105 active:scale-95 shadow-sm"
+                className="w-full sm:w-auto text-xs font-black text-slate-600 dark:text-slate-300 hover:text-slate-900 flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-full transition-all hover:scale-105 active:scale-95 shadow-sm"
               >
                 Visualizar Histórico
               </button>
@@ -384,17 +384,17 @@ export default function DashboardHome() {
                 </div>
               ) : (
                 clients.slice(0, 4).map((client, i) => (
-                  <div key={client.id} className="group flex items-center justify-between p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5">
+                  <div key={client.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5">
                     <div className="flex items-center gap-5">
-                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 text-lg shadow-inner group-hover:shadow-md transition-shadow">
+                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 text-lg shadow-inner group-hover:shadow-md transition-shadow shrink-0">
                         {client.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="text-base font-black text-slate-900 dark:text-white tracking-tight group-hover:text-indigo-600 transition-colors">{client.name}</p>
-                        <p className="text-xs font-bold text-slate-400 mt-0.5">{client.cnpj || `Setup há ${i + 1} dia(s)`}</p>
+                      <div className="min-w-0">
+                        <p className="text-base font-black text-slate-900 dark:text-white tracking-tight group-hover:text-indigo-600 transition-colors truncate">{client.name}</p>
+                        <p className="text-xs font-bold text-slate-400 mt-0.5 truncate">{client.cnpj || `Setup há ${i + 1} dia(s)`}</p>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[11px] font-black shadow-sm ${
+                    <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-[11px] font-black shadow-sm w-full sm:w-auto ${
                       client.status === 'ACTIVE' 
                         ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
                         : 'bg-slate-100 text-slate-500'
@@ -415,18 +415,18 @@ export default function DashboardHome() {
         >
           {/* Calendar Widget Card */}
           <div className="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] dark:shadow-none border border-slate-50 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
                 Agendas
               </h3>
-              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-inner">
+              <div className="flex items-center justify-between gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-inner w-full sm:w-auto">
                 <button 
                   onClick={handlePrevMonth}
                   className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm text-slate-500 transition-all"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <div className="text-[11px] font-black uppercase px-2 text-slate-700 dark:text-slate-300">
+                <div className="text-[11px] font-black uppercase px-2 text-slate-700 dark:text-slate-300 truncate">
                   {monthNames[currentDate.getMonth()].substring(0, 3)} {currentDate.getFullYear()}
                 </div>
                 <button 

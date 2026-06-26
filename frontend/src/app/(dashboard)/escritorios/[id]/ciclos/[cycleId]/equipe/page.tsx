@@ -82,16 +82,16 @@ export default function CycleTeamPage({
             <p className="text-sm text-slate-500 font-medium mt-1">Gerencie a equipe designada para esta célula neste ciclo.</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <button 
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
             onClick={() => setIsModalOpen(true)}
           >
             <Users className="w-4 h-4" />
             Alocar da Base
           </button>
           <button 
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-teal-600 transition-all font-bold text-sm shadow-xl hover:shadow-teal-600/30"
             onClick={() => setIsNewEmployeeModalOpen(true)}
           >
             <Plus className="w-4 h-4" />
@@ -121,7 +121,7 @@ export default function CycleTeamPage({
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-[11px] text-slate-400 uppercase tracking-widest bg-slate-50/80 border-b border-slate-200">
               <tr>
@@ -196,6 +196,67 @@ export default function CycleTeamPage({
               </motion.tbody>
             )}
           </table>
+        </div>
+
+        {/* Visualização em Cards Mobile (Opção A - Premium UX) */}
+        <div className="grid grid-cols-1 gap-4 md:hidden p-4 bg-slate-50/50">
+          {isLoading ? (
+            <div className="py-20 text-center text-slate-500 bg-white rounded-3xl border border-slate-200 p-6">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-teal-500" />
+              <p className="font-bold text-sm">Carregando equipe alocada...</p>
+            </div>
+          ) : uniqueTeam.length === 0 ? (
+            <div className="py-20 text-center text-slate-500 bg-white rounded-3xl border border-slate-200 p-6">
+              <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-inner">
+                <Users className="w-8 h-8 text-slate-300" />
+              </div>
+              <p className="font-bold text-slate-700 text-lg mb-1">Nenhum colaborador alocado</p>
+              <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Selecione uma Frente e Célula específicas ou clique em "Alocar Colaborador".</p>
+            </div>
+          ) : (
+            uniqueTeam.map((member) => (
+              <div 
+                key={member.employeeId} 
+                onClick={() => {
+                  setSelectedTeamMemberFor360(member);
+                  setIs360Open(true);
+                }}
+                className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 cursor-pointer relative group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100 group-hover:bg-teal-600 group-hover:text-white transition-colors shrink-0">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 text-base group-hover:text-teal-600 transition-colors">
+                      {member.employee?.name}
+                    </h4>
+                    <span className="text-xs font-bold text-slate-500 block mt-0.5">
+                      {member.employee?.role || '-'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Horas Alocadas</span>
+                    <span className="text-sm font-extrabold text-slate-800">{member.allocatedHours}h / dia</span>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTeamMemberFor360(member);
+                      setIs360Open(true);
+                    }}
+                    className="p-2.5 bg-slate-50 text-slate-600 hover:bg-teal-50 hover:text-teal-600 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    Editar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </motion.div>
 
