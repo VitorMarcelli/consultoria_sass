@@ -22,6 +22,12 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('sessions/check')
+  async checkSession() {
+    return { active: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('sessions')
   async getSessions(@Request() req: any) {
     const token = req.headers?.authorization?.replace('Bearer ', '');
