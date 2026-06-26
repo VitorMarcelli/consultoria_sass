@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -26,6 +26,11 @@ export async function login(formData: FormData) {
     const token = authData?.session?.access_token
 
     if (token) {
+      // Gerar e gravar device_session_id exclusivo em cookie para evitar divergência de session_id do Supabase
+      const deviceSessionId = crypto.randomUUID()
+      const cookieStore = await cookies()
+      cookieStore.set('device_session_id', deviceSessionId, { path: '/', maxAge: 60 * 60 * 24 * 30 })
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
       await fetch(`${apiUrl}/auth/sessions`, {
         method: 'POST',
@@ -33,7 +38,7 @@ export async function login(formData: FormData) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ userAgent, ipAddress }),
+        body: JSON.stringify({ userAgent, ipAddress, deviceSessionId }),
       })
     }
   } catch (err) {

@@ -55,7 +55,8 @@ export class JwtAuthGuard implements CanActivate {
         const parts = token.split('.');
         if (parts.length === 3) {
           const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
-          const sessionId = payload.session_id;
+          const deviceSessionId = request.headers['x-device-session-id'];
+          const sessionId = deviceSessionId || payload.session_id;
           if (sessionId) {
             const session = await this.prisma.userSession.findFirst({
               where: { refreshToken: sessionId, userId: userData.id },

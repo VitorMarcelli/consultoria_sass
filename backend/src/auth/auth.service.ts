@@ -22,8 +22,8 @@ export class AuthService {
     return sessionId;
   }
 
-  async createSession(userId: string, token: string, userAgent: string, ipAddress: string) {
-    const sessionId = this.getSessionIdFromToken(token);
+  async createSession(userId: string, token: string, userAgent: string, ipAddress: string, deviceSessionId?: string) {
+    const sessionId = deviceSessionId || this.getSessionIdFromToken(token);
 
     // Identificar dispositivo e navegador via User-Agent
     const parser = new (UAParser as any)(userAgent);
@@ -98,8 +98,8 @@ export class AuthService {
     });
   }
 
-  async getSessions(userId: string, currentToken: string) {
-    const currentSessionId = this.getSessionIdFromToken(currentToken);
+  async getSessions(userId: string, currentToken: string, deviceSessionId?: string) {
+    const currentSessionId = deviceSessionId || this.getSessionIdFromToken(currentToken);
 
     const sessions = await this.prisma.userSession.findMany({
       where: { userId },

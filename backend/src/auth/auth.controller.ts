@@ -10,7 +10,7 @@ export class AuthController {
   @Post('sessions')
   async createSession(
     @Request() req: any,
-    @Body() body: { userAgent?: string; ipAddress?: string },
+    @Body() body: { userAgent?: string; ipAddress?: string; deviceSessionId?: string },
     @Headers('user-agent') defaultUserAgent: string,
     @Ip() defaultIp: string,
   ) {
@@ -18,7 +18,7 @@ export class AuthController {
     const userAgent = body.userAgent || defaultUserAgent || '';
     const ipAddress = body.ipAddress || defaultIp || '127.0.0.1';
 
-    return this.authService.createSession(req.user.id, token, userAgent, ipAddress);
+    return this.authService.createSession(req.user.id, token, userAgent, ipAddress, body.deviceSessionId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -31,7 +31,8 @@ export class AuthController {
   @Get('sessions')
   async getSessions(@Request() req: any) {
     const token = req.headers?.authorization?.replace('Bearer ', '');
-    return this.authService.getSessions(req.user.id, token);
+    const deviceSessionId = req.headers['x-device-session-id'];
+    return this.authService.getSessions(req.user.id, token, deviceSessionId);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -6,6 +6,12 @@ import { createClient } from '@/utils/supabase/client';
 export default function SessionGuardian() {
   const supabase = createClient();
 
+  const getDeviceSessionId = () => {
+    if (typeof document === 'undefined') return '';
+    const match = document.cookie.match(/(^|;)\s*device_session_id=([^;]+)/);
+    return match ? match[2] : '';
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -16,6 +22,7 @@ export default function SessionGuardian() {
         const res = await fetch(`${apiUrl}/auth/sessions/check`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
+            'X-Device-Session-Id': getDeviceSessionId(),
           },
         });
 
