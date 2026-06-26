@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, AlertCircle, Info } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,6 +17,7 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
   const [employees, setEmployees] = useState<any[]>([]);
   const [fronts, setFronts] = useState<any[]>([]);
   const [subdivisions, setSubdivisions] = useState<any[]>([]);
+  const [allocations, setAllocations] = useState<any[]>([]);
   
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedFront, setSelectedFront] = useState('');
@@ -51,12 +52,14 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
   const loadData = async () => {
     setIsFetching(true);
     try {
-      const [empsData, frontsData] = await Promise.all([
+      const [empsData, frontsData, allocsData] = await Promise.all([
         apiRequest(`/employees?tenantId=${tenantId}`),
-        apiRequest(`/structures/fronts?tenantId=${tenantId}`)
+        apiRequest(`/structures/fronts?tenantId=${tenantId}`),
+        apiRequest(`/allocations?tenantId=${tenantId}`)
       ]);
       setEmployees(empsData || []);
       setFronts(frontsData || []);
+      setAllocations(allocsData || []);
     } catch (err) {
       console.error('Error fetching data for allocation:', err);
     } finally {
@@ -110,6 +113,116 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
     }
   };
 
+  // Verificar status de alocação em tempo real
+  const getAllocationStatus = () => {
+    if (!selectedEmployee) return { error: null, info: null, fullyAllocated: false };
+
+    const empAllocs = allocations.filter(a => a.employeeId === selectedEmployee && a.cycleId === cycleId);
+    
+    // 1. Check if fully allocated
+    let fullyAllocated = false;
+    if (fronts.length > 0) {
+      let hasUnallocated = false;
+      for (const f of fronts) {
+        if (f.subdivisions && f.subdivisions.length > 0) {
+          for (const s of f.subdivisions) {
+            if (!empAllocs.some(a => a.frontId === f.id && a.subdivisionId === s.id)) {
+              hasUnallocated = true;
+              break;
+            }
+          }
+        } else {
+          if (!empAllocs.some(a => a.frontId === f.id && !a.subdivisionId)) {
+            hasUnallocated = true;
+            break;
+          }
+        }
+        if (hasUnallocated) break;
+      }
+      fullyAllocated = !hasUnallocated;
+    }
+
+    if (fullyAllocated) {
+      return {
+        error: "Este colaborador já está alocado em todas as frentes e células deste escritório.",
+        info: null,
+        fullyAllocated: true
+      };
+    }
+
+    if (!selectedFront) return { error: null, info: null, fullyAllocated: false };
+
+    const front = fronts.find(f => f.id === selectedFront);
+    const empAllocsInFront = empAllocs.filter(a => a.frontId === selectedFront);
+
+    if (selectedSubdivision) {
+      const sub = front?.subdivisions?.find((s: any) => s.id === selectedSubdivision);
+      const alreadyInSub = empAllocsInFront.some(a => a.subdivisionId === selectedSubdivision);
+      if (alreadyInSub) {
+        return {
+          error: `Não foi possível Alocar, colaborador já faz parte da Célula ${sub?.name || ''} na Frente ${front?.name || ''}.`,
+          info: null,
+          fullyAllocated: false
+        };
+      } else if (empAllocsInFront.length > 0) {
+        const existingSubs = empAllocsInFront.map(a => {
+          const s = front?.subdivisions?.find((sub: any) => sub.id === a.subdivisionId);
+          return s ? s.name : 'Geral';
+        }).join(', ');
+        return {
+          error: null,
+          info: `Nota: Este colaborador já faz parte da Frente ${front?.name || ''} (${existingSubs}). Confirmar criará uma nova alocação na Célula ${sub?.name || ''}.`,
+          fullyAllocated: false
+        };
+      }
+    } else {
+      // No subdivision selected
+      if (empAllocsInFront.length > 0) {
+        if (!front?.subdivisions || front.subdivisions.length === 0 || empAllocsInFront.some(a => !a.subdivisionId)) {
+          return {
+            error: `Não foi possível Alocar, colaborador já faz parte da Frente ${front?.name || ''}.`,
+            info: null,
+            fullyAllocated: false
+          };
+        } else {
+          const existingSubs = empAllocsInFront.map(a => {
+            const s = front?.subdivisions?.find((sub: any) => sub.id === a.subdivisionId);
+            return s ? s.name : 'Geral';
+          }).join(', ');
+          return {
+            error: `Não foi possível Alocar, colaborador já faz parte da Frente ${front?.name || ''} (${existingSubs}). Por favor, selecione uma nova Célula abaixo para alocação.`,
+            info: null,
+            fullyAllocated: false
+          };
+        }
+      }
+    }
+
+    return { error: null, info: null, fullyAllocated: false };
+  };
+
+  const { error: allocError, info: allocInfo, fullyAllocated } = getAllocationStatus();
+
+  const getFrontLabel = (front: any) => {
+    if (!selectedEmployee) return front.name;
+    const allocs = allocations.filter(a => a.employeeId === selectedEmployee && a.cycleId === cycleId && a.frontId === front.id);
+    if (allocs.length === 0) return front.name;
+    const subNames = allocs.map(a => {
+      if (a.subdivisionId) {
+        const sub = front.subdivisions?.find((s: any) => s.id === a.subdivisionId);
+        return sub ? sub.name : 'Célula';
+      }
+      return 'Geral';
+    });
+    return `${front.name} (Já Alocado: ${subNames.join(', ')})`;
+  };
+
+  const getSubdivisionLabel = (sub: any) => {
+    if (!selectedEmployee) return sub.name;
+    const isAllocated = allocations.some(a => a.employeeId === selectedEmployee && a.cycleId === cycleId && a.frontId === selectedFront && a.subdivisionId === sub.id);
+    return isAllocated ? `${sub.name} (Já Alocado nesta Célula)` : sub.name;
+  };
+
   return (
     <Portal>
       <AnimatePresence>
@@ -145,6 +258,28 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {allocError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-700 text-xs font-bold shadow-sm"
+                  >
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="leading-relaxed">{allocError}</div>
+                  </motion.div>
+                )}
+
+                {allocInfo && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="p-4 bg-teal-50 border border-teal-200 rounded-2xl flex items-start gap-3 text-teal-700 text-xs font-bold shadow-sm"
+                  >
+                    <Info className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
+                    <div className="leading-relaxed">{allocInfo}</div>
+                  </motion.div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Colaborador *</label>
@@ -186,7 +321,7 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                     >
                       <option value="">Selecione uma frente</option>
                       {fronts.map(front => (
-                        <option key={front.id} value={front.id}>{front.name}</option>
+                        <option key={front.id} value={front.id}>{getFrontLabel(front)}</option>
                       ))}
                     </select>
                   </div>
@@ -201,7 +336,7 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                     >
                       <option value="">Selecione (opcional)</option>
                       {subdivisions.map(sub => (
-                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                        <option key={sub.id} value={sub.id}>{getSubdivisionLabel(sub)}</option>
                       ))}
                     </select>
                   </div>
@@ -267,8 +402,8 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                   </button>
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className="flex-1 py-3 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors flex justify-center items-center gap-2"
+                    disabled={isLoading || !!allocError || fullyAllocated}
+                    className="flex-1 py-3 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Alocação'}
                   </button>
