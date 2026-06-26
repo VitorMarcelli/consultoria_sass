@@ -29,7 +29,7 @@ export async function login(formData: FormData) {
       // Gerar e gravar device_session_id exclusivo em cookie para evitar divergência de session_id do Supabase
       const deviceSessionId = crypto.randomUUID()
       const cookieStore = await cookies()
-      cookieStore.set('device_session_id', deviceSessionId, { path: '/', maxAge: 60 * 60 * 24 * 30 })
+      cookieStore.set('device_session_id', deviceSessionId, { path: '/', maxAge: 60 * 60 * 24 * 30, httpOnly: false })
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
       await fetch(`${apiUrl}/auth/sessions`, {
