@@ -19,6 +19,12 @@ export default function SecurityForm() {
 
   const supabase = createClient();
 
+  const getDeviceSessionId = () => {
+    if (typeof document === 'undefined') return '';
+    const match = document.cookie.match(/(^|;)\s*device_session_id=([^;]+)/);
+    return match ? match[2] : '';
+  };
+
   useEffect(() => {
     const fetchSessions = async () => {
       try {
@@ -29,6 +35,7 @@ export default function SecurityForm() {
         const res = await fetch(`${apiUrl}/auth/sessions`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
+            'X-Device-Session-Id': getDeviceSessionId(),
           },
         });
 
@@ -57,6 +64,7 @@ export default function SecurityForm() {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
+          'X-Device-Session-Id': getDeviceSessionId(),
         },
       });
 
