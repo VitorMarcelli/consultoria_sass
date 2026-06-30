@@ -142,42 +142,100 @@ export class ManagementCyclesService {
       }
     });
 
-    // Rollover: Clients
-    const activeClients = await tenantPrisma.client.findMany({
-      where: { status: 'ACTIVE' },
-      include: { frontClassifications: true }
+    // Tenta encontrar o ciclo anterior para clonar
+    const lastCycle = await tenantPrisma.managementCycle.findFirst({
+      where: {
+        NOT: { id: newCycle.id }
+      },
+      orderBy: [
+        { year: 'desc' },
+        { month: 'desc' }
+      ]
     });
 
-    if (activeClients.length > 0) {
-      const snapshotsData: any[] = [];
-      
-      for (const client of activeClients) {
-        if (!client.frontClassifications || client.frontClassifications.length === 0) continue;
+    if (lastCycle) {
+      // Clonar configurações de clientes (ClientCycleSnapshot)
+      const lastClientSnapshots = await tenantPrisma.clientCycleSnapshot.findMany({
+        where: { cycleId: lastCycle.id }
+      });
 
-        for (const frontClass of client.frontClassifications) {
-          if (frontClass.actsInFront === 'YES') {
-            snapshotsData.push({
-              cycleId: newCycle.id,
-              clientId: client.id,
-              frontId: frontClass.frontId,
-              subdivisionId: frontClass.subdivisionId || null,
-              
-              taxRegime: client.taxRegime,
-              segment: client.segment,
-              monthlyFee: client.monthlyFee,
-              classification: client.classification,
-              complexity: frontClass.complexity,
-              frequency: frontClass.frequency,
-              particulars: frontClass.particulars
-            });
-          }
-        }
+      if (lastClientSnapshots.length > 0) {
+        const snapshotsData = lastClientSnapshots.map((snap: any) => ({
+          cycleId: newCycle.id,
+          clientId: snap.clientId,
+          frontId: snap.frontId,
+          subdivisionId: snap.subdivisionId,
+          taxRegime: snap.taxRegime,
+          segment: snap.segment,
+          monthlyFee: snap.monthlyFee,
+          classification: snap.classification,
+          complexity: snap.complexity,
+          frequency: snap.frequency,
+          particulars: snap.particulars
+        }));
+        await tenantPrisma.clientCycleSnapshot.createMany({ data: snapshotsData });
       }
 
-      if (snapshotsData.length > 0) {
-        await tenantPrisma.clientCycleSnapshot.createMany({
-          data: snapshotsData
-        });
+      // Clonar alocações de equipe (EmployeeCycleAllocation)
+      const lastEmployeeAllocations = await tenantPrisma.employeeCycleAllocation.findMany({
+        where: { cycleId: lastCycle.id }
+      });
+
+      if (lastEmployeeAllocations.length > 0) {
+        const allocationsData = lastEmployeeAllocations.map((alloc: any) => ({
+          cycleId: newCycle.id,
+          employeeId: alloc.employeeId,
+          frontId: alloc.frontId,
+          subdivisionId: alloc.subdivisionId,
+          leaderId: alloc.leaderId,
+          dailyAvailableTime: alloc.dailyAvailableTime,
+          predictableRecurrentTimePercentage: alloc.predictableRecurrentTimePercentage,
+          unpredictableRecurrentTimePercentage: alloc.unpredictableRecurrentTimePercentage,
+          allocationStartDate: alloc.allocationStartDate,
+          allocationEndDate: alloc.allocationEndDate,
+          status: alloc.status
+        }));
+        await tenantPrisma.employeeCycleAllocation.createMany({ data: allocationsData });
+      }
+    } else {
+      // Caso não exista ciclo anterior (primeiro ciclo), usa a lógica global existente
+      // Rollover: Clients global setup
+      const activeClients = await tenantPrisma.client.findMany({
+        where: { status: 'ACTIVE' },
+        include: { frontClassifications: true }
+      });
+
+      if (activeClients.length > 0) {
+        const snapshotsData: any[] = [];
+        
+        for (const client of activeClients) {
+          if (!client.frontClassifications || client.frontClassifications.length === 0) continue;
+
+          for (const frontClass of client.frontClassifications) {
+            if (frontClass.actsInFront === 'YES') {
+              snapshotsData.push({
+                cycleId: newCycle.id,
+                clientId: client.id,
+                frontId: frontClass.frontId,
+                subdivisionId: frontClass.subdivisionId || null,
+                
+                taxRegime: client.taxRegime,
+                segment: client.segment,
+                monthlyFee: client.monthlyFee,
+                classification: client.classification,
+                complexity: frontClass.complexity,
+                frequency: frontClass.frequency,
+                particulars: frontClass.particulars
+              });
+            }
+          }
+        }
+
+        if (snapshotsData.length > 0) {
+          await tenantPrisma.clientCycleSnapshot.createMany({
+            data: snapshotsData
+          });
+        }
       }
     }
 

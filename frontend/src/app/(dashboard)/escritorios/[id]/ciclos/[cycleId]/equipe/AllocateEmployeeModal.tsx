@@ -85,6 +85,19 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
       return;
     }
 
+    const prevPercent = predictableRecurrentTimePercentage ? parseFloat(predictableRecurrentTimePercentage.replace(',', '.')) : null;
+    const unprevPercent = unpredictableRecurrentTimePercentage ? parseFloat(unpredictableRecurrentTimePercentage.replace(',', '.')) : null;
+
+    if (prevPercent === null || unprevPercent === null || isNaN(prevPercent) || isNaN(unprevPercent)) {
+      alert('Os percentuais de tempo recorrente previsível e não previsível são obrigatórios.');
+      return;
+    }
+
+    if (prevPercent + unprevPercent !== 100) {
+      alert('A soma do tempo recorrente previsível e não previsível deve ser exatamente 100%.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await apiRequest('/allocations', {
@@ -97,8 +110,8 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
           subdivisionId: selectedSubdivision || null,
           dailyAvailableTime: Number(allocatedHours),
           status: 'ACTIVE',
-          predictableRecurrentTimePercentage: predictableRecurrentTimePercentage ? parseFloat(predictableRecurrentTimePercentage.replace(',', '.')) : null,
-          unpredictableRecurrentTimePercentage: unpredictableRecurrentTimePercentage ? parseFloat(unpredictableRecurrentTimePercentage.replace(',', '.')) : null,
+          predictableRecurrentTimePercentage: prevPercent,
+          unpredictableRecurrentTimePercentage: unprevPercent,
           allocationStartDate: allocationStartDate ? allocationStartDate : null,
           allocationEndDate: allocationEndDate ? allocationEndDate : null
         })
@@ -349,6 +362,7 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                       type="number"
                       value={predictableRecurrentTimePercentage}
                       onChange={(e) => setPredictableRecurrentTimePercentage(e.target.value)}
+                      required
                       min="0"
                       max="100"
                       step="0.1"
@@ -362,6 +376,7 @@ export default function AllocateEmployeeModal({ isOpen, onClose, tenantId, cycle
                       type="number"
                       value={unpredictableRecurrentTimePercentage}
                       onChange={(e) => setUnpredictableRecurrentTimePercentage(e.target.value)}
+                      required
                       min="0"
                       max="100"
                       step="0.1"

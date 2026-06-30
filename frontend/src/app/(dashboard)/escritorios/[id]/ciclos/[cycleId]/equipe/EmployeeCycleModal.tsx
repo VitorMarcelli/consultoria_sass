@@ -92,6 +92,19 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
       return;
     }
 
+    const prevPercent = predictableRecurrentTimePercentage ? parseFloat(predictableRecurrentTimePercentage.replace(',', '.')) : null;
+    const unprevPercent = unpredictableRecurrentTimePercentage ? parseFloat(unpredictableRecurrentTimePercentage.replace(',', '.')) : null;
+
+    if (prevPercent === null || unprevPercent === null || isNaN(prevPercent) || isNaN(unprevPercent)) {
+      alert('Os percentuais de tempo recorrente previsível e não previsível são obrigatórios.');
+      return;
+    }
+
+    if (prevPercent + unprevPercent !== 100) {
+      alert('A soma do tempo recorrente previsível e não previsível deve ser exatamente 100%.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await apiRequest(`/employees`, {
@@ -109,8 +122,8 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
           frontId: selectedFront,
           subdivisionId: selectedSubdivision || null,
           allocatedHours: parseFloat(allocatedHours),
-          predictableRecurrentTimePercentage: predictableRecurrentTimePercentage ? parseFloat(predictableRecurrentTimePercentage.replace(',', '.')) : null,
-          unpredictableRecurrentTimePercentage: unpredictableRecurrentTimePercentage ? parseFloat(unpredictableRecurrentTimePercentage.replace(',', '.')) : null,
+          predictableRecurrentTimePercentage: prevPercent,
+          unpredictableRecurrentTimePercentage: unprevPercent,
           allocationStartDate: allocationStartDate ? allocationStartDate : null,
           allocationEndDate: allocationEndDate ? allocationEndDate : null
         })
@@ -315,29 +328,31 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1" title="Atividades Recorrentes Previsíveis">Temp. Recorr. Prev. (%)</label>
-                        <input
-                          type="number"
-                          value={predictableRecurrentTimePercentage}
-                          onChange={(e) => setPredictableRecurrentTimePercentage(e.target.value)}
-                          min="0"
-                          max="100"
-                          step="0.1"
-                          placeholder="Ex: 50"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
+                          <input
+                            type="number"
+                            value={predictableRecurrentTimePercentage}
+                            onChange={(e) => setPredictableRecurrentTimePercentage(e.target.value)}
+                            required
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            placeholder="Ex: 50"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                          />
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1" title="Atividades Recorrentes Não Previsíveis">Temp. Recorr. Não Prev. (%)</label>
-                        <input
-                          type="number"
-                          value={unpredictableRecurrentTimePercentage}
-                          onChange={(e) => setUnpredictableRecurrentTimePercentage(e.target.value)}
-                          min="0"
-                          max="100"
-                          step="0.1"
-                          placeholder="Ex: 20"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
+                          <input
+                            type="number"
+                            value={unpredictableRecurrentTimePercentage}
+                            onChange={(e) => setUnpredictableRecurrentTimePercentage(e.target.value)}
+                            required
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            placeholder="Ex: 20"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                          />
                       </div>
                     </div>
 

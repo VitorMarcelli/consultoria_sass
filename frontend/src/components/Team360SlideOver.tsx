@@ -64,6 +64,20 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
 
   const handleAllocateNewFront = async () => {
     if (!selectedFront) return;
+
+    const prevPercent = predictableRecurrentTimePercentage ? parseFloat(predictableRecurrentTimePercentage.replace(',', '.')) : null;
+    const unprevPercent = unpredictableRecurrentTimePercentage ? parseFloat(unpredictableRecurrentTimePercentage.replace(',', '.')) : null;
+
+    if (prevPercent === null || unprevPercent === null || isNaN(prevPercent) || isNaN(unprevPercent)) {
+      alert('Os percentuais de tempo recorrente previsível e não previsível são obrigatórios.');
+      return;
+    }
+
+    if (prevPercent + unprevPercent !== 100) {
+      alert('A soma do tempo recorrente previsível e não previsível deve ser exatamente 100%.');
+      return;
+    }
+
     setIsAllocating(true);
     try {
       await apiRequest(`/allocations`, {
@@ -76,8 +90,8 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
           subdivisionId: selectedSubdivision || null,
           dailyAvailableTime: Number(allocatedHours),
           status: 'ACTIVE',
-          predictableRecurrentTimePercentage: predictableRecurrentTimePercentage ? parseFloat(predictableRecurrentTimePercentage.replace(',', '.')) : null,
-          unpredictableRecurrentTimePercentage: unpredictableRecurrentTimePercentage ? parseFloat(unpredictableRecurrentTimePercentage.replace(',', '.')) : null,
+          predictableRecurrentTimePercentage: prevPercent,
+          unpredictableRecurrentTimePercentage: unprevPercent,
           allocationStartDate: allocationStartDate ? allocationStartDate : null,
           allocationEndDate: allocationEndDate ? allocationEndDate : null
         })
@@ -387,11 +401,12 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
                                     type="number"
                                     value={predictableRecurrentTimePercentage}
                                     onChange={(e) => setPredictableRecurrentTimePercentage(e.target.value)}
+                                    required
                                     min="0"
                                     max="100"
                                     step="0.1"
                                     placeholder="Ex: 50"
-                                    className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
                                   />
                                 </div>
                                 <div>
@@ -400,11 +415,12 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
                                     type="number"
                                     value={unpredictableRecurrentTimePercentage}
                                     onChange={(e) => setUnpredictableRecurrentTimePercentage(e.target.value)}
+                                    required
                                     min="0"
                                     max="100"
                                     step="0.1"
                                     placeholder="Ex: 20"
-                                    className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
                                   />
                                 </div>
                                 
