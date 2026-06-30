@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { apiRequest } from '@/utils/api';
 import { Loader2, ArrowRightLeft } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts';
 
 export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: string, cycleId: string }) {
