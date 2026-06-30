@@ -241,7 +241,7 @@ export default function CycleDeliveriesPage({
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden"
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden"
       >
         {/* Top accent line */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
@@ -289,25 +289,31 @@ export default function CycleDeliveriesPage({
         </div>
       </motion.div>
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-slate-200 dark:border-slate-800">
+      {/* Tabs Navigation (Pill Design) */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100/50 dark:bg-slate-800/30 rounded-2xl w-max max-w-full overflow-x-auto custom-scrollbar">
         {[
-          { id: 'LIST', label: 'Lista de Entregas e Conformidade' },
-          { id: 'MAPPING', label: 'Diagnóstico (Baseline)' },
-          { id: 'CAPACITY', label: 'Tempo & Capacidade' },
-          { id: 'LEVELING', label: 'Nivelamento Diário (Heijunka)' },
+          { id: 'LIST', label: 'Lista de Entregas' },
+          { id: 'MAPPING', label: 'Diagnóstico' },
+          { id: 'CAPACITY', label: 'Capacidade' },
+          { id: 'LEVELING', label: 'Nivelamento' },
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-5 py-3 rounded-t-2xl font-black text-sm transition-all whitespace-nowrap ${
+            className={`relative px-6 py-2.5 rounded-xl font-bold text-sm transition-colors whitespace-nowrap ${
               activeTab === tab.id
-                ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 border-t border-l border-r border-slate-200 dark:border-slate-800'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                ? 'text-teal-700 dark:text-teal-300'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
-            style={{ marginBottom: '-1px' }}
           >
-            {tab.label}
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="activeTabIndicator"
+                className="absolute inset-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/50 dark:border-slate-700/50"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -322,7 +328,7 @@ export default function CycleDeliveriesPage({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-slate-50 dark:bg-slate-950/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden"
+        className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden"
       >
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
           <div className="flex flex-col gap-2 max-w-xl">
@@ -355,7 +361,7 @@ export default function CycleDeliveriesPage({
       </motion.div>
 
       {/* Busca e Filtros */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-sm">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
@@ -404,7 +410,7 @@ export default function CycleDeliveriesPage({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl my-auto"
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl my-auto relative overflow-hidden"
             >
               <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6">
                 {selectedDelivery ? 'Editar Entrega / Obrigação' : 'Nova Entrega / Obrigação'}
@@ -476,12 +482,12 @@ export default function CycleDeliveriesPage({
 
       {/* Lista Principal */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm space-y-4">
+        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm space-y-4">
           <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
           <p className="text-sm font-bold text-slate-500">Carregando matriz de conformidade...</p>
         </div>
       ) : filteredDeliveries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm text-center px-4">
+        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm text-center px-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 dark:bg-slate-800 mb-6 shadow-inner">
             <CheckSquare className="h-8 w-8 text-teal-500" />
           </div>
@@ -502,9 +508,9 @@ export default function CycleDeliveriesPage({
                   animate="show"
                   key={delivery.id}
                   onClick={() => openSlideOver360(delivery)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer space-y-4"
+                  className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer space-y-4"
                 >
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-800/80 pb-3">
                     <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
                       {delivery.competence}
                     </span>
@@ -581,25 +587,25 @@ export default function CycleDeliveriesPage({
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="hidden md:block overflow-x-auto border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-sm"
+            className="hidden md:block overflow-x-auto bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm"
           >
             <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
-              <thead className="bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+              <thead className="bg-slate-50/80 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest">
                 <tr>
-                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Competência</th>
-                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Obrigação / Rotina</th>
-                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Frente</th>
-                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Responsável</th>
-                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Ações</th>
+                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider rounded-tl-[2rem]">Competência</th>
+                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Cliente</th>
+                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Obrigação / Rotina</th>
+                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Frente</th>
+                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Responsável</th>
+                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider text-right rounded-tr-[2rem]">Ações</th>
                 </tr>
               </thead>
               <motion.tbody 
                 variants={tableVariants}
                 initial="hidden"
                 animate="show"
-                className="divide-y divide-slate-100 dark:divide-slate-800/60"
+                className="divide-y divide-slate-50 dark:divide-slate-800/60"
               >
                 <AnimatePresence>
                   {filteredDeliveries.map((delivery) => (

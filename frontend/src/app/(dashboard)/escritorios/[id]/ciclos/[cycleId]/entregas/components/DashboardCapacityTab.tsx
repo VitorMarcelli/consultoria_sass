@@ -59,7 +59,7 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm">
         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Departamento:</span>
         <div className="flex gap-2">
           {fronts.map(f => (
@@ -80,7 +80,7 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
 
       <div className="grid grid-cols-1 gap-6">
         {/* Capacity Planning */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-black text-slate-900 dark:text-white">Distribuição do Tempo (Capacity Planning)</h3>
             <span className="text-xs font-bold px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl">Baseline: 168h mensais / Operador</span>

@@ -84,7 +84,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm h-96">
           <h3 className="text-lg font-black text-slate-900 dark:text-white mb-6">Status do Cliente</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">

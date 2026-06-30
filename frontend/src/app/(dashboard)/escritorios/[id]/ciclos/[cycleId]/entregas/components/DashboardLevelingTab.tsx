@@ -98,7 +98,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm">
         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Departamento:</span>
         <div className="flex gap-2">
           {fronts.map(f => (
@@ -119,7 +119,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
 
       <div className="grid grid-cols-1 gap-6">
         {/* Nivelamento Heijunka */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>
@@ -127,7 +127,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
               <p className="text-sm text-slate-500 mt-1">Achete a curva. Evite que todas as entregas se acumulem no dia do vencimento.</p>
             </div>
             
-            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-end gap-3 w-full md:w-auto">
+            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-[1.5rem] flex items-end gap-3 w-full md:w-auto shadow-inner">
               <div>
                 <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Origem (Pico)</label>
                 <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm" />
