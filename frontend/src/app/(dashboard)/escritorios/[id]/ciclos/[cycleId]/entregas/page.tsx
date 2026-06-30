@@ -112,9 +112,9 @@ export default function CycleDeliveriesPage({
     try {
       const data = await loadModalData();
       setFormData({
-        clientId: data.clients[0]?.id || '',
-        frontId: data.fronts[0]?.id || '',
-        responsibleId: data.employees[0]?.id || '',
+        clientId: '',
+        frontId: '',
+        responsibleId: '',
         competence: new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }),
         originalName: '',
         standardizedName: '',
