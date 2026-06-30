@@ -359,9 +359,50 @@ model Delivery {
 
   timeReviews TimeReview[]
   timeLogs    TimeLog[]
+  checklists  DeliveryChecklistItem[]
+  proofs      DeliveryProof[]
+  history     DeliveryHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model DeliveryChecklistItem {
+  id         String   @id @default(uuid())
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  
+  description String
+  isCompleted Boolean @default(false)
+  order       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryProof {
+  id         String   @id @default(uuid())
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  
+  title      String
+  url        String   // Link (Google Drive, OneDrive, S3, etc)
+  addedBy    String?
+  size       String?  // Ex: "145 KB" ou apenas visual
+  
+  createdAt  DateTime @default(now())
+}
+
+model DeliveryHistory {
+  id         String   @id @default(uuid())
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  
+  action     String   // "STATUS_CHANGED", "PROOF_ADDED", "COMMENT"
+  description String
+  authorName  String? // Quem fez a ação
+
+  createdAt  DateTime @default(now())
 }
 
 model TimeReview {

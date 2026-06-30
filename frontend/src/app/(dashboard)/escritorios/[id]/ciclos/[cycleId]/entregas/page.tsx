@@ -184,6 +184,22 @@ export default function CycleDeliveriesPage({
     }
   };
 
+  const handleQuickStatusChange = async (deliveryId: string, newStatus: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setLoading(true);
+      await apiRequest(`/deliveries/${deliveryId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ tenantId: id, status: newStatus, authorName: 'Usuário Web' })
+      });
+      fetchDeliveries();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao alterar status.');
+      setLoading(false);
+    }
+  };
+
   // Dispara a geracao automatica de matriz de conformidade para o ciclo
   const handleGenerateMonthly = async () => {
     setGeneratingMonthly(true);

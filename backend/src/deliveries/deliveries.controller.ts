@@ -36,4 +36,48 @@ export class DeliveriesController {
   remove(@Param('id') id: string, @Query('tenantId') tenantId: string) {
     return this.deliveriesService.remove(tenantId, id);
   }
+
+  // =====================================
+  // ROTAS DO SLIDE-OVER (Ações Rápidas)
+  // =====================================
+
+  @Get(':id/details')
+  getSlideOverData(@Param('id') id: string, @Query('tenantId') tenantId: string) {
+    return this.deliveriesService.getSlideOverData(tenantId, id);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body() body: any) {
+    return this.deliveriesService.updateStatus(body.tenantId, id, body.status, body.authorName);
+  }
+
+  @Post(':id/checklist')
+  addChecklist(@Param('id') id: string, @Body() body: any) {
+    return this.deliveriesService.addChecklistItem(body.tenantId, id, body.description);
+  }
+
+  @Patch(':id/checklist/:itemId')
+  toggleChecklist(@Param('id') id: string, @Param('itemId') itemId: string, @Body() body: any) {
+    return this.deliveriesService.toggleChecklistItem(body.tenantId, id, itemId, body.isCompleted);
+  }
+
+  @Delete(':id/checklist/:itemId')
+  removeChecklist(@Param('id') id: string, @Param('itemId') itemId: string, @Query('tenantId') tenantId: string) {
+    return this.deliveriesService.removeChecklistItem(tenantId, id, itemId);
+  }
+
+  @Post(':id/proofs')
+  addProof(@Param('id') id: string, @Body() body: any) {
+    return this.deliveriesService.addProof(body.tenantId, id, body.title, body.url, body.authorName);
+  }
+
+  @Delete(':id/proofs/:proofId')
+  removeProof(@Param('id') id: string, @Param('proofId') proofId: string, @Query('tenantId') tenantId: string) {
+    return this.deliveriesService.removeProof(tenantId, id, proofId);
+  }
+
+  @Post(':id/history')
+  addHistory(@Param('id') id: string, @Body() body: any) {
+    return this.deliveriesService.addHistoryComment(body.tenantId, id, body.description, body.authorName);
+  }
 }

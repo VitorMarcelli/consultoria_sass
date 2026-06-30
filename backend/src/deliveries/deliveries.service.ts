@@ -170,4 +170,96 @@ export class DeliveriesService {
 
     return { success: true, competence, generatedCount };
   }
+
+  // ========================================================
+  // AÇÕES RÁPIDAS (SLIDE-OVER)
+  // ========================================================
+
+  async updateStatus(tenantId: string, id: string, status: string, authorName: string = 'Sistema') {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const updated = await tenantPrisma.delivery.update({
+      where: { id },
+      data: { status }
+    });
+
+    await tenantPrisma.deliveryHistory.create({
+      data: {
+        deliveryId: id,
+        action: 'STATUS_CHANGED',
+        description: `Status alterado para ${status}`,
+        authorName
+      }
+    });
+    return updated;
+  }
+
+  async getSlideOverData(tenantId: string, id: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    return tenantPrisma.delivery.findUnique({
+      where: { id },
+      include: {
+        checklists: { orderBy: { createdAt: 'asc' } },
+        proofs: { orderBy: { createdAt: 'desc' } },
+        history: { orderBy: { createdAt: 'desc' } }
+      }
+    });
+  }
+
+  async addChecklistItem(tenantId: string, deliveryId: string, description: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    return tenantPrisma.deliveryChecklistItem.create({
+      data: { deliveryId, description }
+    });
+  }
+
+  async toggleChecklistItem(tenantId: string, deliveryId: string, itemId: string, isCompleted: boolean) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    return tenantPrisma.deliveryChecklistItem.update({
+      where: { id: itemId },
+      data: { isCompleted }
+    });
+  }
+
+  async removeChecklistItem(tenantId: string, deliveryId: string, itemId: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    return tenantPrisma.deliveryChecklistItem.delete({
+      where: { id: itemId }
+    });
+  }
+
+  async addProof(tenantId: string, deliveryId: string, title: string, url: string, authorName: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const proof = await tenantPrisma.deliveryProof.create({
+      data: { deliveryId, title, url, addedBy: authorName }
+    });
+
+    await tenantPrisma.deliveryHistory.create({
+      data: {
+        deliveryId,
+        action: 'PROOF_ADDED',
+        description: `Anexou o comprovante: ${title}`,
+        authorName
+      }
+    });
+    return proof;
+  }
+
+  async removeProof(tenantId: string, deliveryId: string, proofId: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    return tenantPrisma.deliveryProof.delete({
+      where: { id: proofId }
+    });
+  }
+
+  async addHistoryComment(tenantId: string, deliveryId: string, description: string, authorName: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    return tenantPrisma.deliveryHistory.create({
+      data: {
+        deliveryId,
+        action: 'COMMENT',
+        description,
+        authorName
+      }
+    });
+  }
 }
