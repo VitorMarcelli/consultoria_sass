@@ -670,7 +670,40 @@ export default function CycleDeliveriesPage({
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                             Inativa
                           </span>
-                        )}
+                        <div className="relative group/status inline-block">
+                          {delivery.status === 'CONCLUIDA' && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Concluída
+                            </span>
+                          )}
+                          {delivery.status === 'ANDAMENTO' && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                              <Clock className="w-3.5 h-3.5" />
+                              Em Andamento
+                            </span>
+                          )}
+                          {delivery.status === 'PREVISTA' && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                              <Clock className="w-3.5 h-3.5" />
+                              Prevista
+                            </span>
+                          )}
+                          {delivery.status === 'INATIVA' && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                              Inativa
+                            </span>
+                          )}
+                          
+                          {/* Status Dropdown Mágico */}
+                          <div className="absolute left-0 top-full pt-2 w-36 opacity-0 invisible group-hover/status:opacity-100 group-hover/status:visible transition-all z-[99]">
+                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden flex flex-col">
+                              <button onClick={(e) => handleQuickStatusChange(delivery.id, 'PREVISTA', e)} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50 transition-colors">PREVISTA</button>
+                              <button onClick={(e) => handleQuickStatusChange(delivery.id, 'ANDAMENTO', e)} className="w-full text-left px-4 py-2.5 text-xs font-bold text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10 transition-colors">ANDAMENTO</button>
+                              <button onClick={(e) => handleQuickStatusChange(delivery.id, 'CONCLUIDA', e)} className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10 border-t border-slate-100 dark:border-slate-700 transition-colors">CONCLUIDA</button>
+                            </div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-2">

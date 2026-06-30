@@ -256,10 +256,12 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
                           {status}
                         </span>
                         
-                        <div className="absolute left-0 top-full mt-2 w-32 bg-slate-800 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover/statuschange:opacity-100 group-hover/statuschange:visible transition-all z-20 overflow-hidden">
-                          <button onClick={() => handleStatusChange('PENDING')} className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700">PREVISTA</button>
-                          <button onClick={() => handleStatusChange('LATE')} className="w-full text-left px-4 py-2 text-xs font-bold text-amber-400 hover:bg-slate-700">ANDAMENTO</button>
-                          <button onClick={() => handleStatusChange('COMPLETED')} className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-400 hover:bg-slate-700 border-t border-slate-700">CONCLUIDA</button>
+                        <div className="absolute left-0 top-full pt-2 w-32 opacity-0 invisible group-hover/statuschange:opacity-100 group-hover/statuschange:visible transition-all z-50">
+                          <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden flex flex-col">
+                            <button onClick={() => handleStatusChange('PENDING')} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-700 transition-colors">PREVISTA</button>
+                            <button onClick={() => handleStatusChange('LATE')} className="w-full text-left px-4 py-2.5 text-xs font-bold text-amber-400 hover:bg-slate-700 transition-colors">ANDAMENTO</button>
+                            <button onClick={() => handleStatusChange('COMPLETED')} className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-400 hover:bg-slate-700 border-t border-slate-700 transition-colors">CONCLUIDA</button>
+                          </div>
                         </div>
                       </div>
                     </div>
