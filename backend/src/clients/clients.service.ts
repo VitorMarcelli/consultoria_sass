@@ -101,6 +101,13 @@ export class ClientsService {
     const contabilFrontId = getFrontId('contábil') || getFrontId('contabil');
     const dpFrontId = getFrontId('dp') || getFrontId('departamento') || getFrontId('pessoal');
 
+    // Fetch employees for name resolution (memoized per bulk run)
+    const allEmployees = await tenantPrisma.employee.findMany();
+    const getEmployeeId = (name: string | undefined | null) => {
+      if (!name) return null;
+      return allEmployees.find(e => e.name.toLowerCase().trim() === name.toLowerCase().trim())?.id || null;
+    };
+
     let importedCount = 0;
 
     for (const data of clientsData) {
@@ -147,15 +154,6 @@ export class ClientsService {
           data: clientData
         });
       }
-      
-      importedCount++;
-
-      // Fetch employees for name resolution (memoized per bulk run)
-      const allEmployees = await tenantPrisma.employee.findMany();
-      const getEmployeeId = (name: string | undefined | null) => {
-        if (!name) return null;
-        return allEmployees.find(e => e.name.toLowerCase().trim() === name.toLowerCase().trim())?.id || null;
-      };
 
       // Assign to fronts
       const assignFront = async (

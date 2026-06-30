@@ -33,6 +33,7 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
   // Modals state
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number, total: number } | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -242,16 +243,29 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
         throw new Error('Nenhum cliente válido encontrado no arquivo.');
       }
 
-      const response = await apiRequest('/clients/bulk', {
-        method: 'POST',
-        body: JSON.stringify({
-          tenantId: id,
-          clients: clientsPayload
-        })
-      });
+      setImportProgress({ current: 0, total: clientsPayload.length });
       
-      alert(`Importação concluída: ${response.imported || 0} registros processados.`);
+      const CHUNK_SIZE = 500;
+      let totalImported = 0;
+      
+      for (let i = 0; i < clientsPayload.length; i += CHUNK_SIZE) {
+        const chunk = clientsPayload.slice(i, i + CHUNK_SIZE);
+        
+        const response = await apiRequest('/clients/bulk', {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId: id,
+            clients: chunk
+          })
+        });
+        
+        totalImported += response.imported || 0;
+        setImportProgress({ current: Math.min(i + CHUNK_SIZE, clientsPayload.length), total: clientsPayload.length });
+      }
+
+      alert(`Importação concluída: ${totalImported} registros processados.`);
       setIsImportModalOpen(false);
+      setImportProgress(null);
       await loadClients();
     } catch (err: any) {
       throw new Error(err.message || 'Falha ao ler arquivo');
@@ -526,9 +540,11 @@ export default function CadastroClientesPage({ params }: { params: Promise<{ id:
 
       <CsvImportModal 
         isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+        onClose={() => { setIsImportModalOpen(false); setImportProgress(null); }}
         onImport={handleImportCsv}
         isLoading={isSaving}
+        progressValue={importProgress ? Math.round((importProgress.current / importProgress.total) * 100) : undefined}
+        progressText={importProgress ? `Importando ${importProgress.current} de ${importProgress.total} clientes...` : undefined}
       />
     </div>
   );

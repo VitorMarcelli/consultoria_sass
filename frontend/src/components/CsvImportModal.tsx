@@ -12,9 +12,11 @@ interface CsvImportModalProps {
   description?: string;
   templateUrl?: string;
   templateName?: string;
+  progressValue?: number;
+  progressText?: string;
 }
 
-export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, title = "Importar Clientes", description = "Faça upload de um arquivo CSV ou XLSX.", templateUrl = "/modelo_importacao_completo.xlsx", templateName = "Baixar Planilha Modelo (.XLSX)" }: CsvImportModalProps) {
+export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, title = "Importar Clientes", description = "Faça upload de um arquivo CSV ou XLSX.", templateUrl = "/modelo_importacao_completo.xlsx", templateName = "Baixar Planilha Modelo (.XLSX)", progressValue, progressText }: CsvImportModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState('');
 
@@ -114,6 +116,15 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, t
                       </div>
                     </div>
                   </div>
+
+                  {progressValue !== undefined && (
+                    <div className="w-full bg-slate-200 rounded-full h-2.5 mt-2 mb-1 overflow-hidden">
+                      <div className="bg-teal-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${progressValue}%` }}></div>
+                    </div>
+                  )}
+                  {progressText && (
+                    <p className="text-xs text-slate-500 text-center mb-2 font-medium">{progressText}</p>
+                  )}
 
                   <button
                     onClick={handleImport}
