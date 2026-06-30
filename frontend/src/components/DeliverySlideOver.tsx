@@ -248,22 +248,32 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
                   </div>
                   
                   <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
                       <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm line-clamp-1">{delivery.name}</h2>
-                      <div className="relative group/statuschange">
-                        <span className={`px-3 py-1 cursor-pointer rounded-full text-[10px] font-black border uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_15px_rgba(255,255,255,0.05)] ${getStatusColor(status === 'CONCLUIDA' ? 'COMPLETED' : status === 'LATE' ? 'LATE' : 'PENDING')}`}>
-                          {status !== 'CONCLUIDA' && status !== 'LATE' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>}
-                          {status}
-                        </span>
-                        
-                        <div className="absolute left-0 top-full pt-2 w-32 opacity-0 invisible group-hover/statuschange:opacity-100 group-hover/statuschange:visible transition-all z-50">
-                          <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden flex flex-col">
-                            <button onClick={() => handleStatusChange('PENDING')} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-700 transition-colors">PREVISTA</button>
-                            <button onClick={() => handleStatusChange('LATE')} className="w-full text-left px-4 py-2.5 text-xs font-bold text-amber-400 hover:bg-slate-700 transition-colors">ANDAMENTO</button>
-                            <button onClick={() => handleStatusChange('COMPLETED')} className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-400 hover:bg-slate-700 border-t border-slate-700 transition-colors">CONCLUIDA</button>
-                          </div>
-                        </div>
-                      </div>
+                    </div>
+                    
+                    {/* Status Segmented Control */}
+                    <div className="flex bg-slate-900/50 p-1 rounded-xl w-fit border border-slate-700/50 mb-3 shadow-inner">
+                      <button 
+                        onClick={() => handleStatusChange('PREVISTA')} 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${status !== 'CONCLUIDA' && status !== 'LATE' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                      >
+                        {status !== 'CONCLUIDA' && status !== 'LATE' && <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>}
+                        PREVISTA
+                      </button>
+                      <button 
+                        onClick={() => handleStatusChange('LATE')} 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${status === 'LATE' ? 'bg-amber-500/20 text-amber-400 shadow-md border border-amber-500/20' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                      >
+                        {status === 'LATE' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>}
+                        ANDAMENTO
+                      </button>
+                      <button 
+                        onClick={() => handleStatusChange('COMPLETED')} 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${status === 'CONCLUIDA' ? 'bg-emerald-500/20 text-emerald-400 shadow-md border border-emerald-500/20' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                      >
+                        {status === 'CONCLUIDA' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        CONCLUÍDA
+                      </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-300/80">
                       <span className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
