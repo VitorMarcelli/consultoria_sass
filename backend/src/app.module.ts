@@ -19,6 +19,7 @@ import { SystemOptionsModule } from './system-options/system-options.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TimesheetsModule } from './timesheets/timesheets.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { OpportunitiesModule } from './opportunities/opportunities.module';
     SystemOptionsModule,
     TimesheetsModule,
     OpportunitiesModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

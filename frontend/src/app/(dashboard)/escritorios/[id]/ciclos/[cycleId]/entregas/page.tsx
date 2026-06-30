@@ -18,6 +18,9 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import DeliverySlideOver from '@/components/DeliverySlideOver';
+import DashboardMappingTab from './components/DashboardMappingTab';
+import DashboardCapacityTab from './components/DashboardCapacityTab';
+import DashboardLevelingTab from './components/DashboardLevelingTab';
 
 interface Delivery {
   id: string;
@@ -63,6 +66,8 @@ export default function CycleDeliveriesPage({
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
 
   // Modal CRUD
+  const [activeTab, setActiveTab] = useState<'LIST' | 'MAPPING' | 'CAPACITY' | 'LEVELING'>('LIST');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -284,8 +289,36 @@ export default function CycleDeliveriesPage({
         </div>
       </motion.div>
 
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-slate-200 dark:border-slate-800">
+        {[
+          { id: 'LIST', label: 'Lista de Entregas e Conformidade' },
+          { id: 'MAPPING', label: 'Diagnóstico (Baseline)' },
+          { id: 'CAPACITY', label: 'Tempo & Capacidade' },
+          { id: 'LEVELING', label: 'Nivelamento Diário (Heijunka)' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`px-5 py-3 rounded-t-2xl font-black text-sm transition-all whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 border-t border-l border-r border-slate-200 dark:border-slate-800'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+            style={{ marginBottom: '-1px' }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'MAPPING' && <DashboardMappingTab tenantId={id} cycleId={cycleId} />}
+      {activeTab === 'CAPACITY' && <DashboardCapacityTab tenantId={id} cycleId={cycleId} />}
+      {activeTab === 'LEVELING' && <DashboardLevelingTab tenantId={id} cycleId={cycleId} />}
+
       {/* Painel de Matriz de Conformidade (Dashboard Extra Premium Luminous) */}
-      <motion.div 
+      <div className={activeTab !== 'LIST' ? 'hidden' : ''}>
+        <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -641,6 +674,7 @@ export default function CycleDeliveriesPage({
           </motion.div>
         </>
       )}
+      </div>
     </div>
   );
 }
