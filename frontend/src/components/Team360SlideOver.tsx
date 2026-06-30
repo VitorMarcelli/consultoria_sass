@@ -78,6 +78,11 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
       return;
     }
 
+    if (!allocationStartDate) {
+      alert('A Data Início de Alocação é obrigatória.');
+      return;
+    }
+
     setIsAllocating(true);
     try {
       await apiRequest(`/allocations`, {
@@ -92,8 +97,7 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
           status: 'ACTIVE',
           predictableRecurrentTimePercentage: prevPercent,
           unpredictableRecurrentTimePercentage: unprevPercent,
-          allocationStartDate: allocationStartDate ? allocationStartDate : null,
-          allocationEndDate: allocationEndDate ? allocationEndDate : null
+          allocationStartDate: allocationStartDate
         })
       });
       setSelectedFront('');
@@ -424,21 +428,13 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
                                   />
                                 </div>
                                 
-                                <div>
-                                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Data Início Alocação</label>
+                                <div className="sm:col-span-2">
+                                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Data Início Alocação *</label>
                                   <input
                                     type="date"
                                     value={allocationStartDate}
                                     onChange={(e) => setAllocationStartDate(e.target.value)}
-                                    className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Data Fim Alocação</label>
-                                  <input
-                                    type="date"
-                                    value={allocationEndDate}
-                                    onChange={(e) => setAllocationEndDate(e.target.value)}
+                                    required
                                     className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
                                   />
                                 </div>
@@ -502,7 +498,7 @@ export default function Team360SlideOver({ isOpen, onClose, member, tenantId, cy
                                   <Calendar className="w-3.5 h-3.5" /> Período
                                 </p>
                                 <p className="text-sm font-black text-slate-800">
-                                  {frontAlloc.allocationStartDate ? new Date(frontAlloc.allocationStartDate).toLocaleDateString('pt-BR') : '-'} até {frontAlloc.allocationEndDate ? new Date(frontAlloc.allocationEndDate).toLocaleDateString('pt-BR') : '-'}
+                                  A partir de {frontAlloc.allocationStartDate ? new Date(frontAlloc.allocationStartDate).toLocaleDateString('pt-BR') : '-'}
                                 </p>
                               </div>
                             </div>

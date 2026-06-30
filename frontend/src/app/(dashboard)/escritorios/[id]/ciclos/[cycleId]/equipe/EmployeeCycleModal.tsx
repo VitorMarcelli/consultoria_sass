@@ -105,6 +105,11 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
       return;
     }
 
+    if (!allocationStartDate) {
+      alert('A Data Início de Alocação é obrigatória.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await apiRequest(`/employees`, {
@@ -124,8 +129,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
           allocatedHours: parseFloat(allocatedHours),
           predictableRecurrentTimePercentage: prevPercent,
           unpredictableRecurrentTimePercentage: unprevPercent,
-          allocationStartDate: allocationStartDate ? allocationStartDate : null,
-          allocationEndDate: allocationEndDate ? allocationEndDate : null
+          allocationStartDate: allocationStartDate
         })
       });
       onSuccess();
@@ -357,21 +361,13 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Data Início Alocação</label>
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Data Início Alocação *</label>
                         <input
                           type="date"
                           value={allocationStartDate}
                           onChange={(e) => setAllocationStartDate(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Data Fim Alocação</label>
-                        <input
-                          type="date"
-                          value={allocationEndDate}
-                          onChange={(e) => setAllocationEndDate(e.target.value)}
+                          required
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
                         />
                       </div>
