@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
 
@@ -92,6 +92,26 @@ export class EmployeesService {
 
   async remove(tenantId: string, employeeId: string) {
     const tenantPrisma = await this.getTenantPrisma(tenantId);
+    
+    // Verificar se o colaborador está vinculado a algum cliente em uma frente
+    const linkedClients = await tenantPrisma.clientFrontClassification.findMany({
+      where: {
+        OR: [
+          { leaderId: employeeId },
+          { operator1Id: employeeId },
+          { operator2Id: employeeId }
+        ]
+      },
+      include: {
+        client: true
+      }
+    });
+
+    if (linkedClients.length > 0) {
+      const clientNames = Array.from(new Set(linkedClients.map(c => c.client.name)));
+      throw new BadRequestException(`Não é possível excluir este colaborador, pois ele está vinculado à operação dos seguintes clientes: ${clientNames.join(', ')}.`);
+    }
+
     return tenantPrisma.employee.delete({
       where: { id: employeeId }
     });

@@ -112,7 +112,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
           try {
             await apiRequest(`/employees/${row.dbId}?tenantId=${id}`, { method: 'DELETE' });
             setColaboradores(colaboradores.filter(c => c.id !== rowId));
-          } catch (err) { alert('Erro ao excluir colaborador'); }
+          } catch (err: any) { alert(err.message || 'Erro ao excluir colaborador'); }
        }
     } else {
       setColaboradores(colaboradores.filter(c => c.id !== rowId));

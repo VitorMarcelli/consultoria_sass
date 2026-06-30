@@ -7,6 +7,7 @@ import { apiRequest } from '@/utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import AllocateEmployeeModal from './AllocateEmployeeModal';
 import EmployeeCycleModal from './EmployeeCycleModal';
+import EditEmployeeModal from './EditEmployeeModal';
 import Team360SlideOver from '@/components/Team360SlideOver';
 
 const tableVariants = {
@@ -35,6 +36,9 @@ export default function CycleTeamPage({
   const [isModalOpen, setIsModalOpen] = useState(false); // Allocate existing
   const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = useState(false); // Create new
   
+  const [selectedEmployeeToEdit, setSelectedEmployeeToEdit] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   const [selectedTeamMemberFor360, setSelectedTeamMemberFor360] = useState<any>(null);
   const [is360Open, setIs360Open] = useState(false);
 
@@ -51,6 +55,16 @@ export default function CycleTeamPage({
       console.error('Erro ao buscar equipe do ciclo:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteEmployee = async (employeeId: string) => {
+    if (!confirm('Deseja realmente excluir este colaborador de todo o sistema? Esta ação não pode ser desfeita.')) return;
+    try {
+      await apiRequest(`/employees/${employeeId}?tenantId=${id}`, { method: 'DELETE' });
+      loadTeam();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir colaborador.');
     }
   };
 
@@ -181,12 +195,33 @@ export default function CycleTeamPage({
                       <td className="px-8 py-5 text-slate-600 font-semibold">{member.employee?.role || '-'}</td>
                       <td className="px-8 py-5 text-slate-600 font-semibold">{member.allocatedHours}h</td>
                       <td className="px-8 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                           <button 
+                            onClick={() => {
+                              setSelectedTeamMemberFor360(member);
+                              setIs360Open(true);
+                            }}
                             className="p-2 text-slate-400 hover:text-teal-600 transition-colors rounded-xl hover:bg-teal-50"
-                            title="Editar alocação"
+                            title="Painel 360 / Alocação"
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedEmployeeToEdit(member.employee);
+                              setIsEditModalOpen(true);
+                            }}
+                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-xl hover:bg-blue-50"
+                            title="Editar Perfil do Colaborador"
                           >
                             <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteEmployee(member.employeeId)}
+                            className="p-2 text-slate-400 hover:text-rose-600 transition-colors rounded-xl hover:bg-rose-50"
+                            title="Excluir do sistema"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -242,17 +277,40 @@ export default function CycleTeamPage({
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Horas Alocadas</span>
                     <span className="text-sm font-extrabold text-slate-800">{member.allocatedHours}h / dia</span>
                   </div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTeamMemberFor360(member);
-                      setIs360Open(true);
-                    }}
-                    className="p-2.5 bg-slate-50 text-slate-600 hover:bg-teal-50 hover:text-teal-600 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    Editar
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedEmployeeToEdit(member.employee);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="p-2 bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors"
+                      title="Editar Perfil"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteEmployee(member.employeeId);
+                      }}
+                      className="p-2 bg-slate-50 text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-colors"
+                      title="Excluir Colaborador"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTeamMemberFor360(member);
+                        setIs360Open(true);
+                      }}
+                      className="p-2.5 bg-slate-50 text-slate-600 hover:bg-teal-50 hover:text-teal-600 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      Painel 360
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -283,6 +341,14 @@ export default function CycleTeamPage({
         tenantId={id}
         cycleId={cycleId}
         onFrontRemoved={loadTeam}
+      />
+
+      <EditEmployeeModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        tenantId={id}
+        employeeData={selectedEmployeeToEdit}
+        onSuccess={loadTeam}
       />
     </div>
   );
