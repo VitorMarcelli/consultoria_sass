@@ -152,7 +152,7 @@ export default function CycleDeliveriesPage({
       if (selectedDelivery) {
         await apiRequest(`/deliveries/${selectedDelivery.id}`, {
           method: 'PATCH',
-          body: JSON.stringify(formData)
+          body: JSON.stringify({ ...formData, tenantId: id })
         });
       } else {
         await apiRequest('/deliveries', {
@@ -174,7 +174,7 @@ export default function CycleDeliveriesPage({
     e.stopPropagation();
     try {
       setLoading(true);
-      await apiRequest(`/deliveries/${delId}`, { method: 'DELETE' });
+      await apiRequest(`/deliveries/${delId}?tenantId=${id}`, { method: 'DELETE' });
       setDeleteConfirmId(null);
       fetchDeliveries();
     } catch (err: unknown) {
