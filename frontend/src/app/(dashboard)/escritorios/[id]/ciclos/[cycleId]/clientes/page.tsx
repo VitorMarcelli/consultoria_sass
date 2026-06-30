@@ -41,6 +41,7 @@ export default function CycleClientsPage({
   const [isClientModalOpen, setIsClientModalOpen] = useState(false); // Used only for editing now
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false); // Used for creation
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number, total: number } | null>(null);
   const [isAllocateModalOpen, setIsAllocateModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,18 +107,31 @@ export default function CycleClientsPage({
       if (lines.length === 0) {
         throw new Error('Arquivo vazio ou sem registros válidos');
       }
+
+      setImportProgress({ current: 0, total: lines.length });
       
-      const response = await apiRequest('/imports/clients-json', {
-        method: 'POST',
-        body: JSON.stringify({
-          tenantId: id,
-          cycleId: cycleId,
-          data: lines
-        })
-      });
+      const CHUNK_SIZE = 500;
+      let totalImported = 0;
       
-      alert(response.message || `Importação de ${response.count} registros concluída com sucesso!`);
+      for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
+        const chunk = lines.slice(i, i + CHUNK_SIZE);
+        
+        const response = await apiRequest('/imports/clients-json', {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId: id,
+            cycleId: cycleId,
+            data: chunk
+          })
+        });
+        
+        totalImported += response.count || 0;
+        setImportProgress({ current: Math.min(i + CHUNK_SIZE, lines.length), total: lines.length });
+      }
+      
+      alert(`Importação de ${totalImported} registros concluída com sucesso!`);
       setIsImportModalOpen(false);
+      setImportProgress(null);
       await loadClients();
     } catch (err: any) {
       throw new Error(err.message || 'Falha ao importar arquivo');
@@ -339,9 +353,11 @@ export default function CycleClientsPage({
 
       <CsvImportModal 
         isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+        onClose={() => { setIsImportModalOpen(false); setImportProgress(null); }}
         onImport={handleImportCsv}
         isLoading={isSaving}
+        progressValue={importProgress ? Math.round((importProgress.current / importProgress.total) * 100) : undefined}
+        progressText={importProgress ? `Importando ${importProgress.current} de ${importProgress.total} clientes...` : undefined}
       />
 
       <AllocateClientModal 
