@@ -648,28 +648,6 @@ export default function CycleDeliveriesPage({
                         {delivery.responsible?.name || '-'}
                       </td>
                       <td className="px-6 py-5">
-                        {delivery.status === 'CONCLUIDA' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Concluída
-                          </span>
-                        )}
-                        {delivery.status === 'ANDAMENTO' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                            <Clock className="w-3.5 h-3.5" />
-                            Em Andamento
-                          </span>
-                        )}
-                        {delivery.status === 'PREVISTA' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                            <Clock className="w-3.5 h-3.5" />
-                            Prevista
-                          </span>
-                        )}
-                        {delivery.status === 'INATIVA' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                            Inativa
-                          </span>
                         <div className="relative group/status inline-block">
                           {delivery.status === 'CONCLUIDA' && (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
