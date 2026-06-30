@@ -248,8 +248,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
                   </div>
                   
                   <div className="flex-1">
-                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm line-clamp-1">{delivery.name}</h2>
-                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm line-clamp-1 mb-2">{delivery.name}</h2>
                     
                     {/* Status Segmented Control */}
                     <div className="flex bg-slate-900/50 p-1 rounded-xl w-fit border border-slate-700/50 mb-3 shadow-inner">
