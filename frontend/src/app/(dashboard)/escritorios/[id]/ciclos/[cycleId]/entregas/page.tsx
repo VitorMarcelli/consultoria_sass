@@ -658,7 +658,7 @@ export default function CycleDeliveriesPage({
                           className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group/row border-b border-slate-100 dark:border-slate-800/40 last:border-0"
                         >
                           <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-800/40 relative">
-                            <div className="w-1.5 absolute left-0 top-0 bottom-0 bg-transparent group-hover/row:bg-teal-500 transition-colors" />
+                            <div className="w-1 absolute left-0 top-2 bottom-2 rounded-r-md bg-transparent group-hover/row:bg-teal-500 transition-colors" />
                             <div className="flex items-center justify-center">
                               <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                             </div>
