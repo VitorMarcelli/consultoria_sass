@@ -52,9 +52,12 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   useEffect(() => {
     setMounted(true);
     if (isOpen && delivery?.id) {
+      if (!details || details.id !== delivery.id) {
+        setBaseTotalSeconds((delivery.realTimeMinutes || 0) * 60);
+        setElapsedSeconds(0);
+      }
       fetchDetails();
       setActiveTab('DETAILS');
-      setBaseTotalSeconds((delivery.realTimeMinutes || 0) * 60);
     } else {
       setDetails(null);
       setTimerRunning(false);
@@ -64,8 +67,22 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
 
   useEffect(() => {
     if (details) {
-      setBaseTotalSeconds((details.realTimeMinutes || delivery?.realTimeMinutes || 0) * 60);
       setEstimatedTimeInput(details.estimatedTimeMinutes ? String(details.estimatedTimeMinutes) : '');
+      
+      let totalLogSeconds = 0;
+      if (details.timeLogs && Array.isArray(details.timeLogs)) {
+        totalLogSeconds = details.timeLogs.reduce((acc: number, log: any) => {
+          if (log.status === 'FINISHED' && log.startTime && log.endTime) {
+            const start = new Date(log.startTime).getTime();
+            const end = new Date(log.endTime).getTime();
+            return acc + Math.max(0, Math.floor((end - start) / 1000));
+          }
+          return acc;
+        }, 0);
+      }
+      
+      const hasLogs = details.timeLogs && Array.isArray(details.timeLogs);
+      setBaseTotalSeconds(hasLogs ? totalLogSeconds : (details.realTimeMinutes || delivery?.realTimeMinutes || 0) * 60);
       
       const activeLog = details.timeLogs?.find((log: any) => log.status === 'RUNNING');
       if (activeLog) {

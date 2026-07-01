@@ -233,9 +233,7 @@ export class DeliveriesService {
         checklists: { orderBy: { createdAt: 'asc' } },
         proofs: { orderBy: { createdAt: 'desc' } },
         history: { orderBy: { createdAt: 'desc' } },
-        timeLogs: {
-          where: { status: 'RUNNING' }
-        }
+        timeLogs: true
       }
     });
   }
