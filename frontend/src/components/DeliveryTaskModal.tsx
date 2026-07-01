@@ -159,7 +159,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
 
   if (!isOpen) return null;
 
-  const currentStatus = details?.status || delivery?.raw?.status || 'PREVISTA';
+  const currentStatus = details?.status || delivery?.status || 'PREVISTA';
   const checklists = details?.checklists || [];
   const proofs = details?.proofs || [];
   const history = details?.history || [];
@@ -178,21 +178,21 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-[10px] font-black tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-md">
-                  {delivery?.raw?.front?.name || 'Frente'}
+                  {delivery?.front?.name || 'Frente'}
                 </span>
                 <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-md
-                  ${delivery?.raw?.priority === 'HIGH' ? 'bg-rose-500/10 text-rose-600' : 
-                    delivery?.raw?.priority === 'LOW' ? 'bg-sky-500/10 text-sky-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
+                  ${delivery?.priority === 'HIGH' ? 'bg-rose-500/10 text-rose-600' : 
+                    delivery?.priority === 'LOW' ? 'bg-sky-500/10 text-sky-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
                 >
-                  Prioridade {delivery?.raw?.priority === 'HIGH' ? 'Alta' : delivery?.raw?.priority === 'LOW' ? 'Baixa' : 'Média'}
+                  Prioridade {delivery?.priority === 'HIGH' ? 'Alta' : delivery?.priority === 'LOW' ? 'Baixa' : 'Média'}
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight">
-                {delivery?.name}
+                {delivery?.standardizedName || delivery?.originalName}
               </h2>
               <div className="flex items-center gap-2 mt-2 text-sm font-bold text-slate-500">
                 <Building2 className="w-4 h-4" />
-                <span>{delivery?.client}</span>
+                <span>{delivery?.client?.name || 'Cliente Não Informado'}</span>
               </div>
             </div>
 
@@ -239,9 +239,9 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                     <FileCheck className="w-4 h-4 text-teal-500" /> Detalhes da Obrigação
                   </h3>
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    {delivery?.raw?.originalName}
+                    {delivery?.originalName}
                     <br/><br/>
-                    <span className="font-bold">Observações:</span> {delivery?.raw?.observations || 'Nenhuma observação informada.'}
+                    <span className="font-bold">Observações:</span> {delivery?.observations || 'Nenhuma observação informada.'}
                   </p>
                 </div>
 
@@ -355,7 +355,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                   </div>
                   <div className="mt-3 text-center">
                     <span className="text-[10px] font-bold text-slate-400">
-                      Estimado: {delivery?.raw?.estimatedTimeMinutes ? `${Math.floor(delivery.raw.estimatedTimeMinutes / 60)}h ${delivery.raw.estimatedTimeMinutes % 60}m` : 'Não definido'}
+                      Estimado: {delivery?.estimatedTimeMinutes ? `${Math.floor(delivery.estimatedTimeMinutes / 60)}h ${delivery.estimatedTimeMinutes % 60}m` : 'Não definido'}
                     </span>
                   </div>
                 </div>
@@ -366,7 +366,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                     <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Responsável</span>
                     <div className="flex items-center gap-2">
                       <UserCircle2 className="w-5 h-5 text-slate-400" />
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{delivery?.responsible}</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{delivery?.responsible?.name || 'Não atribuído'}</span>
                     </div>
                   </div>
 
@@ -374,9 +374,9 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                     <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Competência</span>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-slate-400" />
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{delivery?.deadline.replace('Competência ', '')}</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{delivery?.competence || '-'}</span>
                     </div>
-                  </div>
+                  </div>               </div>
                 </div>
 
                 {/* Comprovantes */}
