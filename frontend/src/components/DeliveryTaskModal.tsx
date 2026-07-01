@@ -174,7 +174,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
           className="bg-slate-50 dark:bg-slate-900 rounded-[2rem] w-full max-w-6xl shadow-2xl relative flex flex-col my-auto max-h-[90vh] overflow-hidden border border-slate-200/50 dark:border-slate-800"
         >
           {/* Header */}
-          <div className="bg-white dark:bg-slate-950 p-6 sm:p-8 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shrink-0">
+          <div className="bg-white dark:bg-slate-950 p-6 sm:p-8 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shrink-0 relative z-10">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-[10px] font-black tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-md">
