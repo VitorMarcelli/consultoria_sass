@@ -32,6 +32,11 @@ export class DeliveriesController {
     return this.deliveriesService.update(updateDto.tenantId, id, updateDto);
   }
 
+  @Patch(':id/estimated-time')
+  updateEstimatedTime(@Param('id') id: string, @Body() body: any) {
+    return this.deliveriesService.updateEstimatedTime(body.tenantId, id, body.estimatedTimeMinutes, body.authorName);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string, @Query('tenantId') tenantId: string) {
     return this.deliveriesService.remove(tenantId, id);

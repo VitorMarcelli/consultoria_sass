@@ -44,6 +44,10 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [baseTotalSeconds, setBaseTotalSeconds] = useState(0);
+  
+  // Estimated Time State
+  const [isEditingEstimatedTime, setIsEditingEstimatedTime] = useState(false);
+  const [estimatedTimeInput, setEstimatedTimeInput] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -61,6 +65,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   useEffect(() => {
     if (details) {
       setBaseTotalSeconds((details.realTimeMinutes || delivery?.realTimeMinutes || 0) * 60);
+      setEstimatedTimeInput(details.estimatedTimeMinutes ? String(details.estimatedTimeMinutes) : '');
       
       const activeLog = details.timeLogs?.find((log: any) => log.status === 'RUNNING');
       if (activeLog) {
@@ -222,6 +227,19 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
     }
   };
 
+  const handleSaveEstimatedTime = async () => {
+    try {
+      await apiRequest(`/deliveries/${delivery.id}/estimated-time`, {
+        method: 'PATCH',
+        body: JSON.stringify({ tenantId, estimatedTimeMinutes: estimatedTimeInput, authorName: 'Usuário Web' })
+      });
+      setIsEditingEstimatedTime(false);
+      fetchDetails();
+    } catch (err: any) {
+      alert('Erro ao atualizar tempo estimado.');
+    }
+  };
+
   if (!mounted) return null;
 
   const currentStatus = details?.status || delivery?.status || 'PREVISTA';
@@ -234,6 +252,12 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const secs = totalSeconds % 60;
   const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+  const currentEstimatedTimeMinutes = details?.estimatedTimeMinutes ?? delivery?.estimatedTimeMinutes;
+  const isOverdue = currentEstimatedTimeMinutes && totalSeconds > currentEstimatedTimeMinutes * 60;
+  const timerColorClass = isOverdue 
+    ? (timerRunning ? 'text-rose-500 animate-pulse' : 'text-rose-500') 
+    : (timerRunning ? 'text-teal-500 animate-pulse' : 'text-slate-900 dark:text-white');
 
   const modalContent = (
     <AnimatePresence>
@@ -415,9 +439,16 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Clock className="w-4 h-4 text-slate-400" /> Tempo Gasto
                     </h4>
-                    <span className={`text-lg font-black font-mono transition-colors ${timerRunning ? 'text-teal-500 animate-pulse' : 'text-slate-900 dark:text-white'}`}>
-                      {formattedTime}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-lg font-black font-mono transition-colors ${timerColorClass}`}>
+                        {formattedTime}
+                      </span>
+                      {isOverdue && (
+                        <span className="text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-1.5 py-0.5 rounded-md">
+                          Atraso
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button 
@@ -437,10 +468,30 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                       <Square className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div className="mt-3 text-center">
-                    <span className="text-[10px] font-bold text-slate-400">
-                      Estimado: {delivery?.estimatedTimeMinutes ? `${Math.floor(delivery.estimatedTimeMinutes / 60)}h ${delivery.estimatedTimeMinutes % 60}m` : 'Não definido'}
-                    </span>
+                  <div className="mt-3 text-center flex items-center justify-center gap-2">
+                    {isEditingEstimatedTime ? (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={estimatedTimeInput} 
+                          onChange={e => setEstimatedTimeInput(e.target.value)} 
+                          className="w-16 h-7 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-center outline-none focus:border-teal-500 text-slate-900 dark:text-white" 
+                          placeholder="Min" 
+                        />
+                        <button onClick={handleSaveEstimatedTime} className="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 font-bold text-xs">Salvar</button>
+                        <button onClick={() => setIsEditingEstimatedTime(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-xs">Cancelar</button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          Estimado: {currentEstimatedTimeMinutes ? `${Math.floor(currentEstimatedTimeMinutes / 60)}h ${currentEstimatedTimeMinutes % 60}m` : 'Não definido'}
+                        </span>
+                        <button onClick={() => setIsEditingEstimatedTime(true)} className="text-slate-400 hover:text-teal-500 transition-colors" title="Editar Tempo Estimado">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

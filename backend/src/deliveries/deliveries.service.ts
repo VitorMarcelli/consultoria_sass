@@ -205,6 +205,26 @@ export class DeliveriesService {
     return updated;
   }
 
+  async updateEstimatedTime(tenantId: string, id: string, estimatedTimeMinutes: number, authorName: string = 'Sistema') {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const updated = await tenantPrisma.delivery.update({
+      where: { id },
+      data: { estimatedTimeMinutes: estimatedTimeMinutes ? parseInt(String(estimatedTimeMinutes), 10) : null }
+    });
+
+    await tenantPrisma.deliveryHistory.create({
+      data: {
+        deliveryId: id,
+        action: 'COMMENT',
+        description: estimatedTimeMinutes 
+          ? `Atualizou o tempo estimado para ${Math.floor(estimatedTimeMinutes / 60)}h ${estimatedTimeMinutes % 60}m` 
+          : 'Removeu o tempo estimado',
+        authorName
+      }
+    });
+    return updated;
+  }
+
   async getSlideOverData(tenantId: string, id: string) {
     const tenantPrisma = await this.getTenantPrisma(tenantId);
     return tenantPrisma.delivery.findUnique({
