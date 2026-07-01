@@ -18,7 +18,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
-import DeliverySlideOver from '@/components/DeliverySlideOver';
+import DeliveryTaskModal from '@/components/DeliveryTaskModal';
 import DashboardMappingTab from './components/DashboardMappingTab';
 import DashboardCapacityTab from './components/DashboardCapacityTab';
 import DashboardLevelingTab from './components/DashboardLevelingTab';
@@ -35,6 +35,9 @@ interface Delivery {
   clientId?: string;
   frontId?: string;
   responsibleId?: string;
+  priority?: string;
+  estimatedTimeMinutes?: number;
+  realTimeMinutes?: number;
 }
 
 const tableVariants = {
@@ -69,8 +72,8 @@ export default function CycleDeliveriesPage({
     setCollapsedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
   };
 
-  // SlideOver 360º
-  const [slideOverDelivery, setSlideOverDelivery] = useState<any | null>(null);
+  // Task Modal 360º
+  const [selectedSlideOverDelivery, setSelectedSlideOverDelivery] = useState<any | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
 
   // Modal CRUD
@@ -79,12 +82,23 @@ export default function CycleDeliveriesPage({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA' });
+  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '' });
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [clients, setClients] = useState<any[]>([]);
   const [fronts, setFronts] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [currentClassification, setCurrentClassification] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (formData.clientId && formData.frontId && isModalOpen) {
+      apiRequest(`/clients/${formData.clientId}/fronts/${formData.frontId}/classification?tenantId=${id}`)
+        .then(res => setCurrentClassification(res))
+        .catch(() => setCurrentClassification(null));
+    } else {
+      setCurrentClassification(null);
+    }
+  }, [formData.clientId, formData.frontId, id, isModalOpen]);
 
   const fetchDeliveries = async () => {
     try {
@@ -126,7 +140,9 @@ export default function CycleDeliveriesPage({
         competence: new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }),
         originalName: '',
         standardizedName: '',
-        status: 'PREVISTA'
+        status: 'PREVISTA',
+        priority: 'MEDIUM',
+        estimatedTimeMinutes: ''
       });
     } catch(err) {
       console.error(err);
@@ -146,7 +162,9 @@ export default function CycleDeliveriesPage({
         competence: delivery.competence,
         originalName: delivery.originalName,
         standardizedName: delivery.standardizedName,
-        status: delivery.status
+        status: delivery.status,
+        priority: delivery.priority || 'MEDIUM',
+        estimatedTimeMinutes: delivery.estimatedTimeMinutes ? String(delivery.estimatedTimeMinutes) : ''
       });
     } catch(err) {
       console.error(err);
@@ -201,7 +219,7 @@ export default function CycleDeliveriesPage({
         body: JSON.stringify({ tenantId: id, status: newStatus, authorName: 'Usuário Web' })
       });
       fetchDeliveries();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
       alert('Erro ao alterar status.');
       setLoading(false);
@@ -225,20 +243,8 @@ export default function CycleDeliveriesPage({
     }
   };
 
-  const openSlideOver360 = (delivery: Delivery) => {
-    let statusMapped = 'PENDING';
-    if (delivery.status === 'CONCLUIDA') statusMapped = 'COMPLETED';
-    if (delivery.status === 'INATIVA' || delivery.status === 'LATE') statusMapped = 'LATE';
-
-    setSlideOverDelivery({
-      id: delivery.id,
-      name: delivery.standardizedName || delivery.originalName,
-      client: delivery.client?.name || 'Cliente Não Informado',
-      deadline: `Competência ${delivery.competence}`,
-      responsible: delivery.responsible?.name || 'Não atribuído',
-      status: statusMapped,
-      raw: delivery
-    });
+  const openTaskModal = (delivery: Delivery) => {
+    setSelectedSlideOverDelivery(delivery);
     setIsSlideOverOpen(true);
   };
 
@@ -388,6 +394,16 @@ export default function CycleDeliveriesPage({
         </div>
       </motion.div>
 
+      {/* Novo Modal Centralizado estilo Trello */}
+      <DeliveryTaskModal 
+        isOpen={isSlideOverOpen}
+        onClose={() => {
+          setIsSlideOverOpen(false);
+          fetchDeliveries(); // Recarrega para atualizar status caso tenham mudado
+        }}
+        delivery={selectedSlideOverDelivery}
+      />
+
       {/* Busca e Filtros */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-sm">
         <div className="relative w-full sm:w-80">
@@ -422,13 +438,6 @@ export default function CycleDeliveriesPage({
           ))}
         </div>
       </div>
-
-      {/* SlideOver 360º Wrapper */}
-      <DeliverySlideOver 
-        isOpen={isSlideOverOpen} 
-        onClose={() => setIsSlideOverOpen(false)} 
-        delivery={slideOverDelivery} 
-      />
 
       {/* Modal CRUD */}
       <AnimatePresence>
@@ -468,9 +477,28 @@ export default function CycleDeliveriesPage({
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Responsável (Equipe)</label>
-                    <select required value={formData.responsibleId} onChange={e => setFormData({...formData, responsibleId: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-                      <option value="">Selecione...</option>
-                      {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                    <select 
+                      required 
+                      value={formData.responsibleId} 
+                      onChange={e => setFormData({...formData, responsibleId: e.target.value})} 
+                      disabled={!formData.clientId || !formData.frontId}
+                      className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.clientId || !formData.frontId 
+                          ? 'Selecione Cliente e Frente primeiro...' 
+                          : !currentClassification || (!currentClassification.operator1Id && !currentClassification.operator2Id && !currentClassification.leaderId)
+                            ? 'Nenhum responsável configurado para este cliente'
+                            : 'Selecione...'}
+                      </option>
+                      {employees
+                        .filter(emp => {
+                          if (!currentClassification) return false;
+                          const allowed = [currentClassification.operator1Id, currentClassification.operator2Id, currentClassification.leaderId];
+                          return allowed.includes(emp.id);
+                        })
+                        .map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)
+                      }
                     </select>
                   </div>
                 </div>
@@ -490,6 +518,22 @@ export default function CycleDeliveriesPage({
                     </select>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Prioridade</label>
+                    <select value={formData.priority} onChange={e => setFormData({...formData, priority: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+                      <option value="HIGH">Alta</option>
+                      <option value="MEDIUM">Média</option>
+                      <option value="LOW">Baixa</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tempo Estimado (Minutos)</label>
+                    <input type="number" min="0" value={formData.estimatedTimeMinutes} onChange={e => setFormData({...formData, estimatedTimeMinutes: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: 120" />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Original (Detalhado)</label>
                   <input required type="text" value={formData.originalName} onChange={e => setFormData({...formData, originalName: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Apuração PIS/COFINS Lucro Real" />
@@ -535,7 +579,7 @@ export default function CycleDeliveriesPage({
                   initial="hidden"
                   animate="show"
                   key={delivery.id}
-                  onClick={() => openSlideOver360(delivery)}
+                  onClick={() => openTaskModal(delivery)}
                   className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer space-y-4"
                 >
                   <div className="flex items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-800/80 pb-3">
@@ -617,10 +661,11 @@ export default function CycleDeliveriesPage({
               <thead className="bg-slate-50/80 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest border-b border-slate-200/60 dark:border-slate-800/60">
                 <tr>
                   <th className="px-4 py-3 font-bold w-[4%] text-center"></th>
-                  <th className="px-4 py-3 font-bold w-[30%]">Tarefa / Obrigação</th>
-                  <th className="px-4 py-3 font-bold w-[18%]">Cliente</th>
-                  <th className="px-4 py-3 font-bold w-[12%] text-center">Competência</th>
-                  <th className="px-4 py-3 font-bold w-[14%] text-center">Frente</th>
+                  <th className="px-4 py-3 font-bold w-[25%]">Tarefa / Obrigação</th>
+                  <th className="px-4 py-3 font-bold w-[16%]">Cliente</th>
+                  <th className="px-4 py-3 font-bold w-[12%] text-center">Frente</th>
+                  <th className="px-4 py-3 font-bold w-[10%] text-center">Prioridade</th>
+                  <th className="px-4 py-3 font-bold w-[11%] text-center">Estimado</th>
                   <th className="px-0 py-3 font-bold text-center w-[12%]">Status</th>
                   <th className="px-4 py-3 font-bold text-right w-[10%]">Ações</th>
                 </tr>
@@ -654,7 +699,7 @@ export default function CycleDeliveriesPage({
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, height: 0 }}
                           key={delivery.id} 
-                          onClick={() => openSlideOver360(delivery)}
+                          onClick={() => openTaskModal(delivery)}
                           className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group/row border-b border-slate-100 dark:border-slate-800/40 last:border-0"
                         >
                           <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-800/40 relative">
@@ -665,16 +710,29 @@ export default function CycleDeliveriesPage({
                           </td>
                           <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-800/40 truncate">
                             <p className="font-bold text-slate-900 dark:text-white truncate" title={delivery.standardizedName}>{delivery.standardizedName}</p>
-                            <p className="text-[10px] font-medium text-slate-500 truncate" title={delivery.originalName}>{delivery.originalName}</p>
+                            <p className="text-[10px] font-medium text-slate-500 truncate" title={delivery.originalName}>
+                              <span className="font-bold text-teal-600 dark:text-teal-400 mr-1">[{delivery.competence}]</span>
+                              {delivery.originalName}
+                            </p>
                           </td>
                           <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800/40 truncate">
                             {delivery.client?.name || '-'}
                           </td>
-                          <td className="px-4 py-3 text-center text-xs font-bold text-slate-500 border-r border-slate-100 dark:border-slate-800/40">
-                            {delivery.competence}
-                          </td>
                           <td className="px-4 py-3 text-center text-xs font-bold text-slate-600 dark:text-slate-400 border-r border-slate-100 dark:border-slate-800/40 truncate">
                             {delivery.front?.name || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-center border-r border-slate-100 dark:border-slate-800/40">
+                            <span className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider
+                              ${delivery.priority === 'HIGH' ? 'bg-rose-500 text-white' : 
+                                delivery.priority === 'LOW' ? 'bg-sky-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                              {delivery.priority === 'HIGH' ? 'Alta' : delivery.priority === 'LOW' ? 'Baixa' : 'Média'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center border-r border-slate-100 dark:border-slate-800/40">
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                              {delivery.estimatedTimeMinutes ? `${Math.floor(delivery.estimatedTimeMinutes / 60)}h ${delivery.estimatedTimeMinutes % 60}m` : '-'}
+                            </span>
                           </td>
                           {/* Status Cell - Full Color Monday Style */}
                           <td className="px-0 py-0 border-r border-slate-100 dark:border-slate-800/40 p-0 m-0 align-middle">

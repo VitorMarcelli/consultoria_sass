@@ -45,7 +45,13 @@ export class DeliveriesService {
         competence: data.competence,
         originalName: data.originalName,
         standardizedName: data.standardizedName,
-        status: data.status || 'PREVISTA'
+        status: data.status || 'PREVISTA',
+        priority: data.priority || 'MEDIUM',
+        estimatedTimeMinutes: data.estimatedTimeMinutes ? parseInt(data.estimatedTimeMinutes, 10) : null,
+        realTimeMinutes: data.realTimeMinutes ? parseInt(data.realTimeMinutes, 10) : null,
+        legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
+        internalDeadline: data.internalDeadline ? new Date(data.internalDeadline) : null,
+        executionDeadline: data.executionDeadline ? new Date(data.executionDeadline) : null,
       }
     });
   }
@@ -62,7 +68,13 @@ export class DeliveriesService {
         competence: data.competence,
         originalName: data.originalName,
         standardizedName: data.standardizedName,
-        status: data.status
+        status: data.status,
+        priority: data.priority,
+        estimatedTimeMinutes: data.estimatedTimeMinutes ? parseInt(data.estimatedTimeMinutes, 10) : null,
+        realTimeMinutes: data.realTimeMinutes ? parseInt(data.realTimeMinutes, 10) : null,
+        legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
+        internalDeadline: data.internalDeadline ? new Date(data.internalDeadline) : null,
+        executionDeadline: data.executionDeadline ? new Date(data.executionDeadline) : null,
       }
     });
   }

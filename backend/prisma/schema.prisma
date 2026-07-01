@@ -351,6 +351,10 @@ model Delivery {
 
   status String @default("PREVISTA")
 
+  priority             String   @default("MEDIUM") // HIGH, MEDIUM, LOW
+  estimatedTimeMinutes Int?
+  realTimeMinutes      Int?
+
   legalDeadline     DateTime?
   internalDeadline  DateTime?
   executionDeadline DateTime?
