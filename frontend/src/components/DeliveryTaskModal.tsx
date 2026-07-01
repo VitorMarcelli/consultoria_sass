@@ -17,16 +17,15 @@ import {
   Building2
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
-import { useAuth } from '@/context/AuthContext';
 
 interface DeliveryTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   delivery: any | null;
+  tenantId: string;
 }
 
-export default function DeliveryTaskModal({ isOpen, onClose, delivery }: DeliveryTaskModalProps) {
-  const { user } = useAuth();
+export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId }: DeliveryTaskModalProps) {
   const [activeTab, setActiveTab] = useState<'DETAILS' | 'FILES'>('DETAILS');
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -50,7 +49,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
   const fetchDetails = async () => {
     try {
       setLoading(true);
-      const data = await apiRequest(`/deliveries/${delivery.id}/details?tenantId=${user?.tenantId}`);
+      const data = await apiRequest(`/deliveries/${delivery.id}/details?tenantId=${tenantId}`);
       setDetails(data);
     } catch (err) {
       console.error(err);
@@ -63,7 +62,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
     try {
       await apiRequest(`/deliveries/${delivery.id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ tenantId: user?.tenantId, status: newStatus, authorName: user?.name || 'Usuário Web' })
+        body: JSON.stringify({ tenantId: tenantId, status: newStatus, authorName: 'Usuário Web' })
       });
       fetchDetails();
     } catch (err) {
@@ -78,7 +77,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
     try {
       await apiRequest(`/deliveries/${delivery.id}/checklist`, {
         method: 'POST',
-        body: JSON.stringify({ tenantId: user?.tenantId, description: newChecklistItem })
+        body: JSON.stringify({ tenantId: tenantId, description: newChecklistItem })
       });
       setNewChecklistItem('');
       fetchDetails();
@@ -91,7 +90,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
     try {
       await apiRequest(`/deliveries/${delivery.id}/checklist/${itemId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ tenantId: user?.tenantId, isCompleted: !current })
+        body: JSON.stringify({ tenantId: tenantId, isCompleted: !current })
       });
       fetchDetails();
     } catch (err) {
@@ -101,7 +100,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
 
   const handleRemoveChecklist = async (itemId: string) => {
     try {
-      await apiRequest(`/deliveries/${delivery.id}/checklist/${itemId}?tenantId=${user?.tenantId}`, {
+      await apiRequest(`/deliveries/${delivery.id}/checklist/${itemId}?tenantId=${tenantId}`, {
         method: 'DELETE'
       });
       fetchDetails();
@@ -116,7 +115,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
     try {
       await apiRequest(`/deliveries/${delivery.id}/history`, {
         method: 'POST',
-        body: JSON.stringify({ tenantId: user?.tenantId, description: newComment, authorName: user?.name || 'Usuário' })
+        body: JSON.stringify({ tenantId: tenantId, description: newComment, authorName: 'Usuário Web' })
       });
       setNewComment('');
       fetchDetails();
@@ -132,7 +131,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
       setUploadingProof(true);
       await apiRequest(`/deliveries/${delivery.id}/proofs`, {
         method: 'POST',
-        body: JSON.stringify({ tenantId: user?.tenantId, title: newProofTitle, url: newProofUrl, authorName: user?.name || 'Usuário' })
+        body: JSON.stringify({ tenantId: tenantId, title: newProofTitle, url: newProofUrl, authorName: 'Usuário Web' })
       });
       setNewProofTitle('');
       setNewProofUrl('');
@@ -148,7 +147,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery }: Deliver
 
   const handleRemoveProof = async (proofId: string) => {
     try {
-      await apiRequest(`/deliveries/${delivery.id}/proofs/${proofId}?tenantId=${user?.tenantId}`, {
+      await apiRequest(`/deliveries/${delivery.id}/proofs/${proofId}?tenantId=${tenantId}`, {
         method: 'DELETE'
       });
       fetchDetails();

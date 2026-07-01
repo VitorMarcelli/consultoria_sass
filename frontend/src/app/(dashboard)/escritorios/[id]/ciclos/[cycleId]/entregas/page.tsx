@@ -402,6 +402,7 @@ export default function CycleDeliveriesPage({
           fetchDeliveries(); // Recarrega para atualizar status caso tenham mudado
         }}
         delivery={selectedSlideOverDelivery}
+        tenantId={id}
       />
 
       {/* Busca e Filtros */}
