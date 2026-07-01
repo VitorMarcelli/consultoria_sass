@@ -80,4 +80,18 @@ export class DeliveriesController {
   addHistory(@Param('id') id: string, @Body() body: any) {
     return this.deliveriesService.addHistoryComment(body.tenantId, id, body.description, body.authorName);
   }
+
+  // =====================================
+  // TIME TRACKER
+  // =====================================
+
+  @Post(':id/timer/start')
+  startTimer(@Param('id') id: string, @Body('tenantId') tenantId: string) {
+    return this.deliveriesService.startTimer(tenantId, id);
+  }
+
+  @Post(':id/timer/stop')
+  stopTimer(@Param('id') id: string, @Body('tenantId') tenantId: string) {
+    return this.deliveriesService.stopTimer(tenantId, id);
+  }
 }

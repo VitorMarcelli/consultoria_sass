@@ -212,7 +212,10 @@ export class DeliveriesService {
       include: {
         checklists: { orderBy: { createdAt: 'asc' } },
         proofs: { orderBy: { createdAt: 'desc' } },
-        history: { orderBy: { createdAt: 'desc' } }
+        history: { orderBy: { createdAt: 'desc' } },
+        timeLogs: {
+          where: { status: 'RUNNING' }
+        }
       }
     });
   }
@@ -273,5 +276,86 @@ export class DeliveriesService {
         authorName
       }
     });
+  }
+
+  // =====================================
+  // TIME TRACKER
+  // =====================================
+
+  async startTimer(tenantId: string, deliveryId: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    
+    // Verifica se a entrega tem responsável
+    const delivery = await tenantPrisma.delivery.findUnique({
+      where: { id: deliveryId }
+    });
+
+    if (!delivery) throw new NotFoundException('Entrega não encontrada.');
+    if (!delivery.responsibleId) {
+      throw new Error('A entrega precisa de um responsável atribuído para iniciar o tempo.');
+    }
+
+    // Verifica se já tem um rodando
+    const runningLog = await tenantPrisma.timeLog.findFirst({
+      where: {
+        deliveryId,
+        status: 'RUNNING'
+      }
+    });
+
+    if (runningLog) {
+      return runningLog; // Se já tem, devolve ele (evita duplo clique)
+    }
+
+    return tenantPrisma.timeLog.create({
+      data: {
+        deliveryId,
+        clientId: delivery.clientId,
+        employeeId: delivery.responsibleId,
+        startTime: new Date(),
+        status: 'RUNNING'
+      }
+    });
+  }
+
+  async stopTimer(tenantId: string, deliveryId: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+
+    const runningLog = await tenantPrisma.timeLog.findFirst({
+      where: {
+        deliveryId,
+        status: 'RUNNING'
+      }
+    });
+
+    if (!runningLog) {
+      throw new Error('Não há nenhum timer rodando para esta entrega.');
+    }
+
+    const endTime = new Date();
+    const durationMinutes = Math.max(1, Math.round((endTime.getTime() - runningLog.startTime.getTime()) / 60000));
+
+    // Atualiza o TimeLog
+    const finishedLog = await tenantPrisma.timeLog.update({
+      where: { id: runningLog.id },
+      data: {
+        status: 'FINISHED',
+        endTime,
+        durationMinutes
+      }
+    });
+
+    // Soma o tempo na entrega
+    const delivery = await tenantPrisma.delivery.findUnique({ where: { id: deliveryId } });
+    const currentRealTime = delivery?.realTimeMinutes || 0;
+
+    await tenantPrisma.delivery.update({
+      where: { id: deliveryId },
+      data: {
+        realTimeMinutes: currentRealTime + durationMinutes
+      }
+    });
+
+    return finishedLog;
   }
 }

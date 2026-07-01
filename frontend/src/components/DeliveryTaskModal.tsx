@@ -40,15 +40,50 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   const [newProofUrl, setNewProofUrl] = useState('');
   const [uploadingProof, setUploadingProof] = useState(false);
 
+  // Timer State
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [baseTotalSeconds, setBaseTotalSeconds] = useState(0);
+
   useEffect(() => {
     setMounted(true);
     if (isOpen && delivery?.id) {
       fetchDetails();
       setActiveTab('DETAILS');
+      setBaseTotalSeconds((delivery.realTimeMinutes || 0) * 60);
     } else {
       setDetails(null);
+      setTimerRunning(false);
+      setElapsedSeconds(0);
     }
   }, [isOpen, delivery]);
+
+  useEffect(() => {
+    if (details) {
+      setBaseTotalSeconds((details.realTimeMinutes || delivery?.realTimeMinutes || 0) * 60);
+      
+      const activeLog = details.timeLogs?.find((log: any) => log.status === 'RUNNING');
+      if (activeLog) {
+        const start = new Date(activeLog.startTime).getTime();
+        const now = new Date().getTime();
+        setElapsedSeconds(Math.floor((now - start) / 1000));
+        setTimerRunning(true);
+      } else {
+        setElapsedSeconds(0);
+        setTimerRunning(false);
+      }
+    }
+  }, [details]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timerRunning) {
+      interval = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timerRunning]);
 
   const fetchDetails = async () => {
     try {
@@ -160,12 +195,45 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
     }
   };
 
+  const handleStartTimer = async () => {
+    try {
+      setTimerRunning(true);
+      await apiRequest(`/deliveries/${delivery.id}/timer/start`, {
+        method: 'POST',
+        body: JSON.stringify({ tenantId })
+      });
+      fetchDetails();
+    } catch (err: any) {
+      setTimerRunning(false);
+      alert(err.message || 'Erro ao iniciar o timer.');
+    }
+  };
+
+  const handleStopTimer = async () => {
+    try {
+      setTimerRunning(false);
+      await apiRequest(`/deliveries/${delivery.id}/timer/stop`, {
+        method: 'POST',
+        body: JSON.stringify({ tenantId })
+      });
+      fetchDetails();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao parar o timer.');
+    }
+  };
+
   if (!mounted) return null;
 
   const currentStatus = details?.status || delivery?.status || 'PREVISTA';
   const checklists = details?.checklists || [];
   const proofs = details?.proofs || [];
   const history = details?.history || [];
+
+  const totalSeconds = baseTotalSeconds + elapsedSeconds;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
   const modalContent = (
     <AnimatePresence>
@@ -347,13 +415,25 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Clock className="w-4 h-4 text-slate-400" /> Tempo Gasto
                     </h4>
-                    <span className="text-lg font-black text-slate-900 dark:text-white font-mono">00:00</span>
+                    <span className={`text-lg font-black font-mono transition-colors ${timerRunning ? 'text-teal-500 animate-pulse' : 'text-slate-900 dark:text-white'}`}>
+                      {formattedTime}
+                    </span>
                   </div>
                   <div className="flex gap-2">
-                    <button className="flex-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-500/10 dark:hover:bg-teal-500/20 text-teal-700 dark:text-teal-400 font-bold text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                    <button 
+                      onClick={handleStartTimer}
+                      disabled={timerRunning}
+                      className={`flex-1 font-bold text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 
+                        ${timerRunning ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed' : 'bg-teal-50 hover:bg-teal-100 dark:bg-teal-500/10 dark:hover:bg-teal-500/20 text-teal-700 dark:text-teal-400'}`}
+                    >
                       <Play className="w-3.5 h-3.5" /> Iniciar
                     </button>
-                    <button className="px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center">
+                    <button 
+                      onClick={handleStopTimer}
+                      disabled={!timerRunning}
+                      className={`px-4 font-bold text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center
+                        ${!timerRunning ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed' : 'bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20'}`}
+                    >
                       <Square className="w-3.5 h-3.5" />
                     </button>
                   </div>
