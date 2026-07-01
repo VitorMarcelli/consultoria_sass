@@ -376,7 +376,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                       <Calendar className="w-5 h-5 text-slate-400" />
                       <span className="font-extrabold text-slate-800 dark:text-slate-200">{delivery?.competence || '-'}</span>
                     </div>
-                  </div>               </div>
+                  </div>
                 </div>
 
                 {/* Comprovantes */}
