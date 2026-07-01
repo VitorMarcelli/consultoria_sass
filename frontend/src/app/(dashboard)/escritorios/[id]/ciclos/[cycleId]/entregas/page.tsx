@@ -14,7 +14,8 @@ import {
   Sparkles,
   Loader2,
   CheckSquare,
-  Building2
+  Building2,
+  ChevronDown
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import DeliverySlideOver from '@/components/DeliverySlideOver';
@@ -60,6 +61,13 @@ export default function CycleDeliveriesPage({
   const [generatingMonthly, setGeneratingMonthly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  
+  // Grouping State (Monday.com style)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
+  };
 
   // SlideOver 360º
   const [slideOverDelivery, setSlideOverDelivery] = useState<any | null>(null);
@@ -244,6 +252,16 @@ export default function CycleDeliveriesPage({
     return matchQuery && d.status === statusFilter;
   });
 
+  // Grouping by Responsible (Team) - Monday Style
+  const groupedDeliveries = filteredDeliveries.reduce((acc, delivery) => {
+    const responsibleName = delivery.responsible?.name || 'Não Atribuído';
+    if (!acc[responsibleName]) {
+      acc[responsibleName] = [];
+    }
+    acc[responsibleName].push(delivery);
+    return acc;
+  }, {} as Record<string, Delivery[]>);
+
   // Estatisticas para o painel de conformidade
   const totalCount = deliveries.length;
   const completedCount = deliveries.filter(d => d.status === 'CONCLUIDA').length;
@@ -253,53 +271,47 @@ export default function CycleDeliveriesPage({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      {/* Top Header / Banner Premium */}
+      {/* Top Header Minimalista (Monday Style) */}
       <motion.div 
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden"
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm"
       >
-        {/* Top accent line */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
-        
-        {/* Decorative background element */}
-        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-teal-100 to-emerald-50 dark:from-teal-900/30 dark:to-emerald-900/10 rounded-full blur-3xl opacity-60 pointer-events-none" />
-
-        <div className="flex items-center gap-5 relative z-10">
-          <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-teal-500/30 shrink-0 transform rotate-3 hover:rotate-0 transition-transform duration-300">
-            <CheckSquare className="w-8 h-8" />
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-teal-500/10 dark:bg-teal-500/20 rounded-lg flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+            <CheckSquare className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Entregas Mensais & Conformidade
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">
+              Gestão de Entregas
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 font-medium mt-2 leading-relaxed max-w-xl text-sm">
-              Motor de Matriz de Conformidade Automática do ciclo, monitoramento de rotinas e Slide-overs 360º.
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {deliveries.length} Mapeadas no ciclo
+              </span>
+              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+              <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
+                {complianceRate}% no Prazo
+              </span>
+            </div>
           </div>
         </div>
         
-        <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative z-10 shrink-0">
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2 shrink-0">
+          <button 
             onClick={handleGenerateMonthly}
             disabled={generatingMonthly}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-teal-500 text-white px-6 py-3.5 text-sm font-bold shadow-lg shadow-teal-600/30 hover:shadow-xl hover:shadow-teal-600/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
           >
-            {generatingMonthly ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Executar Matriz Automática
-          </motion.button>
+            {generatingMonthly ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Gerar Automático
+          </button>
 
           <button 
             onClick={handleOpenCreateModal}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 py-3.5 text-sm font-bold shadow-lg shadow-slate-900/20 dark:shadow-slate-100/20 hover:bg-slate-800 dark:hover:bg-slate-200 hover:-translate-y-0.5 transition-all active:scale-95 duration-200"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 text-white px-5 py-2 text-xs font-bold shadow-sm shadow-teal-600/20 hover:bg-teal-700 transition-all"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Nova Obrigação
           </button>
         </div>
@@ -599,108 +611,111 @@ export default function CycleDeliveriesPage({
             </AnimatePresence>
           </div>
 
-          {/* Visualização em Tabela para Desktop */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="hidden md:block overflow-x-auto bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm"
-          >
-            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
-              <thead className="bg-slate-50/80 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest">
+          {/* Visualização em Tabela para Desktop (Monday Style) */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800/60 overflow-hidden">
+            <table className="w-full text-left text-sm whitespace-nowrap border-collapse table-fixed">
+              <thead className="bg-slate-50/80 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest border-b border-slate-200/60 dark:border-slate-800/60">
                 <tr>
-                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider rounded-tl-[2rem]">Competência</th>
-                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Obrigação / Rotina</th>
-                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Frente</th>
-                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Responsável</th>
-                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-5 font-bold text-xs uppercase tracking-wider text-right rounded-tr-[2rem]">Ações</th>
+                  <th className="px-4 py-3 font-bold w-[4%] text-center"></th>
+                  <th className="px-4 py-3 font-bold w-[30%]">Tarefa / Obrigação</th>
+                  <th className="px-4 py-3 font-bold w-[18%]">Cliente</th>
+                  <th className="px-4 py-3 font-bold w-[12%] text-center">Competência</th>
+                  <th className="px-4 py-3 font-bold w-[14%] text-center">Frente</th>
+                  <th className="px-0 py-3 font-bold text-center w-[12%]">Status</th>
+                  <th className="px-4 py-3 font-bold text-right w-[10%]">Ações</th>
                 </tr>
               </thead>
-              <motion.tbody 
-                variants={tableVariants}
-                initial="hidden"
-                animate="show"
-                className="divide-y divide-slate-50 dark:divide-slate-800/60"
-              >
+              <tbody>
                 <AnimatePresence>
-                  {filteredDeliveries.map((delivery) => (
-                    <motion.tr 
-                      variants={rowVariants}
-                      key={delivery.id} 
-                      onClick={() => openSlideOver360(delivery)}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
-                    >
-                      <td className="px-6 py-5 font-bold text-slate-700 dark:text-slate-300">
-                        {delivery.competence}
-                      </td>
-                      <td className="px-6 py-5 font-extrabold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                        {delivery.client?.name || '-'}
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="font-extrabold text-slate-900 dark:text-white">{delivery.standardizedName}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{delivery.originalName}</p>
-                      </td>
-                      <td className="px-6 py-5 font-medium text-slate-600 dark:text-slate-400">
-                        {delivery.front?.name || '-'}
-                      </td>
-                      <td className="px-6 py-5 font-semibold text-slate-700 dark:text-slate-300">
-                        {delivery.responsible?.name || '-'}
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="inline-block">
-                          {delivery.status === 'CONCLUIDA' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              Concluída
-                            </span>
-                          )}
-                          {delivery.status === 'ANDAMENTO' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                              <Clock className="w-3.5 h-3.5" />
-                              Em Andamento
-                            </span>
-                          )}
-                          {delivery.status === 'PREVISTA' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                              <Clock className="w-3.5 h-3.5" />
-                              Prevista
-                            </span>
-                          )}
-                          {delivery.status === 'INATIVA' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                              Inativa
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {deleteConfirmId === delivery.id ? (
-                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1" onClick={e => e.stopPropagation()}>
-                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
-                              <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
-                              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
+                  {Object.entries(groupedDeliveries).map(([groupName, groupDeliveries]) => (
+                    <React.Fragment key={groupName}>
+                      {/* Group Header */}
+                      <tr className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 group/header">
+                        <td colSpan={7} className="px-4 py-2">
+                          <div 
+                            className="flex items-center gap-2 cursor-pointer w-max"
+                            onClick={() => toggleGroup(groupName)}
+                          >
+                            <div className={`p-0.5 rounded-md text-slate-400 group-hover/header:bg-slate-200 dark:group-hover/header:bg-slate-700 transition-all ${collapsedGroups[groupName] ? '-rotate-90' : 'rotate-0'}`}>
+                              <ChevronDown className="w-4 h-4" />
                             </div>
-                          ) : (
-                            <>
-                              {delivery.status !== 'CONCLUIDA' && (
-                                <button onClick={(e) => handleQuickStatusChange(delivery.id, 'CONCLUIDA', e)} className="text-slate-400 hover:text-emerald-600 bg-slate-100 dark:bg-slate-800 p-2 rounded-xl transition-colors mr-2" title="Marcar como Concluída">
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </button>
+                            <span className="font-extrabold text-slate-700 dark:text-slate-300 group-hover/header:text-teal-600 transition-colors">{groupName}</span>
+                            <span className="text-[10px] font-bold text-slate-400 bg-slate-200/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md">
+                              {groupDeliveries.length}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      
+                      {/* Group Rows */}
+                      {!collapsedGroups[groupName] && groupDeliveries.map((delivery) => (
+                        <motion.tr 
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, height: 0 }}
+                          key={delivery.id} 
+                          onClick={() => openSlideOver360(delivery)}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group/row border-b border-slate-100 dark:border-slate-800/40 last:border-0"
+                        >
+                          <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-800/40 relative">
+                            <div className="w-1.5 absolute left-0 top-0 bottom-0 bg-transparent group-hover/row:bg-teal-500 transition-colors" />
+                            <div className="flex items-center justify-center">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-800/40 truncate">
+                            <p className="font-bold text-slate-900 dark:text-white truncate" title={delivery.standardizedName}>{delivery.standardizedName}</p>
+                            <p className="text-[10px] font-medium text-slate-500 truncate" title={delivery.originalName}>{delivery.originalName}</p>
+                          </td>
+                          <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800/40 truncate">
+                            {delivery.client?.name || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-center text-xs font-bold text-slate-500 border-r border-slate-100 dark:border-slate-800/40">
+                            {delivery.competence}
+                          </td>
+                          <td className="px-4 py-3 text-center text-xs font-bold text-slate-600 dark:text-slate-400 border-r border-slate-100 dark:border-slate-800/40 truncate">
+                            {delivery.front?.name || '-'}
+                          </td>
+                          {/* Status Cell - Full Color Monday Style */}
+                          <td className="px-0 py-0 border-r border-slate-100 dark:border-slate-800/40 p-0 m-0 align-middle">
+                            <div className={`w-full h-full min-h-[48px] flex items-center justify-center text-[11px] font-black uppercase tracking-wider text-white transition-colors
+                              ${delivery.status === 'CONCLUIDA' ? 'bg-emerald-500 hover:bg-emerald-600' : 
+                                delivery.status === 'ANDAMENTO' ? 'bg-amber-500 hover:bg-amber-600' : 
+                                delivery.status === 'PREVISTA' ? 'bg-slate-400 hover:bg-slate-500 dark:bg-slate-600' : 'bg-slate-200 text-slate-500'}
+                            `}>
+                              {delivery.status === 'CONCLUIDA' ? 'Concluída' : delivery.status === 'ANDAMENTO' ? 'Em Andamento' : delivery.status === 'PREVISTA' ? 'Prevista' : 'Inativa'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {deleteConfirmId === delivery.id ? (
+                                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1" onClick={e => e.stopPropagation()}>
+                                  <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-md bg-red-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-red-700">Sim</button>
+                                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-md bg-white dark:bg-slate-700 px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-slate-300">Não</button>
+                                </div>
+                              ) : (
+                                <>
+                                  {delivery.status !== 'CONCLUIDA' && (
+                                    <button onClick={(e) => handleQuickStatusChange(delivery.id, 'CONCLUIDA', e)} className="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Marcar como Concluída">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Excluir">
+                                    <span className="sr-only">Excluir</span>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  </button>
+                                </>
                               )}
-                              <button onClick={(e) => handleOpenEditModal(delivery, e)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors mr-2">Editar</button>
-                              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors">Excluir</button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </motion.tr>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </React.Fragment>
                   ))}
                 </AnimatePresence>
-              </motion.tbody>
+              </tbody>
             </table>
-          </motion.div>
+          </div>
         </>
       )}
       </div>
