@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -27,6 +28,7 @@ interface DeliveryTaskModalProps {
 }
 
 export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId }: DeliveryTaskModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'DETAILS' | 'FILES'>('DETAILS');
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -39,6 +41,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   const [uploadingProof, setUploadingProof] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (isOpen && delivery?.id) {
       fetchDetails();
       setActiveTab('DETAILS');
@@ -157,17 +160,18 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
     }
   };
 
-  if (!isOpen) return null;
+  if (!mounted) return null;
 
   const currentStatus = details?.status || delivery?.status || 'PREVISTA';
   const checklists = details?.checklists || [];
   const proofs = details?.proofs || [];
   const history = details?.history || [];
 
-  return (
+  const modalContent = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-        <motion.div 
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -429,7 +433,10 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
             </div>
           )}
         </motion.div>
-      </div>
+        </div>
+      )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 }
