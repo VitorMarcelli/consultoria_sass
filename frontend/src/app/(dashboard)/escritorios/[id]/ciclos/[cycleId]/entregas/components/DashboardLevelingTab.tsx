@@ -96,7 +96,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
   const totalDeliveries = data.timeline.reduce((acc: number, curr: any) => acc + curr.deliveries, 0);
   const avgDeliveries = data.timeline.length > 0 ? Math.round(totalDeliveries / data.timeline.length) : 0;
 
-  return (
+
   const hasData = data.timeline.length > 0;
 
   const deliveriesToMove = selectedDate && data ? data.deliveriesList.filter((d: any) => {
