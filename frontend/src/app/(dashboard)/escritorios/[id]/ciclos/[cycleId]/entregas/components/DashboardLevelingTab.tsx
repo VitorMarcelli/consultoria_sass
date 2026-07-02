@@ -97,6 +97,15 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
   const avgDeliveries = data.timeline.length > 0 ? Math.round(totalDeliveries / data.timeline.length) : 0;
 
   return (
+  const hasData = data.timeline.length > 0;
+
+  const deliveriesToMove = selectedDate && data ? data.deliveriesList.filter((d: any) => {
+    if (!d.executionDeadline) return false;
+    const dDate = new Date(d.executionDeadline).toISOString().split('T')[0];
+    return dDate === selectedDate;
+  }) : [];
+
+  return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm">
         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Departamento:</span>
@@ -117,6 +126,17 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
         </div>
       </div>
 
+      {!hasData ? (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Sem Prazos Definidos</h3>
+          <p className="text-slate-500 mt-2 text-sm">Nenhuma entrega neste ciclo/departamento possui data de execução (Heijunka).</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 gap-6">
         {/* Nivelamento Heijunka */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
@@ -125,6 +145,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
             <div>
               <h3 className="text-xl font-black text-slate-900 dark:text-white">Nivelamento Diário (Heijunka)</h3>
               <p className="text-sm text-slate-500 mt-1">Achete a curva. Evite que todas as entregas se acumulem no dia do vencimento.</p>
+              <p className="text-xs text-teal-600 mt-1 font-semibold">* Clique em uma barra no gráfico para selecionar as entregas desse dia.</p>
             </div>
             
             <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-[1.5rem] flex items-end gap-3 w-full md:w-auto shadow-inner">
@@ -139,7 +160,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
               </div>
               <button 
                 onClick={handleReschedule} 
-                disabled={rescheduling || !selectedDate || !targetDate}
+                disabled={rescheduling || !selectedDate || !targetDate || deliveriesToMove.length === 0}
                 className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
               >
                 {rescheduling ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reagendar Lote'}
@@ -157,22 +178,64 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
                 <YAxis axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px' }} />
                 
-                {/* Linha da Média */}
                 <ReferenceLine y={avgDeliveries} stroke="#f97316" strokeDasharray="3 3" label={{ position: 'top', value: `Média Ideal (${avgDeliveries})`, fill: '#f97316', fontSize: 12, fontWeight: 'bold' }} />
                 
-                <Bar dataKey="deliveries" fill="#10b981" radius={[4, 4, 0, 0]} name="Qtd Entregas">
-                  {/* Se a barra passar muito da média, fica vermelha */}
+                <Bar 
+                  dataKey="deliveries" 
+                  radius={[4, 4, 0, 0]} 
+                  name="Qtd Entregas"
+                  onClick={(entry) => setSelectedDate(entry.date)}
+                  cursor="pointer"
+                >
                   {
-                    data.timeline.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={entry.deliveries > avgDeliveries * 1.5 ? '#ef4444' : '#10b981'} />
-                    ))
+                    data.timeline.map((entry: any, index: number) => {
+                      const isSelected = entry.date === selectedDate;
+                      const isHigh = entry.deliveries > avgDeliveries * 1.5;
+                      const fill = isSelected ? '#0f766e' : (isHigh ? '#ef4444' : '#10b981');
+                      return <Cell key={`cell-${index}`} fill={fill} />;
+                    })
                   }
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
+          
+          {selectedDate && (
+            <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6">
+              <h4 className="text-md font-bold text-slate-800 dark:text-slate-200 mb-4">
+                Entregas alocadas no dia: <span className="text-teal-600">{new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}</span>
+              </h4>
+              
+              {deliveriesToMove.length === 0 ? (
+                <p className="text-sm text-slate-500">Nenhuma entrega encontrada para esta data.</p>
+              ) : (
+                <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-100 dark:bg-slate-900 text-slate-500 font-bold text-xs uppercase">
+                      <tr>
+                        <th className="px-4 py-3">Cliente</th>
+                        <th className="px-4 py-3">Tarefa</th>
+                        <th className="px-4 py-3">Responsável</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                      {deliveriesToMove.map((d: any) => (
+                        <tr key={d.id} className="hover:bg-white dark:hover:bg-slate-900 transition-colors">
+                          <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">{d.client?.name || '---'}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{d.standardizedName}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{d.responsible?.name || '---'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
+      )}
     </div>
   );
 }

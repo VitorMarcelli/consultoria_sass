@@ -57,6 +57,8 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
 
   if (!data) return null;
 
+  const hasData = data.capacityData && data.capacityData.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm">
@@ -78,6 +80,17 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
         </div>
       </div>
 
+      {!hasData ? (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Nenhum operador alocado</h3>
+          <p className="text-slate-500 mt-2 text-sm">Não há membros da equipe alocados neste departamento para este ciclo.</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 gap-6">
         {/* Capacity Planning */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
@@ -93,14 +106,15 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
                 <YAxis axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px' }} />
                 <Legend />
-                <Bar dataKey="recurrent" stackId="a" fill="#10b981" name="Atividades Recorrentes" />
-                <Bar dataKey="extra" stackId="a" fill="#3b82f6" name="Atividades Extras" />
+                <Bar dataKey="recurrent" stackId="a" fill="#10b981" name="Horas Comprometidas (Estimadas)" />
+                <Bar dataKey="extra" stackId="a" fill="#3b82f6" name="Horas Extras" />
                 <Bar dataKey="rework" stackId="a" fill="#f43f5e" name="Retrabalho" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
