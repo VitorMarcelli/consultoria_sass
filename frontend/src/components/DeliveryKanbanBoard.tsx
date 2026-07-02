@@ -61,13 +61,13 @@ export default function DeliveryKanbanBoard({ deliveries, onDeliveryClick, onSta
   if (!mounted) return null;
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-4 h-full min-h-[600px] w-full snap-x">
+    <div className="flex gap-4 overflow-x-auto pb-4 h-full min-h-[600px] w-full snap-x">
       <DragDropContext onDragEnd={handleDragEnd}>
         {KANBAN_COLUMNS.map(column => {
           const colDeliveries = getDeliveriesByStatus(column.id);
           
           return (
-            <div key={column.id} className="flex-shrink-0 w-[320px] flex flex-col snap-center">
+            <div key={column.id} className="flex-1 min-w-[240px] max-w-[320px] flex flex-col snap-center">
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-2">
