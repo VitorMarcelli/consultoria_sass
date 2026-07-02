@@ -15,10 +15,13 @@ import {
   Loader2,
   CheckSquare,
   Building2,
-  ChevronDown
+  ChevronDown,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import DeliveryTaskModal from '@/components/DeliveryTaskModal';
+import DeliveryKanbanBoard from '@/components/DeliveryKanbanBoard';
 import DashboardMappingTab from './components/DashboardMappingTab';
 import DashboardCapacityTab from './components/DashboardCapacityTab';
 import DashboardLevelingTab from './components/DashboardLevelingTab';
@@ -64,6 +67,7 @@ export default function CycleDeliveriesPage({
   const [generatingMonthly, setGeneratingMonthly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [viewMode, setViewMode] = useState<'LIST' | 'KANBAN'>('LIST');
   
   // Grouping State (Monday.com style)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -268,6 +272,22 @@ export default function CycleDeliveriesPage({
     return acc;
   }, {} as Record<string, Delivery[]>);
 
+  const handleKanbanStatusChange = async (deliveryId: string, newStatus: string) => {
+    // Optimistic UI update
+    setDeliveries(prev => prev.map(d => d.id === deliveryId ? { ...d, status: newStatus } : d));
+    
+    try {
+      await apiRequest(`/deliveries/${deliveryId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus, tenantId: id, authorName: 'Usuário Web' })
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao atualizar status.');
+      fetchDeliveries(); // Revert on failure
+    }
+  };
+
   // Estatisticas para o painel de conformidade
   const totalCount = deliveries.length;
   const completedCount = deliveries.filter(d => d.status === 'CONCLUIDA').length;
@@ -418,7 +438,34 @@ export default function CycleDeliveriesPage({
           />
         </div>
 
-        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+        <div className="flex items-center gap-3">
+          {/* View Mode Toggle */}
+          <div className="hidden sm:flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-sm">
+            <button
+              onClick={() => setViewMode('LIST')}
+              className={`p-2 rounded-lg flex items-center justify-center transition-all ${
+                viewMode === 'LIST' 
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+              title="Visualização em Lista"
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('KANBAN')}
+              className={`p-2 rounded-lg flex items-center justify-center transition-all ${
+                viewMode === 'KANBAN' 
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+              title="Visualização Kanban"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
           {[
             { id: 'ALL', label: 'Todas' },
             { id: 'PREVISTA', label: 'Previstas' },
@@ -439,6 +486,7 @@ export default function CycleDeliveriesPage({
             </button>
           ))}
         </div>
+      </div>
       </div>
 
       {/* Modal CRUD */}
@@ -570,6 +618,14 @@ export default function CycleDeliveriesPage({
           <p className="text-slate-500 font-medium mt-2 max-w-sm">
             Nenhuma obrigação corresponde ao filtro selecionado ou a base está vazia. Clique em "Executar Matriz Automática" para popular.
           </p>
+        </div>
+      ) : viewMode === 'KANBAN' ? (
+        <div className="w-full h-[calc(100vh-280px)]">
+          <DeliveryKanbanBoard 
+            deliveries={filteredDeliveries} 
+            onDeliveryClick={openTaskModal} 
+            onStatusChange={handleKanbanStatusChange} 
+          />
         </div>
       ) : (
         <>
