@@ -184,7 +184,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
                   dataKey="deliveries" 
                   radius={[4, 4, 0, 0]} 
                   name="Qtd Entregas"
-                  onClick={(entry) => setSelectedDate(entry.date)}
+                  onClick={(entry: any) => setSelectedDate(entry?.date || entry?.payload?.date)}
                   cursor="pointer"
                 >
                   {
