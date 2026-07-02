@@ -208,7 +208,7 @@ export default function EntregasPage() {
   // Estatisticas para o painel de conformidade
   const totalCount = deliveries.length;
   const completedCount = deliveries.filter(d => d.status === 'CONCLUIDA').length;
-  const pendingCount = deliveries.filter(d => d.status === 'PREVISTA' || d.status === 'ANDAMENTO').length;
+  const pendingCount = deliveries.filter(d => d.status === 'PREVISTA' || d.status === 'ANDAMENTO' || d.status === 'ATRASADA').length;
   const complianceRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
 
   return (
@@ -304,6 +304,7 @@ export default function EntregasPage() {
             { id: 'ALL', label: 'Todas' },
             { id: 'PREVISTA', label: 'Previstas' },
             { id: 'ANDAMENTO', label: 'Em Andamento' },
+            { id: 'ATRASADA', label: 'Atrasadas' },
             { id: 'CONCLUIDA', label: 'Concluídas' },
           ].map(filter => (
             <button
@@ -383,6 +384,7 @@ export default function EntregasPage() {
                     <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
                       <option value="PREVISTA">Prevista</option>
                       <option value="ANDAMENTO">Em Andamento</option>
+                      <option value="ATRASADA">Atrasada</option>
                       <option value="CONCLUIDA">Concluída</option>
                       <option value="INATIVA">Inativa</option>
                     </select>
@@ -479,9 +481,10 @@ export default function EntregasPage() {
                       </span>
                     )}
                     {delivery.status === 'INATIVA' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                        Inativa
-                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">Inativa</span>
+                    )}
+                    {delivery.status === 'ATRASADA' && (
+                      <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold border border-rose-200 dark:border-rose-500/20">Atrasada</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">

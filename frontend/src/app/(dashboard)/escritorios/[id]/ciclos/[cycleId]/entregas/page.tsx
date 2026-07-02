@@ -271,7 +271,7 @@ export default function CycleDeliveriesPage({
   // Estatisticas para o painel de conformidade
   const totalCount = deliveries.length;
   const completedCount = deliveries.filter(d => d.status === 'CONCLUIDA').length;
-  const pendingCount = deliveries.filter(d => d.status === 'PREVISTA' || d.status === 'ANDAMENTO').length;
+  const pendingCount = deliveries.filter(d => d.status === 'PREVISTA' || d.status === 'ANDAMENTO' || d.status === 'ATRASADA').length;
   const complianceRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
 
   return (
@@ -423,6 +423,7 @@ export default function CycleDeliveriesPage({
             { id: 'ALL', label: 'Todas' },
             { id: 'PREVISTA', label: 'Previstas' },
             { id: 'ANDAMENTO', label: 'Em Andamento' },
+            { id: 'ATRASADA', label: 'Atrasadas' },
             { id: 'CONCLUIDA', label: 'Concluídas' },
           ].map(filter => (
             <button
@@ -514,6 +515,7 @@ export default function CycleDeliveriesPage({
                     <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
                       <option value="PREVISTA">Prevista</option>
                       <option value="ANDAMENTO">Em Andamento</option>
+                      <option value="ATRASADA">Atrasada</option>
                       <option value="CONCLUIDA">Concluída</option>
                       <option value="INATIVA">Inativa</option>
                     </select>
@@ -718,6 +720,12 @@ export default function CycleDeliveriesPage({
                           </td>
                           <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800/40 truncate">
                             {delivery.client?.name || '-'}
+                            {delivery.status === 'INATIVA' && (
+                              <span className="ml-2 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">Inativa</span>
+                            )}
+                            {delivery.status === 'ATRASADA' && (
+                              <span className="ml-2 px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold border border-rose-200 dark:border-rose-500/20">Atrasada</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center text-xs font-bold text-slate-600 dark:text-slate-400 border-r border-slate-100 dark:border-slate-800/40 truncate">
                             {delivery.front?.name || '-'}
@@ -740,9 +748,10 @@ export default function CycleDeliveriesPage({
                             <div className={`w-full h-full min-h-[48px] flex items-center justify-center text-[11px] font-black uppercase tracking-wider text-white transition-colors
                               ${delivery.status === 'CONCLUIDA' ? 'bg-emerald-500 hover:bg-emerald-600' : 
                                 delivery.status === 'ANDAMENTO' ? 'bg-amber-500 hover:bg-amber-600' : 
+                                delivery.status === 'ATRASADA' ? 'bg-rose-500 hover:bg-rose-600' : 
                                 delivery.status === 'PREVISTA' ? 'bg-slate-400 hover:bg-slate-500 dark:bg-slate-600' : 'bg-slate-200 text-slate-500'}
                             `}>
-                              {delivery.status === 'CONCLUIDA' ? 'Concluída' : delivery.status === 'ANDAMENTO' ? 'Em Andamento' : delivery.status === 'PREVISTA' ? 'Prevista' : 'Inativa'}
+                              {delivery.status === 'CONCLUIDA' ? 'Concluída' : delivery.status === 'ATRASADA' ? 'Atrasada' : delivery.status === 'ANDAMENTO' ? 'Em Andamento' : delivery.status === 'PREVISTA' ? 'Prevista' : 'Inativa'}
                             </div>
                           </td>
                           <td className="px-4 py-2 text-right">

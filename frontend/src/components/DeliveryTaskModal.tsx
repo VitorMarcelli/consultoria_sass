@@ -318,10 +318,13 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                   Prevista
                 </button>
                 <button 
-                  onClick={() => handleStatusChange('ANDAMENTO')}
-                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${currentStatus === 'ANDAMENTO' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-amber-600 dark:hover:text-amber-500'}`}
+                  onClick={() => handleStatusChange(currentStatus === 'ATRASADA' ? 'ATRASADA' : 'ANDAMENTO')}
+                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap 
+                    ${currentStatus === 'ANDAMENTO' ? 'bg-amber-500 text-white shadow-sm' : 
+                      currentStatus === 'ATRASADA' ? 'bg-rose-500 text-white shadow-sm' : 
+                      'text-slate-500 hover:text-amber-600 dark:hover:text-amber-500'}`}
                 >
-                  Em Andamento
+                  {currentStatus === 'ATRASADA' ? 'Atrasada' : 'Em Andamento'}
                 </button>
                 <button 
                   onClick={() => handleStatusChange('CONCLUIDA')}

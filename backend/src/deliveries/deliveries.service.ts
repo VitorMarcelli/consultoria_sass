@@ -366,13 +366,39 @@ export class DeliveriesService {
     // Soma o tempo na entrega
     const delivery = await tenantPrisma.delivery.findUnique({ where: { id: deliveryId } });
     const currentRealTime = delivery?.realTimeMinutes || 0;
+    const newRealTimeMinutes = currentRealTime + durationMinutes;
+
+    let newStatus = delivery?.status;
+    let becameOverdue = false;
+
+    if (
+      delivery?.estimatedTimeMinutes && 
+      delivery?.status !== 'CONCLUIDA' && 
+      delivery?.status !== 'ATRASADA' && 
+      newRealTimeMinutes > delivery.estimatedTimeMinutes
+    ) {
+      newStatus = 'ATRASADA';
+      becameOverdue = true;
+    }
 
     await tenantPrisma.delivery.update({
       where: { id: deliveryId },
       data: {
-        realTimeMinutes: currentRealTime + durationMinutes
+        realTimeMinutes: newRealTimeMinutes,
+        status: newStatus
       }
     });
+
+    if (becameOverdue) {
+      await tenantPrisma.deliveryHistory.create({
+        data: {
+          deliveryId,
+          action: 'STATUS_CHANGED',
+          description: `Status alterado automaticamente para ATRASADA (tempo limite excedido)`,
+          authorName: 'Sistema (Timer)'
+        }
+      });
+    }
 
     return finishedLog;
   }

@@ -60,7 +60,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    const statusMap: Record<string, string> = { 'COMPLETED': 'CONCLUIDA', 'LATE': 'ANDAMENTO', 'PENDING': 'PREVISTA' };
+    const statusMap: Record<string, string> = { 'COMPLETED': 'CONCLUIDA', 'LATE': 'ATRASADA', 'PENDING': 'PREVISTA' };
     const mapped = statusMap[newStatus] || newStatus;
     
     try {
@@ -185,6 +185,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
   const StatusIcon = () => {
     switch (status) {
       case 'CONCLUIDA': return <CheckCircle2 className="w-10 h-10 text-emerald-300 drop-shadow-md" />;
+      case 'ATRASADA': return <AlertCircle className="w-10 h-10 text-rose-300 drop-shadow-md" />;
       case 'INATIVA': 
       case 'LATE': return <AlertCircle className="w-10 h-10 text-rose-300 drop-shadow-md" />;
       default: return <Clock className="w-10 h-10 text-amber-300 drop-shadow-md" />;
@@ -225,7 +226,16 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
               {status === 'LATE' && (
                 <div className="absolute bottom-[-20%] left-[-10%] w-[80%] h-[80%] bg-gradient-to-tr from-rose-500/20 via-transparent to-transparent blur-3xl pointer-events-none"></div>
               )}
-              {status !== 'CONCLUIDA' && status !== 'LATE' && (
+              {status === 'ATRASADA' && (
+                <div className="flex items-center gap-2 mt-4 px-3 py-1.5 bg-rose-500/20 border border-rose-400/30 rounded-lg w-fit backdrop-blur-sm">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                  <span className="text-xs font-bold text-rose-100 tracking-wide">ATRASADA</span>
+                </div>
+              )}
+              {status !== 'CONCLUIDA' && status !== 'ATRASADA' && (
                 <div className="absolute bottom-[-20%] left-[-10%] w-[80%] h-[80%] bg-gradient-to-tr from-amber-500/20 via-transparent to-transparent blur-3xl pointer-events-none"></div>
               )}
               
@@ -242,7 +252,7 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
                   <div className="w-20 h-20 rounded-[1.5rem] bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl shadow-2xl relative overflow-hidden group">
                     <div className={`absolute inset-0 bg-gradient-to-tr to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${
                       status === 'CONCLUIDA' ? 'from-emerald-400/20' : 
-                      status === 'LATE' ? 'from-rose-400/20' : 'from-amber-400/20'
+                      status === 'ATRASADA' ? 'from-rose-400/20' : 'from-amber-400/20'
                     }`}></div>
                     <StatusIcon />
                   </div>
@@ -254,17 +264,21 @@ export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusC
                     <div className="flex bg-slate-900/50 p-1 rounded-xl w-fit border border-slate-700/50 mb-3 shadow-inner">
                       <button 
                         onClick={() => handleStatusChange('PREVISTA')} 
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${status !== 'CONCLUIDA' && status !== 'LATE' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${status === 'PREVISTA' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'}`}
                       >
-                        {status !== 'CONCLUIDA' && status !== 'LATE' && <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>}
+                        {status === 'PREVISTA' && <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>}
                         PREVISTA
                       </button>
                       <button 
-                        onClick={() => handleStatusChange('LATE')} 
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${status === 'LATE' ? 'bg-amber-500/20 text-amber-400 shadow-md border border-amber-500/20' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                        onClick={() => handleStatusChange(status === 'ATRASADA' ? 'ATRASADA' : 'ANDAMENTO')} 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all 
+                          ${status === 'ANDAMENTO' ? 'bg-amber-500/20 text-amber-400 shadow-md border border-amber-500/20' : 
+                            status === 'ATRASADA' ? 'bg-rose-500/20 text-rose-400 shadow-md border border-rose-500/20' : 
+                            'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'}`}
                       >
-                        {status === 'LATE' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>}
-                        ANDAMENTO
+                        {status === 'ANDAMENTO' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>}
+                        {status === 'ATRASADA' && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>}
+                        {status === 'ATRASADA' ? 'ATRASADA' : 'ANDAMENTO'}
                       </button>
                       <button 
                         onClick={() => handleStatusChange('COMPLETED')} 
