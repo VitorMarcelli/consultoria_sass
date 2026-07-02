@@ -14,7 +14,6 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
   const [fronts, setFronts] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
     const fetchFronts = async () => {
       try {
         const frontsData = await apiRequest(`/structures/fronts?tenantId=${tenantId}`);
