@@ -90,14 +90,11 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
     );
   }
 
-  if (!data) return null;
-
   // Calcula media ideal
-  const totalDeliveries = data.timeline.reduce((acc: number, curr: any) => acc + curr.deliveries, 0);
-  const avgDeliveries = data.timeline.length > 0 ? Math.round(totalDeliveries / data.timeline.length) : 0;
+  const totalDeliveries = data ? data.timeline.reduce((acc: number, curr: any) => acc + curr.deliveries, 0) : 0;
+  const avgDeliveries = data && data.timeline.length > 0 ? Math.round(totalDeliveries / data.timeline.length) : 0;
 
-
-  const hasData = data.timeline.length > 0;
+  const hasData = data && data.timeline.length > 0;
 
   const deliveriesToMove = selectedDate && data ? data.deliveriesList.filter((d: any) => {
     if (!d.executionDeadline) return false;

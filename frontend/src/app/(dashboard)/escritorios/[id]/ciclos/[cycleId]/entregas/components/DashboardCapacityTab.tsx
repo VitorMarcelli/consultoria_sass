@@ -46,18 +46,16 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
-        <p className="text-sm font-bold text-slate-500 mt-4">Carregando Tempos e Capacidade...</p>
+        <p className="text-sm font-bold text-slate-500 mt-4">Carregando Capacidade Operacional...</p>
       </div>
     );
   }
 
-  if (!data) return null;
-
-  const hasData = data.capacityData && data.capacityData.length > 0;
+  const hasData = data && data.capacityData && data.capacityData.length > 0;
 
   return (
     <div className="space-y-6">

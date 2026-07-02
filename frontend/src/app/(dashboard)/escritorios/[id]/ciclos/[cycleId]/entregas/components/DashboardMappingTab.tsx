@@ -49,7 +49,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
@@ -58,9 +58,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
     );
   }
 
-  if (!data) return null;
-
-  const hasData = data.statusData?.total > 0;
+  const hasData = data && data.statusData?.total > 0;
 
   return (
     <div className="space-y-6">
