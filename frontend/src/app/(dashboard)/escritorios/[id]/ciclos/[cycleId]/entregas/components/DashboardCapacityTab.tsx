@@ -15,13 +15,14 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
 
   useEffect(() => {
     const fetchData = async () => {
+    const fetchFronts = async () => {
       try {
         const frontsData = await apiRequest(`/structures/fronts?tenantId=${tenantId}`);
         setFronts(frontsData);
         if (frontsData.length > 0) {
           const firstFrontId = frontsData[0].id;
           setActiveFront(firstFrontId);
-          const dashData = await apiRequest(`/dashboard/capacity/${cycleId}/${firstFrontId}`);
+          const dashData = await apiRequest(`/dashboard/capacity/${cycleId}/${firstFrontId}?tenantId=${tenantId}`);
           setData(dashData);
         }
       } catch (err) {
@@ -30,14 +31,14 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
         setLoading(false);
       }
     };
-    fetchData();
-  }, [tenantId, cycleId]);
+    if (cycleId && tenantId) fetchFronts();
+  }, [cycleId, tenantId]);
 
   const loadFrontData = async (frontId: string) => {
     setLoading(true);
     setActiveFront(frontId);
     try {
-      const dashData = await apiRequest(`/dashboard/capacity/${cycleId}/${frontId}`);
+      const dashData = await apiRequest(`/dashboard/capacity/${cycleId}/${frontId}?tenantId=${tenantId}`);
       setData(dashData);
     } catch (err) {
       console.error(err);

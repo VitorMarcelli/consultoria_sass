@@ -24,7 +24,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
         if (frontsData.length > 0) {
           const firstFrontId = frontsData[0].id;
           setActiveFront(firstFrontId);
-          const dashData = await apiRequest(`/dashboard/cycle-mapping/${cycleId}/${firstFrontId}`);
+          const dashData = await apiRequest(`/dashboard/cycle-mapping/${cycleId}/${firstFrontId}?tenantId=${tenantId}`);
           setData(dashData);
         }
       } catch (err) {
@@ -40,7 +40,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
     setLoading(true);
     setActiveFront(frontId);
     try {
-      const dashData = await apiRequest(`/dashboard/cycle-mapping/${cycleId}/${frontId}`);
+      const dashData = await apiRequest(`/dashboard/cycle-mapping/${cycleId}/${frontId}?tenantId=${tenantId}`);
       setData(dashData);
     } catch (err) {
       console.error(err);

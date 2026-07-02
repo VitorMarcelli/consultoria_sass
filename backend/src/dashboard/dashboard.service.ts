@@ -1,9 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PrismaClientManager } from '../prisma/prisma-client-manager';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly prismaManager: PrismaClientManager,
+  ) {}
+
+  private getTenantPrisma(tenantId: string) {
+    if (!tenantId) throw new NotFoundException('ID do escritório não informado.');
+    const schemaName = `tenant_${tenantId.replace(/-/g, '_')}`;
+    return this.prismaManager.getClient(schemaName);
+  }
 
   private async getCompetenceFromCycle(cycleId: string): Promise<string> {
     const cycle = await this.prisma.managementCycle.findUnique({ where: { id: cycleId } });
@@ -12,11 +22,12 @@ export class DashboardService {
     return `${monthStr}/${cycle.year}`;
   }
 
-  async getCycleMapping(cycleId: string, frontId: string) {
+  async getCycleMapping(tenantId: string, cycleId: string, frontId: string) {
     const competence = await this.getCompetenceFromCycle(cycleId);
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
     
     // Busca entregas deste ciclo e frente
-    const deliveries = await this.prisma.delivery.findMany({
+    const deliveries = await tenantPrisma.delivery.findMany({
       where: { frontId, competence },
       include: {
         client: true,
@@ -77,17 +88,18 @@ export class DashboardService {
     };
   }
 
-  async getCapacityPlanning(cycleId: string, frontId: string) {
+  async getCapacityPlanning(tenantId: string, cycleId: string, frontId: string) {
     const competence = await this.getCompetenceFromCycle(cycleId);
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
 
     // 1. Buscamos todas as alocações da equipe na frente deste ciclo
-    const allocations = await this.prisma.employeeCycleAllocation.findMany({
+    const allocations = await tenantPrisma.employeeCycleAllocation.findMany({
       where: { cycleId, frontId, status: 'ACTIVE' },
       include: { employee: true }
     });
 
     // 2. Buscamos as entregas do ciclo/frente
-    const deliveries = await this.prisma.delivery.findMany({
+    const deliveries = await tenantPrisma.delivery.findMany({
       where: { frontId, competence },
       include: { responsible: true }
     });
@@ -118,11 +130,12 @@ export class DashboardService {
     };
   }
 
-  async getDailyLeveling(cycleId: string, frontId: string) {
+  async getDailyLeveling(tenantId: string, cycleId: string, frontId: string) {
     const competence = await this.getCompetenceFromCycle(cycleId);
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
 
     // Busca todas as entregas do ciclo/frente para montar o Gráfico Heijunka
-    const deliveries = await this.prisma.delivery.findMany({
+    const deliveries = await tenantPrisma.delivery.findMany({
       where: { frontId, competence },
       include: {
         responsible: true,
@@ -152,11 +165,12 @@ export class DashboardService {
     };
   }
 
-  async rescheduleBulkDeliveries(deliveryIds: string[], newDateStr: string) {
+  async rescheduleBulkDeliveries(tenantId: string, deliveryIds: string[], newDateStr: string) {
     const newDate = new Date(newDateStr); // YYYY-MM-DD
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
     
     // Atualiza o executionDeadline em lote
-    await this.prisma.delivery.updateMany({
+    await tenantPrisma.delivery.updateMany({
       where: {
         id: { in: deliveryIds }
       },

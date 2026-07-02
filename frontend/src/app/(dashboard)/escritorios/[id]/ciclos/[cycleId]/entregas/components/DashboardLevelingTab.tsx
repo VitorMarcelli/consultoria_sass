@@ -39,7 +39,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
     setLoading(true);
     setActiveFront(frontId);
     try {
-      const dashData = await apiRequest(`/dashboard/leveling/${cycleId}/${frontId}`);
+      const dashData = await apiRequest(`/dashboard/leveling/${cycleId}/${frontId}?tenantId=${tenantId}`);
       setData(dashData);
     } catch (err) {
       console.error(err);
@@ -69,7 +69,7 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
     try {
       await apiRequest(`/dashboard/leveling/reschedule`, {
         method: 'PATCH',
-        body: JSON.stringify({ deliveryIds: ids, newExecutionDate: targetDate })
+        body: JSON.stringify({ deliveryIds: ids, newExecutionDate: targetDate, tenantId })
       });
       alert(`Sucesso! ${ids.length} entregas foram reagendadas.`);
       await loadLevelingData(activeFront); // Reload
