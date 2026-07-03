@@ -46,14 +46,6 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
     }
   };
 
-  if (loading && !data) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
-        <p className="text-sm font-bold text-slate-500 mt-4">Carregando Capacidade Operacional...</p>
-      </div>
-    );
-  }
 
   const hasData = data && data.capacityData && data.capacityData.length > 0;
 
@@ -78,7 +70,12 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
         </div>
       </div>
 
-      {!hasData ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
+          <p className="text-sm font-bold text-slate-500 mt-4">Carregando Capacidade Operacional...</p>
+        </div>
+      ) : !hasData ? (
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
