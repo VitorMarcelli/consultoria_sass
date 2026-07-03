@@ -63,6 +63,8 @@ export default function CycleDeliveriesPage({
 }) {
   const { id, cycleId } = use(params);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [globalCapacity, setGlobalCapacity] = useState<any[]>([]);
+  const [showIdleMembers, setShowIdleMembers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generatingMonthly, setGeneratingMonthly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,6 +125,12 @@ export default function CycleDeliveriesPage({
       const cycleDeliveries = cycleCompetence ? data.filter((d: any) => d.competence === cycleCompetence) : data;
       
       setDeliveries(cycleDeliveries);
+
+      // 4) Busca dados globais de capacidade
+      const capData = await apiRequest(`/dashboard/capacity/${cycleId}/all?tenantId=${id}`).catch(() => null);
+      if (capData && capData.capacityData) {
+        setGlobalCapacity(capData.capacityData);
+      }
     } catch (err: unknown) {
       console.error(err);
     } finally {
@@ -309,6 +317,12 @@ export default function CycleDeliveriesPage({
   const pendingCount = deliveries.filter(d => d.status === 'PREVISTA' || d.status === 'ANDAMENTO' || d.status === 'ATRASADA').length;
   const complianceRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
 
+  // Estatisticas para o painel de Ociosidade Global
+  const totalAvailable = globalCapacity.reduce((acc, curr) => acc + (curr.available || 0), 0);
+  const totalAllocated = globalCapacity.reduce((acc, curr) => acc + (curr.recurrent || 0) + (curr.extra || 0) + (curr.rework || 0), 0);
+  const totalIdle = Math.max(0, totalAvailable - totalAllocated);
+  const idlePercentage = totalAvailable > 0 ? Math.round((totalIdle / totalAvailable) * 100) : 0;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
@@ -425,8 +439,79 @@ export default function CycleDeliveriesPage({
               <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">{pendingCount}</span>
               <span className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider mt-1">Em Andamento</span>
             </div>
+            
+            <div 
+              onClick={() => setShowIdleMembers(!showIdleMembers)}
+              className={`flex-1 sm:flex-none p-6 rounded-2xl flex flex-col items-center text-center min-w-[140px] shadow-sm relative cursor-pointer transition-all ${
+                showIdleMembers 
+                  ? 'bg-rose-50 dark:bg-rose-900/30 border-2 border-rose-500 shadow-md scale-105' 
+                  : 'bg-rose-50/50 dark:bg-rose-500/10 border border-rose-500/20 hover:bg-rose-50 dark:hover:bg-rose-500/20'
+              }`}
+              title="Clique para ver os membros ociosos"
+            >
+              <span className="text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight">{Math.floor(totalIdle)}h</span>
+              <span className="text-xs font-bold text-rose-600 dark:text-rose-500 uppercase tracking-wider mt-1 flex items-center gap-1">
+                Tempo Livre
+              </span>
+              <div className="absolute -top-2 -right-2 flex items-center justify-center px-2 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black shadow-sm">
+                {idlePercentage}% OCIOSO
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Painel Expansível de Membros Ociosos */}
+        <AnimatePresence>
+          {showIdleMembers && (
+            <motion.div
+              initial={{ height: 0, opacity: 0, marginTop: 0 }}
+              animate={{ height: 'auto', opacity: 1, marginTop: 24 }}
+              exit={{ height: 0, opacity: 0, marginTop: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-rose-800 dark:text-rose-300 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    Membros com Capacidade Livre
+                  </h3>
+                  <button 
+                    onClick={() => {
+                       // Abre o modal para delegar ou criar tarefa extra
+                       setFormData({...formData, status: 'PREVISTA', priority: 'MEDIUM'});
+                       setSelectedDelivery(null);
+                       setIsModalOpen(true);
+                    }}
+                    className="text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-xl transition-colors shadow-sm"
+                  >
+                    + Preencher Ociosidade
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {globalCapacity
+                    .map(c => {
+                      const allocated = (c.recurrent || 0) + (c.extra || 0) + (c.rework || 0);
+                      const idle = Math.max(0, (c.available || 0) - allocated);
+                      return { ...c, idle };
+                    })
+                    .filter(c => c.idle > 0)
+                    .sort((a, b) => b.idle - a.idle)
+                    .map((emp, idx) => (
+                      <div key={idx} className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{emp.employee}</span>
+                        <span className="text-xs font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-md">{emp.idle}h livres</span>
+                      </div>
+                    ))}
+                  {globalCapacity.filter(c => Math.max(0, (c.available || 0) - ((c.recurrent || 0) + (c.extra || 0) + (c.rework || 0))) > 0).length === 0 && (
+                    <div className="col-span-full text-center text-sm font-medium text-slate-500 py-4">
+                      A equipe está 100% alocada! Nenhum tempo ocioso.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Novo Modal Centralizado estilo Trello */}
@@ -562,7 +647,19 @@ export default function CycleDeliveriesPage({
                           const allowed = [currentClassification.operator1Id, currentClassification.operator2Id, currentClassification.leaderId];
                           return allowed.includes(emp.id);
                         })
-                        .map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)
+                        .map(emp => {
+                          const cap = globalCapacity.find(c => c.employee === emp.name);
+                          let idleText = '';
+                          if (cap) {
+                            const idle = Math.max(0, (cap.available || 0) - ((cap.recurrent || 0) + (cap.extra || 0) + (cap.rework || 0)));
+                            idleText = ` (${idle}h livres)`;
+                          }
+                          return (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.name}{idleText}
+                            </option>
+                          );
+                        })
                       }
                     </select>
                   </div>
