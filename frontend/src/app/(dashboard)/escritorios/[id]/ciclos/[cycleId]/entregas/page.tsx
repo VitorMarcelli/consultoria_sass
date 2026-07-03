@@ -155,7 +155,7 @@ export default function CycleDeliveriesPage({
         clientId: '',
         frontId: '',
         responsibleId: '',
-        competence: new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }),
+        competence: cycleComp || new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }),
         originalName: '',
         standardizedName: '',
         status: 'PREVISTA',
