@@ -18,8 +18,8 @@ export class DeliveriesController {
   }
 
   @Post('generate-monthly')
-  generateMonthlyDeliveries(@Body('tenantId') tenantId: string) {
-    return this.deliveriesService.generateMonthlyDeliveries(tenantId);
+  generateMonthlyDeliveries(@Body('tenantId') tenantId: string, @Body('targetCompetence') targetCompetence?: string) {
+    return this.deliveriesService.generateMonthlyDeliveries(tenantId, targetCompetence);
   }
 
   @Post()

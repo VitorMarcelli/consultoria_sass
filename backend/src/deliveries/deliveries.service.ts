@@ -103,12 +103,15 @@ export class DeliveriesService {
     }
   }
 
-  async generateMonthlyDeliveries(tenantId: string) {
+  async generateMonthlyDeliveries(tenantId: string, targetCompetence?: string) {
     const tenantPrisma = await this.getTenantPrisma(tenantId);
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const competence = `${month}/${year}`;
+    let competence = targetCompetence;
+    if (!competence) {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+      competence = `${month}/${year}`;
+    }
 
     // Garante que existe o ciclo ou checa
     const templates = await tenantPrisma.deliveryTemplate.findMany();

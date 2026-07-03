@@ -87,6 +87,7 @@ export default function CycleDeliveriesPage({
   const [submitting, setSubmitting] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '' });
+  const [cycleComp, setCycleComp] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [clients, setClients] = useState<any[]>([]);
@@ -112,6 +113,7 @@ export default function CycleDeliveriesPage({
       if (cycleData) {
         const mm = String(cycleData.month).padStart(2, '0');
         cycleCompetence = `${mm}/${cycleData.year}`;
+        setCycleComp(cycleCompetence);
       }
 
       // 2) Traz as entregas atreladas ao tenant (escritorio)
@@ -246,9 +248,10 @@ export default function CycleDeliveriesPage({
   const handleGenerateMonthly = async () => {
     setGeneratingMonthly(true);
     try {
+      // Utiliza a competência do ciclo atual para gerar as entregas, em vez do mês atual da máquina.
       const res = await apiRequest(`/deliveries/generate-monthly`, {
         method: 'POST',
-        body: JSON.stringify({ tenantId: id })
+        body: JSON.stringify({ tenantId: id, targetCompetence: cycleComp }) // Precisamos da competência
       });
       alert(`Matriz de Conformidade executada! ${res.generatedCount} novas entregas geradas a partir dos templates ativos para o ciclo.`);
       fetchDeliveries();
