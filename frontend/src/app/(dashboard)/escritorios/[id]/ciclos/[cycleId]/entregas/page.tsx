@@ -107,7 +107,7 @@ export default function CycleDeliveriesPage({
   const fetchDeliveries = async () => {
     try {
       // 1) Busca os dados do ciclo para saber a competência
-      const cycleData = await apiRequest(`/cycles/${cycleId}?tenantId=${id}`).catch(() => null);
+      const cycleData = await apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`).catch(() => null);
       let cycleCompetence = '';
       if (cycleData) {
         const mm = String(cycleData.month).padStart(2, '0');
