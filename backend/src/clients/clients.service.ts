@@ -336,6 +336,10 @@ export class ClientsService {
     }
 
     const updateData: any = { ...data };
+    delete updateData.tenantId;
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
     
     if (data.foundationDate !== undefined) {
       updateData.foundationDate = (data.foundationDate?.toString().trim() === '') ? null : new Date(data.foundationDate);
