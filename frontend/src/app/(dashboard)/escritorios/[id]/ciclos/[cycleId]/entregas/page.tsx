@@ -106,9 +106,21 @@ export default function CycleDeliveriesPage({
 
   const fetchDeliveries = async () => {
     try {
-      // Traz as entregas atreladas ao tenant (escritorio)
+      // 1) Busca os dados do ciclo para saber a competência
+      const cycleData = await apiRequest(`/cycles/${cycleId}?tenantId=${id}`).catch(() => null);
+      let cycleCompetence = '';
+      if (cycleData) {
+        const mm = String(cycleData.month).padStart(2, '0');
+        cycleCompetence = `${mm}/${cycleData.year}`;
+      }
+
+      // 2) Traz as entregas atreladas ao tenant (escritorio)
       const data = await apiRequest(`/deliveries?tenantId=${id}`).catch(() => []);
-      setDeliveries(data);
+      
+      // 3) Filtra apenas as entregas deste ciclo (mesma competência)
+      const cycleDeliveries = cycleCompetence ? data.filter((d: any) => d.competence === cycleCompetence) : data;
+      
+      setDeliveries(cycleDeliveries);
     } catch (err: unknown) {
       console.error(err);
     } finally {
