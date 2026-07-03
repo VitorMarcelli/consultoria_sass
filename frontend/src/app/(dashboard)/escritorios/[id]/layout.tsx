@@ -112,7 +112,7 @@ export default function EscritorioLayout({
   ];
 
   return (
-    <div className="space-y-0 max-w-7xl mx-auto pb-12">
+    <div className="space-y-0 w-full max-w-[1800px] mx-auto pb-12">
       {/* Top Header - Transparent & Sleek */}
       <div className="mb-10 px-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
