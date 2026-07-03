@@ -14,7 +14,7 @@ export class ManagementCyclesService {
   async findAll(tenantId: string) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.managementCycle.findMany({
-      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      orderBy: [{ year: 'asc' }, { month: 'asc' }],
     });
   }
 
