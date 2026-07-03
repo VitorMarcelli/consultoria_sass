@@ -413,7 +413,7 @@ export default function CycleDeliveriesPage({
         transition={{ delay: 0.1 }}
         className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden"
       >
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+        <div className="relative z-10 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8">
           <div className="flex flex-col gap-2 max-w-xl">
             <span className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-[0.2em] bg-teal-500/10 px-3 py-1 rounded-full w-max border border-teal-500/20">
               Índice de Conformidade do Ciclo
@@ -426,7 +426,7 @@ export default function CycleDeliveriesPage({
             </p>
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-4 w-full lg:w-auto">
+          <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full xl:w-auto">
             <div className="flex-1 sm:flex-none p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center text-center min-w-[140px] shadow-sm">
               <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">{totalCount}</span>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Total Mapeado</span>
@@ -453,7 +453,7 @@ export default function CycleDeliveriesPage({
               <span className="text-xs font-bold text-rose-600 dark:text-rose-500 uppercase tracking-wider mt-1 flex items-center gap-1">
                 Tempo Livre
               </span>
-              <div className="absolute -top-2 -right-2 flex items-center justify-center px-2 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black shadow-sm">
+              <div className="absolute top-0 right-0 flex items-center justify-center px-2 py-1 rounded-bl-xl rounded-tr-2xl bg-rose-500 text-white text-[10px] font-black shadow-sm">
                 {idlePercentage}% OCIOSO
               </div>
             </div>
