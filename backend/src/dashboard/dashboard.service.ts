@@ -93,15 +93,20 @@ export class DashboardService {
     const competence = await this.getCompetenceFromCycle(tenantId, cycleId);
     const tenantPrisma = await this.getTenantPrisma(tenantId);
 
-    // 1. Buscamos todas as alocações da equipe na frente deste ciclo
+    const allocWhere = frontId === 'all' ? { cycleId, status: 'ACTIVE' } : { cycleId, frontId, status: 'ACTIVE' };
     const allocations = await tenantPrisma.employeeCycleAllocation.findMany({
-      where: { cycleId, frontId, status: 'ACTIVE' },
+      where: allocWhere,
       include: { employee: true }
     });
 
-    // 2. Buscamos as entregas do ciclo/frente
+    const uniqueEmployees = new Map();
+    allocations.forEach(a => uniqueEmployees.set(a.employeeId, a));
+    const uniqueAllocations = Array.from(uniqueEmployees.values());
+
+    // 2. Buscamos as entregas do ciclo
+    const delWhere = frontId === 'all' ? { competence } : { frontId, competence };
     const deliveries = await tenantPrisma.delivery.findMany({
-      where: { frontId, competence },
+      where: delWhere,
       include: { responsible: true }
     });
 
@@ -112,7 +117,7 @@ export class DashboardService {
       timeByEmployee.set(empId, (timeByEmployee.get(empId) || 0) + time);
     });
 
-    const capacityData = allocations.map(alloc => {
+    const capacityData = uniqueAllocations.map(alloc => {
       const availableHours = (alloc.dailyAvailableTime || 8) * 21; // ex: 21 dias uteis no mes
       const estimatedMinutes = timeByEmployee.get(alloc.employeeId) || 0;
       const estimatedHours = Math.floor(estimatedMinutes / 60);
