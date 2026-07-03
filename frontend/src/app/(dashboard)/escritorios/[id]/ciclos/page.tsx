@@ -61,7 +61,14 @@ export default function GestaoCiclosPage({ params }: { params: Promise<{ id: str
           year: Number(newYear)
         })
       });
-      setCycles([result, ...cycles]);
+      setCycles(prev => {
+        const updated = [...prev, result];
+        updated.sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.month - b.month;
+        });
+        return updated;
+      });
       setIsModalOpen(false);
       alert('Novo ciclo criado e carteira clonada com sucesso!');
     } catch (err: any) {
