@@ -155,8 +155,11 @@ export class DeliveriesService {
         if (!exists) {
           let legalDeadline: Date | undefined = undefined;
           if (template.baseLegalDeadlineDays) {
-            // Calcula o vencimento para o mês seguinte
-            legalDeadline = new Date(year, now.getMonth() + 1, template.baseLegalDeadlineDays);
+            // Calcula o vencimento para o mês seguinte baseado na competência
+            const [compMonthStr, compYearStr] = competence.split('/');
+            const compYearNum = Number(compYearStr);
+            const compMonthNum = Number(compMonthStr) - 1; // 0-indexed month
+            legalDeadline = new Date(compYearNum, compMonthNum + 1, template.baseLegalDeadlineDays);
           }
 
           await tenantPrisma.delivery.create({
