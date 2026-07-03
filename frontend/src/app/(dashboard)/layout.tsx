@@ -44,7 +44,7 @@ export default function DashboardLayout({
       }`}>
         <Header onToggleSidebar={() => setSidebarOpen(true)} isTopbar={isTopbar} />
         <main className="flex-1 overflow-y-auto p-6 lg:p-10 relative custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto w-full max-w-[1800px]">
             {children}
           </div>
         </main>
