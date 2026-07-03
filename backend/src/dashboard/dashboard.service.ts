@@ -15,15 +15,16 @@ export class DashboardService {
     return this.prismaManager.getClient(schemaName);
   }
 
-  private async getCompetenceFromCycle(cycleId: string): Promise<string> {
-    const cycle = await this.prisma.managementCycle.findUnique({ where: { id: cycleId } });
+  private async getCompetenceFromCycle(tenantId: string, cycleId: string): Promise<string> {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const cycle = await tenantPrisma.managementCycle.findUnique({ where: { id: cycleId } });
     if (!cycle) throw new Error('Cycle not found');
     const monthStr = cycle.month.toString().padStart(2, '0');
     return `${monthStr}/${cycle.year}`;
   }
 
   async getCycleMapping(tenantId: string, cycleId: string, frontId: string) {
-    const competence = await this.getCompetenceFromCycle(cycleId);
+    const competence = await this.getCompetenceFromCycle(tenantId, cycleId);
     const tenantPrisma = await this.getTenantPrisma(tenantId);
     
     // Busca entregas deste ciclo e frente
@@ -89,7 +90,7 @@ export class DashboardService {
   }
 
   async getCapacityPlanning(tenantId: string, cycleId: string, frontId: string) {
-    const competence = await this.getCompetenceFromCycle(cycleId);
+    const competence = await this.getCompetenceFromCycle(tenantId, cycleId);
     const tenantPrisma = await this.getTenantPrisma(tenantId);
 
     // 1. Buscamos todas as alocações da equipe na frente deste ciclo
@@ -131,7 +132,7 @@ export class DashboardService {
   }
 
   async getDailyLeveling(tenantId: string, cycleId: string, frontId: string) {
-    const competence = await this.getCompetenceFromCycle(cycleId);
+    const competence = await this.getCompetenceFromCycle(tenantId, cycleId);
     const tenantPrisma = await this.getTenantPrisma(tenantId);
 
     // Busca todas as entregas do ciclo/frente para montar o Gráfico Heijunka
