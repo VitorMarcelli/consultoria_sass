@@ -116,51 +116,58 @@ export default function DeliveryKanbanBoard({ deliveries, onDeliveryClick, onSta
                               }`} 
                             />
                             
-                            <div className="flex justify-between items-start mb-3 mt-1">
+                            <div className="flex justify-between items-start mt-1">
                               <div>
                                 <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug line-clamp-2">
                                   {delivery.standardizedName || delivery.originalName}
                                 </h4>
-                                <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-1">
-                                  {delivery.front?.name || 'Sem frente'}
-                                </p>
                               </div>
-                              <button className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-indigo-500 transition-opacity p-1">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </button>
-                            </div>
-
-                            <div className="space-y-2 mt-4">
-                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 w-fit px-2 py-1 rounded-md">
-                                <Building2 className="w-3.5 h-3.5" />
-                                <span className="font-semibold truncate max-w-[150px]">{delivery.client?.name || 'Sem Cliente'}</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                <User className="w-3.5 h-3.5" />
-                                <span className="font-medium truncate">{delivery.responsible?.name || 'Não atribuído'}</span>
+                              {/* Icons always visible */}
+                              <div className="flex items-center gap-1 shrink-0 ml-2">
+                                {delivery.priority === 'HIGH' && (
+                                  <div className="w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center text-rose-500" title="Alta Prioridade">
+                                    <AlertCircle className="w-3 h-3" />
+                                  </div>
+                                )}
+                                {delivery.timeLogs?.some((log: any) => log.status === 'RUNNING') && (
+                                  <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-amber-500" title="Timer Rodando">
+                                    <PlayCircle className="w-3 h-3 animate-pulse" />
+                                  </div>
+                                )}
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                            {/* Expandable Section */}
+                            <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out">
+                              <div className="overflow-hidden">
+                                <div className="pt-3 pb-1 space-y-2">
+                                  <p className="text-xs text-slate-500 font-medium line-clamp-1">
+                                    {delivery.front?.name || 'Sem frente'}
+                                  </p>
+                                  
+                                  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 w-fit px-2 py-1 rounded-md">
+                                    <Building2 className="w-3.5 h-3.5" />
+                                    <span className="font-semibold truncate max-w-[150px]">{delivery.client?.name || 'Sem Cliente'}</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                    <User className="w-3.5 h-3.5" />
+                                    <span className="font-medium truncate">{delivery.responsible?.name || 'Não atribuído'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Competence - Always visible at bottom */}
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
                                 <Clock className="w-3.5 h-3.5" />
                                 <span>{delivery.competence}</span>
                               </div>
                               
-                              {/* Icon indicators */}
-                              <div className="flex items-center gap-1">
-                                {delivery.priority === 'HIGH' && (
-                                  <div className="w-6 h-6 rounded-full bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center text-rose-500" title="Alta Prioridade">
-                                    <AlertCircle className="w-3 h-3" />
-                                  </div>
-                                )}
-                                {delivery.timeLogs?.some((log: any) => log.status === 'RUNNING') && (
-                                  <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-amber-500" title="Timer Rodando">
-                                    <PlayCircle className="w-3 h-3 animate-pulse" />
-                                  </div>
-                                )}
-                              </div>
+                              <button className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-indigo-500 transition-opacity p-1">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
                         )}
