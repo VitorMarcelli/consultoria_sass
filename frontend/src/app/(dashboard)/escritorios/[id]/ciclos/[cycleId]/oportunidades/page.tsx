@@ -103,6 +103,7 @@ export default function CycleOpportunitiesPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('ALL');
+  const [chartMonthsFilter, setChartMonthsFilter] = useState('6');
 
   // Modal Novo/Edicao
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -408,11 +409,22 @@ export default function CycleOpportunitiesPage({
                     <BarChart3 className="w-5 h-5 text-amber-500" />
                     Histórico de Honorários vs Custos (Real)
                   </h3>
-                  <span className="text-xs font-bold text-slate-500 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">Últimos 6 Meses</span>
+                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+                    <Calendar className="w-3 h-3 text-slate-500" />
+                    <select 
+                      value={chartMonthsFilter}
+                      onChange={(e) => setChartMonthsFilter(e.target.value)}
+                      className="bg-transparent text-xs font-bold text-slate-500 outline-none cursor-pointer"
+                    >
+                      <option value="6">Últimos 6 Meses</option>
+                      <option value="3">Últimos 3 Meses</option>
+                      <option value="1">Último Mês</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={dashboardData.charts.evolution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={dashboardData.charts.evolution.slice(-parseInt(chartMonthsFilter))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
