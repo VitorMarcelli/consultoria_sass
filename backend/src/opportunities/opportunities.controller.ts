@@ -12,6 +12,11 @@ export class OpportunitiesController {
     return this.opportunitiesService.findAll(tenantId, clientId);
   }
 
+  @Get('dashboard')
+  getDashboard(@Query('tenantId') tenantId: string) {
+    return this.opportunitiesService.getDashboardData(tenantId);
+  }
+
   @Post('scan')
   scanOpportunities(@Body('tenantId') tenantId: string) {
     return this.opportunitiesService.scanAndGenerateOpportunities(tenantId);
