@@ -22,6 +22,11 @@ export class OpportunitiesController {
     return this.opportunitiesService.scanAndGenerateOpportunities(tenantId);
   }
 
+  @Post(':id/generate-email')
+  generateEmail(@Param('id') id: string, @Body('tenantId') tenantId: string) {
+    return this.opportunitiesService.generateEmail(tenantId, id);
+  }
+
   @Post()
   create(@Body() createDto: any) {
     return this.opportunitiesService.create(createDto.tenantId, createDto);

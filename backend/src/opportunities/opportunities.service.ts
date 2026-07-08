@@ -209,11 +209,11 @@ export class OpportunitiesService {
     const totalRevenue = activeClients.reduce((acc, c) => acc + (c.monthlyFee || 0), 0);
 
     // Custos totais do mês atual
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0,0,0,0);
+    const startOfCurrentMonth = new Date();
+    startOfCurrentMonth.setDate(1);
+    startOfCurrentMonth.setHours(0,0,0,0);
     const recentTimeLogs = await tenantPrisma.timeLog.findMany({
-      where: { status: 'FINISHED', createdAt: { gte: startOfMonth } }
+      where: { status: 'FINISHED', createdAt: { gte: startOfCurrentMonth } }
     });
     const totalCosts = recentTimeLogs.reduce((acc, log) => acc + (log.costAmount || 0), 0);
 
@@ -229,23 +229,78 @@ export class OpportunitiesService {
       RETENTION: 0
     };
 
-    opps.forEach(o => {
+    let wonCount = 0;
+    let finishedCount = 0;
+
+    // Calcular o Health Score na listagem (simplificado baseado em custo vs receita)
+    const recentTimeLogsForHealth = await tenantPrisma.timeLog.findMany({
+      where: { status: 'FINISHED', createdAt: { gte: startOfCurrentMonth } }
+    });
+
+    const clientCostsMap: Record<string, number> = {};
+    recentTimeLogsForHealth.forEach(log => {
+      if (log.clientId) {
+        clientCostsMap[log.clientId] = (clientCostsMap[log.clientId] || 0) + (log.costAmount || 0);
+      }
+    });
+
+    const recentActivityWithHealth = opps.map(o => {
+      if (o.status === 'GANHA') wonCount++;
+      if (o.status === 'GANHA' || o.status === 'PERDIDA') finishedCount++;
+
       if (categoriesMap[o.category as keyof typeof categoriesMap] !== undefined) {
         categoriesMap[o.category as keyof typeof categoriesMap]++;
       } else {
         categoriesMap['OUTROS'] = (categoriesMap['OUTROS'] || 0) + 1;
       }
+
+      // Calcula a margem para dar um health score
+      let healthScore = 'GREEN'; // Default saudavel
+      if (o.client && o.client.id) {
+        const cost = clientCostsMap[o.client.id] || 0;
+        const rev = o.client.monthlyFee || 0;
+        if (cost > rev) {
+          healthScore = 'RED'; // Prejuízo
+        } else if (cost > rev * 0.8) {
+          healthScore = 'YELLOW'; // Risco
+        }
+      }
+
+      return { ...o, healthScore };
     });
 
-    // Simulando histórico de evolução (idealmente calculado do DB)
-    const evolutionChart = [
-      { name: 'Jan', revenue: totalRevenue * 0.7, costs: totalCosts * 0.6 },
-      { name: 'Fev', revenue: totalRevenue * 0.8, costs: totalCosts * 0.7 },
-      { name: 'Mar', revenue: totalRevenue * 0.9, costs: totalCosts * 0.8 },
-      { name: 'Abr', revenue: totalRevenue * 0.95, costs: totalCosts * 0.9 },
-      { name: 'Mai', revenue: totalRevenue, costs: totalCosts },
-      { name: 'Atual', revenue: totalRevenue, costs: totalCosts },
-    ];
+    const winRate = finishedCount > 0 ? (wonCount / finishedCount) * 100 : 0;
+
+    // Calculando histórico real (últimos 6 meses)
+    const evolutionChart = [];
+    for (let i = 5; i >= 0; i--) {
+      const start = new Date();
+      start.setMonth(start.getMonth() - i);
+      start.setDate(1);
+      start.setHours(0,0,0,0);
+
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + 1);
+
+      const logs = await tenantPrisma.timeLog.findMany({
+        where: {
+          status: 'FINISHED',
+          createdAt: { gte: start, lt: end }
+        }
+      });
+      const monthCost = logs.reduce((acc, l) => acc + (l.costAmount || 0), 0);
+
+      // Assumindo receita recorrente aproximada baseada nos clientes criados ate o fim daquele mes
+      const clientsBeforeEnd = activeClients.filter(c => c.createdAt < end);
+      const monthRevenue = clientsBeforeEnd.reduce((acc, c) => acc + (c.monthlyFee || 0), 0);
+
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      evolutionChart.push({
+        name: i === 0 ? 'Atual' : monthNames[start.getMonth()],
+        revenue: monthRevenue,
+        costs: monthCost
+      });
+    }
 
     return {
       kpis: {
@@ -253,6 +308,7 @@ export class OpportunitiesService {
         totalCosts,
         margin: totalRevenue - totalCosts,
         totalOpportunities: opps.length,
+        winRate,
       },
       charts: {
         evolution: evolutionChart,
@@ -262,8 +318,42 @@ export class OpportunitiesService {
           { name: 'Retenção', value: categoriesMap.RETENTION },
         ]
       },
-      recentActivity: opps.slice(0, 5),
+      recentActivity: recentActivityWithHealth,
     };
+  }
+
+  async generateEmail(tenantId: string, opportunityId: string) {
+    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    
+    const opportunity = await tenantPrisma.opportunity.findUnique({
+      where: { id: opportunityId },
+      include: { client: true }
+    });
+
+    if (!opportunity) throw new NotFoundException('Oportunidade não encontrada');
+
+    if (!process.env.GEMINI_API_KEY) {
+      return { emailBody: 'Prezado(a) cliente,\\n\\nNotamos uma necessidade de revisar seus honorários devido ao aumento na volumetria.\\n\\nPodemos agendar uma reunião?\\n\\nAtenciosamente,\\nEquipe Sevilha' };
+    }
+
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = `Você é um diretor comercial de contabilidade.
+Escreva um e-mail diplomático, profissional e persuasivo para o cliente "${opportunity.client?.name}" justificando uma revisão contratual ou oferta de serviço.
+Categoria do contato: ${opportunity.category}.
+Justificativa interna: ${opportunity.observations || opportunity.description}
+Valor estimado da proposta: R$ ${opportunity.potentialValue || opportunity.estimatedValue} (use esse valor se fizer sentido citar, caso contrário não cite).
+O e-mail deve ser amigável, propondo uma reunião para apresentar a solução. Assine como 'Equipe Sevilha Contabilidade'. Não use placeholders com colchetes, gere pronto para envio.`;
+
+      const result = await model.generateContent(prompt);
+      const emailBody = result.response.text();
+      return { emailBody };
+    } catch (e) {
+      console.error('Erro Gemini Gen Email:', e);
+      return { emailBody: 'Erro ao conectar com a IA. Tente novamente mais tarde.' };
+    }
   }
 }
 
