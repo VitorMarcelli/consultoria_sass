@@ -334,7 +334,7 @@ export default function CycleOpportunitiesPage({
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(value) => `R$${value/1000}k`} />
                       <Tooltip 
                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value: number) => [`R$ ${value.toFixed(2)}`, undefined]}
+                        formatter={(value: any) => [typeof value === 'number' ? `R$ ${value.toFixed(2)}` : value, undefined]}
                       />
                       <Area type="monotone" dataKey="revenue" name="Receitas" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                       <Area type="monotone" dataKey="costs" name="Custos" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorCost)" />
