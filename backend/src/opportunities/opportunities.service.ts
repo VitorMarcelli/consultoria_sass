@@ -343,8 +343,8 @@ export class OpportunitiesService {
       const prompt = `Você é um diretor comercial de contabilidade.
 Escreva um e-mail diplomático, profissional e persuasivo para o cliente "${opportunity.client?.name}" justificando uma revisão contratual ou oferta de serviço.
 Categoria do contato: ${opportunity.category}.
-Justificativa interna: ${opportunity.observations || opportunity.description}
-Valor estimado da proposta: R$ ${opportunity.potentialValue || opportunity.estimatedValue} (use esse valor se fizer sentido citar, caso contrário não cite).
+Justificativa interna: ${opportunity.observations}
+Valor estimado da proposta: R$ ${opportunity.potentialValue} (use esse valor se fizer sentido citar, caso contrário não cite).
 O e-mail deve ser amigável, propondo uma reunião para apresentar a solução. Assine como 'Equipe Sevilha Contabilidade'. Não use placeholders com colchetes, gere pronto para envio.`;
 
       const result = await model.generateContent(prompt);
