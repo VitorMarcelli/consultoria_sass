@@ -223,9 +223,18 @@ export class OpportunitiesService {
       orderBy: { createdAt: 'desc' }
     });
 
-    const categoriesMap = { UPSELL: 0, CROSSSELL: 0, RETENTION: 0 };
+    const categoriesMap: Record<string, number> = {
+      UPSELL: 0,
+      CROSSSELL: 0,
+      RETENTION: 0
+    };
+
     opps.forEach(o => {
-      if (categoriesMap[o.category] !== undefined) categoriesMap[o.category]++;
+      if (categoriesMap[o.category as keyof typeof categoriesMap] !== undefined) {
+        categoriesMap[o.category as keyof typeof categoriesMap]++;
+      } else {
+        categoriesMap['OUTROS'] = (categoriesMap['OUTROS'] || 0) + 1;
+      }
     });
 
     // Simulando histórico de evolução (idealmente calculado do DB)
