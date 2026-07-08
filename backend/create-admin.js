@@ -2,8 +2,8 @@ require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 
 async function main() {
-  const email = 'admin@sevilha.com.br';
-  const password = 'Password123!';
+  const email = process.argv[2] || 'admin@sevilha.com.br';
+  const password = process.argv[3] || 'Password123!';
   const supabaseUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
 
