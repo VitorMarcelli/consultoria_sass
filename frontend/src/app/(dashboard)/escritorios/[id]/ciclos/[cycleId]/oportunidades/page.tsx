@@ -28,7 +28,8 @@ import {
   Battery,
   BatteryWarning,
   BatteryMedium,
-  Calendar
+  Calendar,
+  MessageCircle
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import {
@@ -112,9 +113,9 @@ export default function CycleOpportunitiesPage({
   const [formData, setFormData] = useState({
     clientId: '',
     title: '',
-    description: '',
+    observations: '',
     category: 'EXCESS_HOURS',
-    estimatedValue: 1500,
+    potentialValue: 1500,
     status: 'IDENTIFICADA'
   });
 
@@ -201,6 +202,11 @@ export default function CycleOpportunitiesPage({
     navigator.clipboard.writeText(emailModal.text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsApp = () => {
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(emailModal.text)}`;
+    window.open(url, '_blank');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -669,10 +675,19 @@ export default function CycleOpportunitiesPage({
                   type="button" 
                   disabled={emailModal.generating}
                   onClick={handleCopyEmail}
-                  className="w-full sm:w-auto px-6 py-3 text-sm font-extrabold text-white bg-indigo-500 hover:bg-indigo-600 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+                  className="w-full sm:w-auto px-6 py-3 text-sm font-extrabold text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copied ? 'Copiado!' : 'Copiar Texto'}
+                </button>
+                <button 
+                  type="button" 
+                  disabled={emailModal.generating || !emailModal.text}
+                  onClick={handleWhatsApp}
+                  className="w-full sm:w-auto px-6 py-3 text-sm font-extrabold text-white bg-green-500 hover:bg-green-600 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 disabled:opacity-50"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Enviar por WhatsApp
                 </button>
               </div>
             </motion.div>
@@ -716,12 +731,12 @@ export default function CycleOpportunitiesPage({
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Valor Estimado (R$)</label>
-                    <input required type="number" step="0.01" value={formData.estimatedValue} onChange={e => setFormData({...formData, estimatedValue: Number(e.target.value)})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-amber-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                    <input required type="number" step="0.01" value={formData.potentialValue} onChange={e => setFormData({...formData, potentialValue: Number(e.target.value)})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-amber-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Observações</label>
-                  <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full h-24 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 text-sm font-medium outline-none focus:border-amber-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white resize-none" />
+                  <textarea required value={formData.observations} onChange={e => setFormData({...formData, observations: e.target.value})} className="w-full h-24 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 text-sm font-medium outline-none focus:border-amber-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white resize-none" />
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-5 py-3 text-sm font-extrabold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">Cancelar</button>
