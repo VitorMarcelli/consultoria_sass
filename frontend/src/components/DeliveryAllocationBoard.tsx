@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Clock, CheckCircle2, AlertCircle, Building2, User, Zap, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Building2, User, Zap, AlertTriangle, Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DeliveryAllocationBoardProps {
   deliveries: any[];
@@ -23,6 +23,13 @@ export default function DeliveryAllocationBoard({
   const [calendarGrid, setCalendarGrid] = useState<{ day: number | null, dateStr: string | null }[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [collapsedEmployees, setCollapsedEmployees] = useState<string[]>([]);
+
+  const toggleEmployee = (empId: string) => {
+    setCollapsedEmployees(prev => 
+      prev.includes(empId) ? prev.filter(id => id !== empId) : [...prev, empId]
+    );
+  };
 
   useEffect(() => {
     if (deliveries.length > 0) {
@@ -188,12 +195,16 @@ export default function DeliveryAllocationBoard({
               
               const dailyCapacityHours = empData.capacityData?.available || 6;
               const dailyCapacityMins = dailyCapacityHours * 60;
+              const isCollapsed = collapsedEmployees.includes(empId);
 
               return (
-                <div key={empId} className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row gap-6">
+                <div key={empId} className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
                   
-                  {/* Left Column: Info & Unallocated */}
-                  <div className="w-full xl:w-80 flex flex-col gap-4 shrink-0">
+                  {/* Header (Collapsible) */}
+                  <div 
+                    className="flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 -mx-2 -mt-2 rounded-2xl transition-colors"
+                    onClick={() => toggleEmployee(empId)}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
                         <User className="w-6 h-6" />
@@ -203,6 +214,16 @@ export default function DeliveryAllocationBoard({
                         <p className="text-xs font-bold text-slate-500 mt-0.5">Capacidade: {dailyCapacityHours}h / dia</p>
                       </div>
                     </div>
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 transition-colors">
+                      {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                    </div>
+                  </div>
+
+                  {/* Body (Hidden if collapsed) */}
+                  {!isCollapsed && (
+                    <div className="flex flex-col xl:flex-row gap-6 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                      {/* Left Column: Unallocated */}
+                      <div className="w-full xl:w-80 flex flex-col gap-4 shrink-0">
 
                     <div className="flex-1 min-h-[250px] flex flex-col bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
                       <div className="flex items-center justify-between mb-4">
@@ -287,7 +308,8 @@ export default function DeliveryAllocationBoard({
                       })}
                     </div>
                   </div>
-
+                </div>
+              )}
                 </div>
               );
             })}
