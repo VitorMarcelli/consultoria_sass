@@ -217,7 +217,7 @@ export default function DeliveryAllocationBoard({
                           <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className={`flex-1 rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-teal-50 dark:bg-teal-900/10' : ''}`}
+                            className={`flex-1 overflow-y-auto custom-scrollbar pr-2 rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-teal-50 dark:bg-teal-900/10' : ''}`}
                           >
                             {empData.columns['unallocated']?.map((task: any, index: number) => (
                               <DraggableTask key={task.id} task={task} index={index} onClick={() => onDeliveryClick(task)} />
@@ -250,18 +250,18 @@ export default function DeliveryAllocationBoard({
                         const percentage = Math.min(100, (usedMins / dailyCapacityMins) * 100);
 
                         return (
-                          <div key={dateStr} className={`flex flex-col bg-white dark:bg-slate-900 rounded-2xl p-2 sm:p-3 border shadow-sm ${isOverLimit ? 'border-red-300 dark:border-red-900/50' : 'border-slate-200 dark:border-slate-700'} min-h-[120px] transition-all hover:border-teal-300 dark:hover:border-teal-700`}>
+                          <div key={dateStr} className={`flex flex-col bg-white dark:bg-slate-900 rounded-2xl p-2 sm:p-3 border shadow-sm ${isOverLimit ? 'border-red-300 dark:border-red-900/50' : 'border-slate-200 dark:border-slate-700'} h-[160px] sm:h-[180px] transition-all hover:border-teal-300 dark:hover:border-teal-700`}>
                             
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-1 shrink-0">
                               <span className={`text-xs sm:text-sm font-extrabold ${isOverLimit ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
                                 {cell.day}
                               </span>
-                              <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md text-center ${isOverLimit ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                              <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md text-center shrink-0 ${isOverLimit ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
                                 {formatMinutesToHours(usedMins)} / {dailyCapacityHours}h
                               </span>
                             </div>
 
-                            <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full mb-2 overflow-hidden">
+                            <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full mb-2 overflow-hidden shrink-0">
                               <div 
                                 className={`h-full rounded-full ${isOverLimit ? 'bg-red-500' : percentage > 80 ? 'bg-amber-500' : 'bg-teal-500'}`} 
                                 style={{ width: `${percentage}%` }}
@@ -273,7 +273,7 @@ export default function DeliveryAllocationBoard({
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.droppableProps}
-                                  className={`flex-1 rounded-xl transition-colors min-h-[40px] ${snapshot.isDraggingOver ? 'bg-teal-50/50 dark:bg-teal-900/20' : ''}`}
+                                  className={`flex-1 overflow-y-auto custom-scrollbar pr-1 rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-teal-50/50 dark:bg-teal-900/20' : ''}`}
                                 >
                                   {tasks.map((task: any, index: number) => (
                                     <DraggableTask key={task.id} task={task} index={index} onClick={() => onDeliveryClick(task)} />
