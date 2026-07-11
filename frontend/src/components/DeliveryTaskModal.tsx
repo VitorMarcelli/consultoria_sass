@@ -40,11 +40,6 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   const [newProofUrl, setNewProofUrl] = useState('');
   const [uploadingProof, setUploadingProof] = useState(false);
 
-  // Timer State
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [baseTotalSeconds, setBaseTotalSeconds] = useState(0);
-  
   // Estimated Time State
   const [isEditingEstimatedTime, setIsEditingEstimatedTime] = useState(false);
   const [estimatedTimeInput, setEstimatedTimeInput] = useState('');
@@ -53,59 +48,20 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
     setMounted(true);
     if (isOpen && delivery?.id) {
       if (!details || details.id !== delivery.id) {
-        setBaseTotalSeconds((delivery.realTimeMinutes || 0) * 60);
-        setElapsedSeconds(0);
+        // Reset state on new delivery
       }
       fetchDetails();
       setActiveTab('DETAILS');
     } else {
       setDetails(null);
-      setTimerRunning(false);
-      setElapsedSeconds(0);
     }
   }, [isOpen, delivery]);
 
   useEffect(() => {
     if (details) {
       setEstimatedTimeInput(details.estimatedTimeMinutes ? String(details.estimatedTimeMinutes) : '');
-      
-      let totalLogSeconds = 0;
-      if (details.timeLogs && Array.isArray(details.timeLogs)) {
-        totalLogSeconds = details.timeLogs.reduce((acc: number, log: any) => {
-          if (log.status === 'FINISHED' && log.startTime && log.endTime) {
-            const start = new Date(log.startTime).getTime();
-            const end = new Date(log.endTime).getTime();
-            return acc + Math.max(0, Math.floor((end - start) / 1000));
-          }
-          return acc;
-        }, 0);
-      }
-      
-      const hasLogs = details.timeLogs && Array.isArray(details.timeLogs);
-      setBaseTotalSeconds(hasLogs ? totalLogSeconds : (details.realTimeMinutes || delivery?.realTimeMinutes || 0) * 60);
-      
-      const activeLog = details.timeLogs?.find((log: any) => log.status === 'RUNNING');
-      if (activeLog) {
-        const start = new Date(activeLog.startTime).getTime();
-        const now = new Date().getTime();
-        setElapsedSeconds(Math.floor((now - start) / 1000));
-        setTimerRunning(true);
-      } else {
-        setElapsedSeconds(0);
-        setTimerRunning(false);
-      }
     }
   }, [details]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (timerRunning) {
-      interval = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [timerRunning]);
 
   const fetchDetails = async () => {
     try {
@@ -217,32 +173,6 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
     }
   };
 
-  const handleStartTimer = async () => {
-    try {
-      setTimerRunning(true);
-      await apiRequest(`/deliveries/${delivery.id}/timer/start`, {
-        method: 'POST',
-        body: JSON.stringify({ tenantId })
-      });
-      fetchDetails();
-    } catch (err: any) {
-      setTimerRunning(false);
-      alert(err.message || 'Erro ao iniciar o timer.');
-    }
-  };
-
-  const handleStopTimer = async () => {
-    try {
-      setTimerRunning(false);
-      await apiRequest(`/deliveries/${delivery.id}/timer/stop`, {
-        method: 'POST',
-        body: JSON.stringify({ tenantId })
-      });
-      fetchDetails();
-    } catch (err: any) {
-      alert(err.message || 'Erro ao parar o timer.');
-    }
-  };
 
   const handleSaveEstimatedTime = async () => {
     try {
@@ -264,18 +194,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
   const proofs = details?.proofs || [];
   const history = details?.history || [];
 
-  const totalSeconds = baseTotalSeconds + elapsedSeconds;
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-  const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
   const currentEstimatedTimeMinutes = details?.estimatedTimeMinutes ?? delivery?.estimatedTimeMinutes;
-  const isOverdue = currentEstimatedTimeMinutes && totalSeconds > currentEstimatedTimeMinutes * 60;
-  const timerColorClass = isOverdue 
-    ? (timerRunning ? 'text-rose-500 animate-pulse' : 'text-rose-500') 
-    : (timerRunning ? 'text-teal-500 animate-pulse' : 'text-slate-900 dark:text-white');
-
   const modalContent = (
     <AnimatePresence>
       {isOpen && (
@@ -453,64 +372,61 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
               {/* Sidebar (Right) */}
               <div className="w-full lg:w-80 bg-slate-50 dark:bg-slate-900 flex flex-col overflow-y-auto custom-scrollbar border-t lg:border-t-0 border-slate-200 dark:border-slate-800 p-6 sm:p-8">
                 
-                {/* Time Tracker Block */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-slate-400" /> Tempo Gasto
-                    </h4>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-lg font-black font-mono transition-colors ${timerColorClass}`}>
-                        {formattedTime}
-                      </span>
-                      {isOverdue && (
-                        <span className="text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-1.5 py-0.5 rounded-md">
-                          Atraso
-                        </span>
+                {/* Allocation Blocks */}
+                <div className="space-y-4 mb-6">
+                  {/* Data Planejada */}
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Data Planejada</span>
+                    <input 
+                      type="date"
+                      value={delivery?.executionDeadline ? delivery.executionDeadline.split('T')[0] : ''}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        const execDate = val ? new Date(`${val}T12:00:00Z`).toISOString() : null;
+                        try {
+                          await apiRequest(`/deliveries/${delivery.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({ executionDeadline: execDate })
+                          });
+                          onClose(); // Reload data
+                        } catch (err) {
+                          alert('Erro ao atualizar data planejada.');
+                        }
+                      }}
+                      className="w-full text-sm font-extrabold text-slate-800 dark:text-slate-200 bg-transparent outline-none cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Tempo Padrão */}
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Tempo Padrão</span>
+                      {isEditingEstimatedTime ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input 
+                            type="number" 
+                            min="0"
+                            value={estimatedTimeInput} 
+                            onChange={e => setEstimatedTimeInput(e.target.value)} 
+                            className="w-16 h-7 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-center outline-none focus:border-teal-500 text-slate-900 dark:text-white" 
+                            placeholder="Min" 
+                          />
+                          <button onClick={handleSaveEstimatedTime} className="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 font-bold text-xs">Salvar</button>
+                          <button onClick={() => setIsEditingEstimatedTime(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-xs">Cancelar</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Clock className="w-4 h-4 text-teal-500" />
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                            {currentEstimatedTimeMinutes ? `${Math.floor(currentEstimatedTimeMinutes / 60)}h ${currentEstimatedTimeMinutes % 60}m` : 'Não definido'}
+                          </span>
+                        </div>
                       )}
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleStartTimer}
-                      disabled={timerRunning}
-                      className={`flex-1 font-bold text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 
-                        ${timerRunning ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed' : 'bg-teal-50 hover:bg-teal-100 dark:bg-teal-500/10 dark:hover:bg-teal-500/20 text-teal-700 dark:text-teal-400'}`}
-                    >
-                      <Play className="w-3.5 h-3.5" /> Iniciar
-                    </button>
-                    <button 
-                      onClick={handleStopTimer}
-                      disabled={!timerRunning}
-                      className={`px-4 font-bold text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center
-                        ${!timerRunning ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed' : 'bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20'}`}
-                    >
-                      <Square className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="mt-3 text-center flex items-center justify-center gap-2">
-                    {isEditingEstimatedTime ? (
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="number" 
-                          min="0"
-                          value={estimatedTimeInput} 
-                          onChange={e => setEstimatedTimeInput(e.target.value)} 
-                          className="w-16 h-7 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-center outline-none focus:border-teal-500 text-slate-900 dark:text-white" 
-                          placeholder="Min" 
-                        />
-                        <button onClick={handleSaveEstimatedTime} className="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 font-bold text-xs">Salvar</button>
-                        <button onClick={() => setIsEditingEstimatedTime(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-xs">Cancelar</button>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="text-[10px] font-bold text-slate-400">
-                          Estimado: {currentEstimatedTimeMinutes ? `${Math.floor(currentEstimatedTimeMinutes / 60)}h ${currentEstimatedTimeMinutes % 60}m` : 'Não definido'}
-                        </span>
-                        <button onClick={() => setIsEditingEstimatedTime(true)} className="text-slate-400 hover:text-teal-500 transition-colors" title="Editar Tempo Estimado">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                      </>
+                    {!isEditingEstimatedTime && (
+                      <button onClick={() => setIsEditingEstimatedTime(true)} className="text-slate-400 hover:text-teal-500 transition-colors bg-slate-50 dark:bg-slate-900 p-2 rounded-lg" title="Editar Tempo Padrão">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </button>
                     )}
                   </div>
                 </div>
