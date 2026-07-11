@@ -386,7 +386,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                         try {
                           await apiRequest(`/deliveries/${delivery.id}`, {
                             method: 'PATCH',
-                            body: JSON.stringify({ executionDeadline: execDate })
+                            body: JSON.stringify({ tenantId, executionDeadline: execDate })
                           });
                           onClose(); // Reload data
                         } catch (err) {
