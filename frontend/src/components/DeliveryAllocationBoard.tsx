@@ -320,8 +320,21 @@ export default function DeliveryAllocationBoard({
   );
 }
 
-// Draggable Task Card
 function DraggableTask({ task, index, onClick }: { task: any, index: number, onClick: () => void }) {
+  let bgClass = 'bg-white dark:bg-slate-900';
+  let borderClass = 'border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-700';
+  
+  if (task.status === 'CONCLUIDA') {
+    bgClass = 'bg-emerald-50/80 dark:bg-emerald-900/20';
+    borderClass = 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600';
+  } else if (task.status === 'ANDAMENTO') {
+    bgClass = 'bg-amber-50/80 dark:bg-amber-900/20';
+    borderClass = 'border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600';
+  } else if (task.status === 'ATRASADA') {
+    bgClass = 'bg-rose-50/80 dark:bg-rose-900/20';
+    borderClass = 'border-rose-200 dark:border-rose-800 hover:border-rose-400 dark:hover:border-rose-600';
+  }
+
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
@@ -330,7 +343,7 @@ function DraggableTask({ task, index, onClick }: { task: any, index: number, onC
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
-          className={`bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-2 cursor-grab active:cursor-grabbing hover:border-teal-300 dark:hover:border-teal-700 transition-colors ${
+          className={`${bgClass} p-2 sm:p-2.5 rounded-xl shadow-sm border ${borderClass} mb-2 cursor-grab active:cursor-grabbing transition-colors ${
             snapshot.isDragging ? 'shadow-lg rotate-2 scale-105 z-50' : ''
           }`}
         >
