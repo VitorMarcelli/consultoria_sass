@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import TopNavbar from '@/components/layout/TopNavbar';
 import Header from '@/components/layout/Header';
-import TimerWidget from '@/components/timesheet/TimerWidget';
 import SessionGuardian from '@/components/auth/SessionGuardian';
 import { useUIStore } from '@/store/useUIStore';
 
@@ -51,7 +50,6 @@ export default function DashboardLayout({
       </div>
 
       {/* Floating Widget & Guardian */}
-      <TimerWidget />
       <SessionGuardian />
     </div>
   );

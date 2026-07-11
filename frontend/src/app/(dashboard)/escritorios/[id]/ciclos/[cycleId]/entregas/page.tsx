@@ -682,7 +682,7 @@ export default function CycleDeliveriesPage({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Prioridade</label>
                     <select value={formData.priority} onChange={e => setFormData({...formData, priority: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
@@ -690,10 +690,6 @@ export default function CycleDeliveriesPage({
                       <option value="MEDIUM">Média</option>
                       <option value="LOW">Baixa</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tempo Estimado (Minutos)</label>
-                    <input type="number" min="0" value={formData.estimatedTimeMinutes} onChange={e => setFormData({...formData, estimatedTimeMinutes: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: 120" />
                   </div>
                 </div>
 
@@ -836,8 +832,7 @@ export default function CycleDeliveriesPage({
                   <th className="px-4 py-3 font-bold w-[16%]">Cliente</th>
                   <th className="px-4 py-3 font-bold w-[12%] text-center">Frente</th>
                   <th className="px-4 py-3 font-bold w-[10%] text-center">Prioridade</th>
-                  <th className="px-4 py-3 font-bold w-[11%] text-center">Estimado</th>
-                  <th className="px-0 py-3 font-bold text-center w-[12%]">Status</th>
+                  <th className="px-0 py-3 font-bold text-center w-[15%]">Status</th>
                   <th className="px-4 py-3 font-bold text-right w-[10%]">Ações</th>
                 </tr>
               </thead>
@@ -906,11 +901,6 @@ export default function CycleDeliveriesPage({
                                 delivery.priority === 'LOW' ? 'bg-sky-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                             >
                               {delivery.priority === 'HIGH' ? 'Alta' : delivery.priority === 'LOW' ? 'Baixa' : 'Média'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center border-r border-slate-100 dark:border-slate-800/40">
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                              {delivery.estimatedTimeMinutes ? `${Math.floor(delivery.estimatedTimeMinutes / 60)}h ${delivery.estimatedTimeMinutes % 60}m` : '-'}
                             </span>
                           </td>
                           {/* Status Cell - Full Color Monday Style */}
