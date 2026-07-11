@@ -17,11 +17,13 @@ import {
   Building2,
   ChevronDown,
   LayoutGrid,
+  CalendarClock,
   List
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import DeliveryTaskModal from '@/components/DeliveryTaskModal';
 import DeliveryKanbanBoard from '@/components/DeliveryKanbanBoard';
+import DeliveryAllocationBoard from '@/components/DeliveryAllocationBoard';
 import DashboardMappingTab from './components/DashboardMappingTab';
 import DashboardCapacityTab from './components/DashboardCapacityTab';
 import DashboardLevelingTab from './components/DashboardLevelingTab';
@@ -41,6 +43,8 @@ interface Delivery {
   priority?: string;
   estimatedTimeMinutes?: number;
   realTimeMinutes?: number;
+  executionDeadline?: string | null;
+  legalDeadline?: string | null;
 }
 
 const tableVariants = {
@@ -69,7 +73,7 @@ export default function CycleDeliveriesPage({
   const [generatingMonthly, setGeneratingMonthly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [viewMode, setViewMode] = useState<'LIST' | 'KANBAN'>('LIST');
+  const [viewMode, setViewMode] = useState<'LIST' | 'KANBAN' | 'ALLOCATION'>('LIST');
   
   // Grouping State (Monday.com style)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -88,7 +92,7 @@ export default function CycleDeliveriesPage({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '' });
+  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '', executionDeadline: '' });
   const [cycleComp, setCycleComp] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -168,7 +172,8 @@ export default function CycleDeliveriesPage({
         standardizedName: '',
         status: 'PREVISTA',
         priority: 'MEDIUM',
-        estimatedTimeMinutes: ''
+        estimatedTimeMinutes: '',
+        executionDeadline: ''
       });
     } catch(err) {
       console.error(err);
@@ -190,7 +195,8 @@ export default function CycleDeliveriesPage({
         standardizedName: delivery.standardizedName,
         status: delivery.status,
         priority: delivery.priority || 'MEDIUM',
-        estimatedTimeMinutes: delivery.estimatedTimeMinutes ? String(delivery.estimatedTimeMinutes) : ''
+        estimatedTimeMinutes: delivery.estimatedTimeMinutes ? String(delivery.estimatedTimeMinutes) : '',
+        executionDeadline: delivery.executionDeadline ? new Date(delivery.executionDeadline).toISOString().split('T')[0] : ''
       });
     } catch(err) {
       console.error(err);
@@ -294,6 +300,82 @@ export default function CycleDeliveriesPage({
     acc[responsibleName].push(delivery);
     return acc;
   }, {} as Record<string, Delivery[]>);
+
+  const handleAllocationChange = async (deliveryId: string, newDate: string) => {
+    try {
+      const execDate = newDate ? new Date(`${newDate}T12:00:00Z`).toISOString() : null;
+      await apiRequest(`/deliveries/${deliveryId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ executionDeadline: execDate })
+      });
+      fetchDeliveries();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao atualizar alocação.');
+    }
+  };
+
+  const handleAutoSchedule = async () => {
+    if (!confirm('Deseja alocar automaticamente todas as entregas sem data para os dias disponíveis?')) return;
+    
+    // Simplistic greedy algorithm running in frontend
+    const unallocated = deliveries.filter(d => !d.executionDeadline);
+    if (unallocated.length === 0) {
+      alert('Nenhuma entrega pendente de alocação.');
+      return;
+    }
+
+    // Sort by priority and legal deadline
+    unallocated.sort((a, b) => {
+      if (a.priority === 'HIGH' && b.priority !== 'HIGH') return -1;
+      if (a.priority !== 'HIGH' && b.priority === 'HIGH') return 1;
+      const dateA = a.legalDeadline ? new Date(a.legalDeadline).getTime() : Infinity;
+      const dateB = b.legalDeadline ? new Date(b.legalDeadline).getTime() : Infinity;
+      return dateA - dateB;
+    });
+
+    let updatedCount = 0;
+    
+    for (const d of unallocated) {
+      const respId = d.responsibleId;
+      if (!respId) continue;
+
+      const cap = globalCapacity.find(c => c.employee === d.responsible?.name);
+      const dailyCapMins = (cap?.available || 6) * 60;
+      
+      // Determine number of days in cycle
+      const [m, y] = cycleComp.split('/');
+      const days = new Date(parseInt(y), parseInt(m), 0).getDate();
+      
+      for (let day = 1; day <= days; day++) {
+        const dateStr = `${y}-${m}-${String(day).padStart(2, '0')}`;
+        
+        // Calculate currently used mins for this employee on this date
+        const usedMins = deliveries
+          .filter(del => del.responsibleId === respId && del.executionDeadline?.startsWith(dateStr))
+          .reduce((acc, del) => acc + (del.estimatedTimeMinutes || 0), 0);
+        
+        const taskMins = d.estimatedTimeMinutes || 0;
+        
+        if (usedMins + taskMins <= dailyCapMins) {
+          // Allocate here
+          const execDate = new Date(`${dateStr}T12:00:00Z`).toISOString();
+          await apiRequest(`/deliveries/${d.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ executionDeadline: execDate })
+          }).catch(console.error);
+          
+          // Optimistically update local deliveries to affect subsequent calculations
+          d.executionDeadline = execDate; 
+          updatedCount++;
+          break;
+        }
+      }
+    }
+    
+    alert(`${updatedCount} entregas alocadas automaticamente!`);
+    fetchDeliveries();
+  };
 
   const handleKanbanStatusChange = async (deliveryId: string, newStatus: string) => {
     // Optimistic UI update
@@ -563,6 +645,17 @@ export default function CycleDeliveriesPage({
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setViewMode('ALLOCATION')}
+              className={`p-2 rounded-lg flex items-center justify-center transition-all ${
+                viewMode === 'ALLOCATION' 
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+              title="Alocação Diária"
+            >
+              <CalendarClock className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
@@ -682,7 +775,7 @@ export default function CycleDeliveriesPage({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Prioridade</label>
                     <select value={formData.priority} onChange={e => setFormData({...formData, priority: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
@@ -690,6 +783,14 @@ export default function CycleDeliveriesPage({
                       <option value="MEDIUM">Média</option>
                       <option value="LOW">Baixa</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tempo Padrão (Minutos)</label>
+                    <input type="number" required value={formData.estimatedTimeMinutes} onChange={e => setFormData({...formData, estimatedTimeMinutes: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: 120" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data Planejada</label>
+                    <input type="date" value={formData.executionDeadline} onChange={e => setFormData({...formData, executionDeadline: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
                   </div>
                 </div>
 
@@ -733,6 +834,16 @@ export default function CycleDeliveriesPage({
             deliveries={filteredDeliveries} 
             onDeliveryClick={openTaskModal} 
             onStatusChange={handleKanbanStatusChange} 
+          />
+        </div>
+      ) : viewMode === 'ALLOCATION' ? (
+        <div className="w-full h-[calc(100vh-280px)]">
+          <DeliveryAllocationBoard 
+            deliveries={filteredDeliveries}
+            globalCapacity={globalCapacity}
+            onDeliveryClick={openTaskModal}
+            onAllocationChange={handleAllocationChange}
+            onAutoSchedule={handleAutoSchedule}
           />
         </div>
       ) : (
