@@ -193,7 +193,7 @@ export default function DeliveryAllocationBoard({
             
             {Object.entries(boardData).map(([empId, empData]: [string, any]) => {
               
-              const dailyCapacityHours = empData.capacityData?.available || 6;
+              const dailyCapacityHours = empData.capacityData?.dailyAvailable || 6;
               const dailyCapacityMins = dailyCapacityHours * 60;
               const isCollapsed = collapsedEmployees.includes(empId);
 

@@ -118,13 +118,15 @@ export class DashboardService {
     });
 
     const capacityData = uniqueAllocations.map(alloc => {
-      const availableHours = (alloc.dailyAvailableTime || 8) * 21; // ex: 21 dias uteis no mes
+      const dailyHours = alloc.dailyAvailableTime || 6; // Default to 6 hours
+      const availableHours = dailyHours * 21; // ex: 21 dias uteis no mes
       const estimatedMinutes = timeByEmployee.get(alloc.employeeId) || 0;
       const estimatedHours = Math.floor(estimatedMinutes / 60);
 
       return {
         employee: alloc.employee.name,
         available: availableHours,
+        dailyAvailable: dailyHours,
         recurrent: estimatedHours, 
         extra: 0, 
         rework: 0 
