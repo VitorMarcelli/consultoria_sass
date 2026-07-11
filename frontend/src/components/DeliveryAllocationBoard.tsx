@@ -21,6 +21,8 @@ export default function DeliveryAllocationBoard({
 }: DeliveryAllocationBoardProps) {
   const [boardData, setBoardData] = useState<any>({});
   const [daysInMonth, setDaysInMonth] = useState<number[]>([]);
+  const [chunkedDays, setChunkedDays] = useState<number[][]>([]);
+  const [selectedWeek, setSelectedWeek] = useState(0);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
@@ -38,6 +40,13 @@ export default function DeliveryAllocationBoard({
         const days = new Date(year, month, 0).getDate();
         const daysArray = Array.from({ length: days }, (_, i) => i + 1);
         setDaysInMonth(daysArray);
+
+        // Chunk into weeks (7 days each)
+        const chunks = [];
+        for (let i = 0; i < daysArray.length; i += 7) {
+          chunks.push(daysArray.slice(i, i + 7));
+        }
+        setChunkedDays(chunks);
       }
     }
   }, [deliveries]);
@@ -150,7 +159,7 @@ export default function DeliveryAllocationBoard({
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-950/20 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 p-4 overflow-hidden">
       
-      <div className="flex items-center justify-between mb-4 px-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 px-2 gap-4">
         <div>
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Clock className="w-5 h-5 text-teal-500" />
@@ -161,15 +170,35 @@ export default function DeliveryAllocationBoard({
           </p>
         </div>
         
-        {onAutoSchedule && (
-          <button 
-            onClick={onAutoSchedule}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white text-sm font-bold rounded-xl shadow-md transition-all"
-          >
-            <Zap className="w-4 h-4" />
-            Auto-Alocar (IA)
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {chunkedDays.length > 0 && (
+            <div className="flex bg-white dark:bg-slate-900 rounded-xl p-1 border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto max-w-[400px] custom-scrollbar">
+              {chunkedDays.map((chunk, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedWeek(idx)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg whitespace-nowrap transition-colors ${
+                    selectedWeek === idx
+                      ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  Dias {chunk[0]} a {chunk[chunk.length - 1]}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {onAutoSchedule && (
+            <button 
+              onClick={onAutoSchedule}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white text-sm font-bold rounded-xl shadow-md transition-all shrink-0"
+            >
+              <Zap className="w-4 h-4" />
+              Auto-Alocar (IA)
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto custom-scrollbar relative">
@@ -221,7 +250,7 @@ export default function DeliveryAllocationBoard({
                     </div>
 
                     {/* Days Columns */}
-                    {daysInMonth.map(day => {
+                    {(chunkedDays[selectedWeek] || []).map(day => {
                       const dateStr = getDayDateStr(day);
                       const tasks = empData.columns[dateStr] || [];
                       const usedMins = calculateUsedMinutes(tasks);
