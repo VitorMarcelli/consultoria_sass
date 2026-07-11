@@ -385,7 +385,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                         const execDate = val ? new Date(`${val}T12:00:00Z`).toISOString() : null;
                         try {
                           await apiRequest(`/deliveries/${delivery.id}`, {
-                            method: 'PUT',
+                            method: 'PATCH',
                             body: JSON.stringify({ executionDeadline: execDate })
                           });
                           onClose(); // Reload data

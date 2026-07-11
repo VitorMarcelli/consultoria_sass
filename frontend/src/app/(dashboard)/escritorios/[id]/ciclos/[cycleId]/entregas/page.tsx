@@ -305,7 +305,7 @@ export default function CycleDeliveriesPage({
     try {
       const execDate = newDate ? new Date(`${newDate}T12:00:00Z`).toISOString() : null;
       await apiRequest(`/deliveries/${deliveryId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ executionDeadline: execDate })
       });
       fetchDeliveries();
