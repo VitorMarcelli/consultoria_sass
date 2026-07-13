@@ -18,6 +18,7 @@ import {
   Building2,
   CheckSquare
 } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 import { apiRequest } from '@/utils/api';
 
 interface DeliveryTaskModalProps {
@@ -37,8 +38,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
   // Forms
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [newComment, setNewComment] = useState('');
-  const [newProofTitle, setNewProofTitle] = useState('');
-  const [newProofUrl, setNewProofUrl] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
 
   // Estimated Time State
@@ -144,20 +144,49 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
 
   const handleAddProof = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProofTitle.trim() || !newProofUrl.trim()) return;
+    if (!selectedFile) return;
+
     try {
       setUploadingProof(true);
+      const supabase = createClient();
+      
+      // Generate a unique file name to avoid collisions
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `${tenantId}/${delivery.id}/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('proofs')
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error('Falha ao enviar arquivo para o Storage: ' + uploadError.message);
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('proofs')
+        .getPublicUrl(filePath);
+
       await apiRequest(`/deliveries/${delivery.id}/proofs`, {
         method: 'POST',
-        body: JSON.stringify({ tenantId: tenantId, title: newProofTitle, url: newProofUrl, authorName: 'Usuário Web' })
+        body: JSON.stringify({ 
+          tenantId: tenantId, 
+          title: selectedFile.name, 
+          url: publicUrl, 
+          authorName: 'Usuário Web' 
+        })
       });
-      setNewProofTitle('');
-      setNewProofUrl('');
+      
+      setSelectedFile(null);
       fetchDetails();
       setActiveTab('FILES');
     } catch (err) {
       console.error(err);
-      alert('Erro ao anexar comprovante.');
+      alert('Erro ao anexar arquivo.');
     } finally {
       setUploadingProof(false);
     }
@@ -449,22 +478,30 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
 
                   <form onSubmit={handleAddProof} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
                     <Paperclip className="w-5 h-5 text-slate-300 shrink-0 hidden sm:block" />
-                    <input 
-                      type="text" 
-                      placeholder="Título" 
-                      value={newProofTitle}
-                      onChange={e => setNewProofTitle(e.target.value)}
-                      className="w-full sm:w-1/3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-teal-500 dark:text-white"
-                    />
-                    <input 
-                      type="url" 
-                      placeholder="Link da Prova (Drive, S3)" 
-                      value={newProofUrl}
-                      onChange={e => setNewProofUrl(e.target.value)}
-                      className="w-full sm:flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-teal-500 dark:text-white"
-                    />
-                    <button type="submit" disabled={uploadingProof || !newProofTitle.trim() || !newProofUrl.trim()} className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors disabled:opacity-50 whitespace-nowrap">
-                      Adicionar
+                    <div className="flex-1 relative w-full">
+                      <input 
+                        type="file" 
+                        id="file-upload"
+                        onChange={e => setSelectedFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                      />
+                      <label htmlFor="file-upload" className="flex items-center justify-between w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-dashed rounded-xl px-4 py-3 cursor-pointer hover:border-teal-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-[200px] sm:max-w-xs">
+                          {selectedFile ? selectedFile.name : 'Clique para selecionar um arquivo...'}
+                        </span>
+                        <div className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider shrink-0">
+                          Procurar
+                        </div>
+                      </label>
+                    </div>
+                    <button type="submit" disabled={uploadingProof || !selectedFile} className="px-5 py-3 h-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors disabled:opacity-50 whitespace-nowrap flex items-center gap-2">
+                      {uploadingProof ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Enviando...
+                        </>
+                      ) : (
+                        'Anexar'
+                      )}
                     </button>
                   </form>
                 </div>
