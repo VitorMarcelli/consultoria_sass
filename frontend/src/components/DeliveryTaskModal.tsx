@@ -464,9 +464,11 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
                         <div key={proof.id} className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 group hover:border-slate-300 transition-colors">
                           <div className="flex items-start justify-between gap-2">
                             <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">{proof.title}</span>
-                            <button onClick={() => handleRemoveProof(proof.id)} className="text-slate-400 hover:text-red-500 transition-colors shrink-0">
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                            {currentStatus !== 'CONCLUIDA' && (
+                              <button onClick={() => handleRemoveProof(proof.id)} className="text-slate-400 hover:text-red-500 transition-colors shrink-0">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                           <a href={proof.url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-teal-600 hover:underline truncate">
                             {proof.url}
