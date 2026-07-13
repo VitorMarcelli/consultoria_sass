@@ -230,26 +230,41 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-x-auto w-full sm:w-auto">
+              <div className="flex p-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl overflow-x-auto w-full sm:w-auto border border-slate-200/50 dark:border-slate-700/50 shadow-inner">
                 <button 
                   onClick={() => handleStatusChange('PREVISTA')}
-                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${currentStatus === 'PREVISTA' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${currentStatus === 'PREVISTA' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}
                 >
+                  <Calendar className={`w-3.5 h-3.5 ${currentStatus === 'PREVISTA' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400'}`} />
                   Prevista
                 </button>
+
                 <button 
                   onClick={() => handleStatusChange(currentStatus === 'ATRASADA' ? 'ATRASADA' : 'ANDAMENTO')}
-                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap 
-                    ${currentStatus === 'ANDAMENTO' ? 'bg-amber-500 text-white shadow-sm' : 
-                      currentStatus === 'ATRASADA' ? 'bg-rose-500 text-white shadow-sm' : 
-                      'text-slate-500 hover:text-amber-600 dark:hover:text-amber-500'}`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap 
+                    ${currentStatus === 'ANDAMENTO' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 ring-1 ring-amber-600' : 
+                      currentStatus === 'ATRASADA' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 ring-1 ring-rose-600' : 
+                      'text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}
                 >
-                  {currentStatus === 'ATRASADA' ? 'Atrasada' : 'Em Andamento'}
+                  {currentStatus === 'ATRASADA' ? (
+                    <>
+                      <AlertCircle className={`w-3.5 h-3.5 ${currentStatus === 'ATRASADA' ? 'text-white' : 'text-rose-400'}`} />
+                      Atrasada
+                    </>
+                  ) : (
+                    <>
+                      <Clock className={`w-3.5 h-3.5 ${currentStatus === 'ANDAMENTO' ? 'text-white' : 'text-amber-400'}`} />
+                      Em Andamento
+                    </>
+                  )}
                 </button>
+
                 <button 
                   onClick={() => handleStatusChange('CONCLUIDA')}
-                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${currentStatus === 'CONCLUIDA' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-500'}`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap 
+                    ${currentStatus === 'CONCLUIDA' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20 ring-1 ring-emerald-600' : 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}
                 >
+                  <CheckCircle2 className={`w-3.5 h-3.5 ${currentStatus === 'CONCLUIDA' ? 'text-white' : 'text-emerald-400'}`} />
                   Concluída
                 </button>
               </div>
