@@ -22,6 +22,10 @@ export default function CycleOverviewPage({
   
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+  
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [currentGoal, setCurrentGoal] = useState('');
+  const [savingGoal, setSavingGoal] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
@@ -42,6 +46,28 @@ export default function CycleOverviewPage({
     loadStats();
   }, [id, cycleId, frontId, subdivisionId]);
 
+  useEffect(() => {
+    if (stats?.goal) {
+      setCurrentGoal(stats.goal);
+    }
+  }, [stats?.goal]);
+
+  const handleSaveGoal = async () => {
+    try {
+      setSavingGoal(true);
+      await apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ goal: currentGoal })
+      });
+      setIsEditingGoal(false);
+      // Reload stats is not strictly necessary, we updated local state
+    } catch (err) {
+      console.error('Erro ao salvar meta', err);
+    } finally {
+      setSavingGoal(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center py-32"><Loader2 className="w-10 h-10 animate-spin text-teal-600" /></div>;
   }
@@ -61,30 +87,6 @@ export default function CycleOverviewPage({
     totalEstimatedMinutes = 0,
     completedEstimatedMinutes = 0,
   } = stats || {};
-
-  const [isEditingGoal, setIsEditingGoal] = useState(false);
-  const [currentGoal, setCurrentGoal] = useState(goal);
-  const [savingGoal, setSavingGoal] = useState(false);
-
-  useEffect(() => {
-    if (goal) setCurrentGoal(goal);
-  }, [goal]);
-
-  const handleSaveGoal = async () => {
-    try {
-      setSavingGoal(true);
-      await apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ goal: currentGoal })
-      });
-      setIsEditingGoal(false);
-      // Reload stats is not strictly necessary, we updated local state
-    } catch (err) {
-      console.error('Erro ao salvar meta', err);
-    } finally {
-      setSavingGoal(false);
-    }
-  };
 
   const contributionMargin = totalRevenue - totalPersonnelCost;
   const avgTicket = clientsCount > 0 ? totalRevenue / clientsCount : 0;
