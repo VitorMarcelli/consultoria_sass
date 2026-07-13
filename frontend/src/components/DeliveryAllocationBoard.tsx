@@ -10,6 +10,7 @@ interface DeliveryAllocationBoardProps {
   onDeliveryClick: (delivery: any) => void;
   onAllocationChange: (deliveryId: string, newDate: string) => Promise<void>;
   onAutoSchedule?: () => void;
+  userRole?: string;
 }
 
 export default function DeliveryAllocationBoard({
@@ -17,13 +18,23 @@ export default function DeliveryAllocationBoard({
   globalCapacity,
   onDeliveryClick,
   onAllocationChange,
-  onAutoSchedule
+  onAutoSchedule,
+  userRole
 }: DeliveryAllocationBoardProps) {
   const [boardData, setBoardData] = useState<any>({});
   const [calendarGrid, setCalendarGrid] = useState<{ day: number | null, dateStr: string | null }[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [collapsedEmployees, setCollapsedEmployees] = useState<string[]>([]);
+  const [collapsedEmployees, setCollapsedEmployees] = useState<string[]>(() => {
+    return Object.keys(boardData || {});
+  });
+
+  // Keep it updated if new employees appear (optional, but probably only needed on mount)
+  useEffect(() => {
+    if (Object.keys(boardData || {}).length > 0 && collapsedEmployees.length === 0) {
+      setCollapsedEmployees(Object.keys(boardData));
+    }
+  }, [boardData]);
 
   const toggleEmployee = (empId: string) => {
     setCollapsedEmployees(prev => 
@@ -193,9 +204,17 @@ export default function DeliveryAllocationBoard({
             
             {Object.entries(boardData).map(([empId, empData]: [string, any]) => {
               
-              const dailyCapacityHours = empData.capacityData?.dailyAvailable || 6;
+              const rawAvailable = empData.capacityData?.dailyAvailable || 6;
+              const dailyCapacityHours = rawAvailable > 24 ? Math.round(rawAvailable / 21) : rawAvailable;
               const dailyCapacityMins = dailyCapacityHours * 60;
               const isCollapsed = collapsedEmployees.includes(empId);
+              
+              const allTasks = Object.values(empData.columns).flat() as any[];
+              const totalTasks = allTasks.length;
+              const totalMinutes = calculateUsedMinutes(allTasks);
+              const totalHoursStr = formatMinutesToHours(totalMinutes);
+              const delayedTasks = allTasks.filter(t => t.status === 'ATRASADA').length;
+              const completedTasks = allTasks.filter(t => t.status === 'CONCLUIDA').length;
 
               return (
                 <div key={empId} className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
@@ -214,8 +233,43 @@ export default function DeliveryAllocationBoard({
                         <p className="text-xs font-bold text-slate-500 mt-0.5">Capacidade: {dailyCapacityHours}h / dia</p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 transition-colors">
-                      {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+
+                    <div className="flex items-center gap-4">
+                      {/* Detailed info hidden on very small screens */}
+                      <div className="hidden md:flex items-center gap-3 pr-4 border-r border-slate-200 dark:border-slate-700">
+                        
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</span>
+                          <span className="text-sm font-black text-slate-700 dark:text-slate-300">{totalTasks} {totalTasks === 1 ? 'entrega' : 'entregas'}</span>
+                        </div>
+                        
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tempo</span>
+                          <span className="text-sm font-black text-slate-700 dark:text-slate-300">{totalHoursStr || '0h'}</span>
+                        </div>
+
+                        {(delayedTasks > 0 || completedTasks > 0) && (
+                          <div className="flex items-center gap-1.5 ml-2">
+                            {completedTasks > 0 && (
+                              <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-lg text-xs font-bold border border-emerald-100 dark:border-emerald-500/20" title="Concluídas">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {completedTasks}
+                              </div>
+                            )}
+                            {delayedTasks > 0 && (
+                              <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-1 rounded-lg text-xs font-bold border border-rose-100 dark:border-rose-500/20" title="Atrasadas">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                {delayedTasks}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                      </div>
+
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 transition-colors">
+                        {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                      </div>
                     </div>
                   </div>
 
@@ -241,7 +295,7 @@ export default function DeliveryAllocationBoard({
                             className={`flex-1 overflow-y-auto custom-scrollbar pr-2 rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-teal-50 dark:bg-teal-900/10' : ''}`}
                           >
                             {empData.columns['unallocated']?.map((task: any, index: number) => (
-                              <DraggableTask key={task.id} task={task} index={index} onClick={() => onDeliveryClick(task)} />
+                              <DraggableTask key={task.id} task={task} index={index} onClick={() => onDeliveryClick(task)} userRole={userRole} />
                             ))}
                             {provided.placeholder}
                           </div>
@@ -297,7 +351,7 @@ export default function DeliveryAllocationBoard({
                                   className={`flex-1 overflow-y-auto custom-scrollbar pr-1 rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-teal-50/50 dark:bg-teal-900/20' : ''}`}
                                 >
                                   {tasks.map((task: any, index: number) => (
-                                    <DraggableTask key={task.id} task={task} index={index} onClick={() => onDeliveryClick(task)} />
+                                    <DraggableTask key={task.id} task={task} index={index} onClick={() => onDeliveryClick(task)} userRole={userRole} />
                                   ))}
                                   {provided.placeholder}
                                 </div>
@@ -320,23 +374,23 @@ export default function DeliveryAllocationBoard({
   );
 }
 
-function DraggableTask({ task, index, onClick }: { task: any, index: number, onClick: () => void }) {
-  let bgClass = 'bg-white dark:bg-slate-900';
+function DraggableTask({ task, index, onClick, userRole }: { task: any, index: number, onClick: () => void, userRole?: string }) {
+  let bgClass = 'bg-white dark:bg-slate-900 border-l-4 border-l-slate-300 dark:border-l-slate-600';
   let borderClass = 'border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-700';
   
   if (task.status === 'CONCLUIDA') {
-    bgClass = 'bg-emerald-50/80 dark:bg-emerald-900/20';
+    bgClass = 'bg-emerald-50 dark:bg-emerald-900/30 border-l-4 border-l-emerald-500';
     borderClass = 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600';
   } else if (task.status === 'ANDAMENTO') {
-    bgClass = 'bg-amber-50/80 dark:bg-amber-900/20';
+    bgClass = 'bg-amber-50 dark:bg-amber-900/30 border-l-4 border-l-amber-500';
     borderClass = 'border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600';
   } else if (task.status === 'ATRASADA') {
-    bgClass = 'bg-rose-50/80 dark:bg-rose-900/20';
+    bgClass = 'bg-rose-50 dark:bg-rose-900/30 border-l-4 border-l-rose-500';
     borderClass = 'border-rose-200 dark:border-rose-800 hover:border-rose-400 dark:hover:border-rose-600';
   }
 
   return (
-    <Draggable draggableId={task.id} index={index}>
+    <Draggable draggableId={task.id} index={index} isDragDisabled={userRole === 'OPERATOR'}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}

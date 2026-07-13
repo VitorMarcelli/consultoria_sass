@@ -25,9 +25,10 @@ interface DeliveryTaskModalProps {
   onClose: () => void;
   delivery: any | null;
   tenantId: string;
+  userRole?: string;
 }
 
-export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId }: DeliveryTaskModalProps) {
+export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId, userRole }: DeliveryTaskModalProps) {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'DETAILS' | 'FILES'>('DETAILS');
   const [details, setDetails] = useState<any>(null);
@@ -379,6 +380,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                     <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Data Planejada</span>
                     <input 
                       type="date"
+                      disabled={userRole === 'OPERATOR'}
                       value={delivery?.executionDeadline ? delivery.executionDeadline.split('T')[0] : ''}
                       onChange={async (e) => {
                         const val = e.target.value;
@@ -393,7 +395,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId 
                           alert('Erro ao atualizar data planejada.');
                         }
                       }}
-                      className="w-full text-sm font-extrabold text-slate-800 dark:text-slate-200 bg-transparent outline-none cursor-pointer"
+                      className="w-full text-sm font-extrabold text-slate-800 dark:text-slate-200 bg-transparent outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
 

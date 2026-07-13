@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
+import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class EmployeesService {
@@ -39,8 +40,34 @@ export class EmployeesService {
       return isNaN(d.getTime()) ? null : d;
     };
 
+    let authUserId: string | null = null;
+    if (data.createAccount && data.email) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !serviceRoleKey) {
+        throw new BadRequestException('Configuração do Supabase ausente no servidor.');
+      }
+
+      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
+
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: 'Sevilha123!', // Senha inicial padrão
+        email_confirm: true,
+        user_metadata: { name: data.name }
+      });
+
+      if (authError) {
+        throw new BadRequestException(`Erro ao criar conta no Supabase: ${authError.message}`);
+      }
+      authUserId = authData.user.id;
+    }
+
     // Inicia uma transação para garantir que a criação do funcionário e sua alocação no ciclo (se houver) aconteçam de forma segura.
-    return tenantPrisma.$transaction(async (tx) => {
+    const result = await tenantPrisma.$transaction(async (tx) => {
       const employee = await tx.employee.create({
         data: {
           name: data.name,
@@ -72,6 +99,21 @@ export class EmployeesService {
 
       return employee;
     });
+
+    if (authUserId) {
+      await this.globalPrisma.user.create({
+        data: {
+          id: authUserId,
+          email: data.email,
+          name: data.name,
+          role: 'OPERATOR',
+          tenantId: tenantId,
+          employeeId: result.id
+        }
+      });
+    }
+
+    return result;
   }
 
   async update(tenantId: string, employeeId: string, data: any) {

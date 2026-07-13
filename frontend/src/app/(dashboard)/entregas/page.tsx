@@ -58,10 +58,17 @@ export default function EntregasPage() {
   const [fronts, setFronts] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
 
-  const fetchDeliveries = async () => {
+  const [profile, setProfile] = useState<any>(null);
+
+  const fetchDeliveries = async (userProfile?: any) => {
     try {
       const data = await apiRequest('/deliveries').catch(() => []);
-      setDeliveries(data);
+      const user = userProfile || profile;
+      if (user?.role === 'OPERATOR') {
+        setDeliveries(data.filter((d: any) => d.responsibleId === user.employeeId));
+      } else {
+        setDeliveries(data);
+      }
     } catch (err: unknown) {
       console.error(err);
     } finally {
@@ -70,7 +77,16 @@ export default function EntregasPage() {
   };
 
   useEffect(() => {
-    fetchDeliveries();
+    const init = async () => {
+      try {
+        const user = await apiRequest('/users/me').catch(() => null);
+        setProfile(user);
+        await fetchDeliveries(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    init();
   }, []);
 
   const loadModalData = async () => {
@@ -247,28 +263,32 @@ export default function EntregasPage() {
         </div>
         
         <div className="flex items-center gap-3 shrink-0">
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleGenerateMonthly}
-            disabled={generatingMonthly}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white px-5 py-3.5 text-sm font-extrabold shadow-lg shadow-teal-600/20 transition-all disabled:opacity-50"
-          >
-            {generatingMonthly ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Executar Matriz Automática
-          </motion.button>
+          {profile?.role !== 'OPERATOR' && (
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleGenerateMonthly}
+              disabled={generatingMonthly}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white px-5 py-3.5 text-sm font-extrabold shadow-lg shadow-teal-600/20 transition-all disabled:opacity-50"
+            >
+              {generatingMonthly ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              Executar Matriz Automática
+            </motion.button>
+          )}
 
-          <button 
-            onClick={handleOpenCreateModal}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 dark:bg-slate-100 text-white dark:text-slate-950 px-5 py-3.5 text-sm font-extrabold shadow-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-all active:scale-95 duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Obrigação
-          </button>
+          {profile?.role !== 'OPERATOR' && (
+            <button 
+              onClick={handleOpenCreateModal}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 dark:bg-slate-100 text-white dark:text-slate-950 px-5 py-3.5 text-sm font-extrabold shadow-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-all active:scale-95 duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Obrigação
+            </button>
+          )}
         </div>
       </div>
 
@@ -375,6 +395,8 @@ export default function EntregasPage() {
         isOpen={isSlideOverOpen} 
         onClose={() => setIsSlideOverOpen(false)} 
         delivery={slideOverDelivery} 
+        onStatusChanged={fetchDeliveries}
+        userRole={profile?.role}
       />
 
       {/* Modal CRUD */}
@@ -491,7 +513,9 @@ export default function EntregasPage() {
                 <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Frente</th>
                 <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Responsável</th>
                 <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider text-right">Ações</th>
+                {profile?.role !== 'OPERATOR' && (
+                  <th className="px-6 py-4 font-extrabold text-xs uppercase tracking-wider text-right">Ações</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -543,22 +567,24 @@ export default function EntregasPage() {
                       <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold border border-rose-200 dark:border-rose-500/20">Atrasada</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {deleteConfirmId === delivery.id ? (
-                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1" onClick={e => e.stopPropagation()}>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
-                          <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
-                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
-                        </div>
-                      ) : (
-                        <>
-                          <button onClick={(e) => handleOpenEditModal(delivery, e)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors mr-2">Editar</button>
-                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors">Excluir</button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+                  {profile?.role !== 'OPERATOR' && (
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {deleteConfirmId === delivery.id ? (
+                          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1" onClick={e => e.stopPropagation()}>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">Excluir?</span>
+                            <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">Sim</button>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors">Não</button>
+                          </div>
+                        ) : (
+                          <>
+                            <button onClick={(e) => handleOpenEditModal(delivery, e)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors mr-2">Editar</button>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl transition-colors">Excluir</button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

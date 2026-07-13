@@ -74,6 +74,7 @@ export default function CycleDeliveriesPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [viewMode, setViewMode] = useState<'LIST' | 'KANBAN' | 'ALLOCATION'>('LIST');
+  const [profile, setProfile] = useState<any>(null);
   
   // Grouping State (Monday.com style)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -113,6 +114,9 @@ export default function CycleDeliveriesPage({
 
   const fetchDeliveries = async () => {
     try {
+      const user = await apiRequest('/users/me').catch(() => null);
+      if (user) setProfile(user);
+
       // 1) Busca os dados do ciclo para saber a competência
       const cycleData = await apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`).catch(() => null);
       let cycleCompetence = '';
@@ -435,22 +439,26 @@ export default function CycleDeliveriesPage({
         </div>
         
         <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2 shrink-0">
-          <button 
-            onClick={handleGenerateMonthly}
-            disabled={generatingMonthly}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
-          >
-            {generatingMonthly ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            Gerar Automático
-          </button>
+          {profile?.role !== 'OPERATOR' && (
+            <button 
+              onClick={handleGenerateMonthly}
+              disabled={generatingMonthly}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
+            >
+              {generatingMonthly ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              Gerar Automático
+            </button>
+          )}
 
-          <button 
-            onClick={handleOpenCreateModal}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 text-white px-5 py-2 text-xs font-bold shadow-sm shadow-teal-600/20 hover:bg-teal-700 transition-all"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Nova Obrigação
-          </button>
+          {profile?.role !== 'OPERATOR' && (
+            <button 
+              onClick={handleOpenCreateModal}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 text-white px-5 py-2 text-xs font-bold shadow-sm shadow-teal-600/20 hover:bg-teal-700 transition-all"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Nova Obrigação
+            </button>
+          )}
         </div>
       </motion.div>
 
@@ -605,6 +613,7 @@ export default function CycleDeliveriesPage({
         }}
         delivery={selectedSlideOverDelivery}
         tenantId={id}
+        userRole={profile?.role}
       />
 
       {/* Busca e Filtros */}
@@ -844,6 +853,7 @@ export default function CycleDeliveriesPage({
             onDeliveryClick={openTaskModal}
             onAllocationChange={handleAllocationChange}
             onAutoSchedule={handleAutoSchedule}
+            userRole={profile?.role}
           />
         </div>
       ) : (
@@ -923,8 +933,12 @@ export default function CycleDeliveriesPage({
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 w-full">
-                        <button onClick={(e) => handleOpenEditModal(delivery, e)} className="flex-1 text-center text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl transition-colors">Editar</button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="flex-1 text-center text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl transition-colors">Excluir</button>
+                        {profile?.role !== 'OPERATOR' && (
+                          <button onClick={(e) => handleOpenEditModal(delivery, e)} className="flex-1 text-center text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl transition-colors">Editar</button>
+                        )}
+                        {profile?.role !== 'OPERATOR' && (
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="flex-1 text-center text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 font-bold text-xs bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl transition-colors">Excluir</button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -944,7 +958,9 @@ export default function CycleDeliveriesPage({
                   <th className="px-4 py-3 font-bold w-[12%] text-center">Frente</th>
                   <th className="px-4 py-3 font-bold w-[10%] text-center">Prioridade</th>
                   <th className="px-0 py-3 font-bold text-center w-[15%]">Status</th>
-                  <th className="px-4 py-3 font-bold text-right w-[10%]">Ações</th>
+                  {profile?.role !== 'OPERATOR' && (
+                    <th className="px-4 py-3 font-bold text-right w-[10%]">Ações</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -1025,28 +1041,30 @@ export default function CycleDeliveriesPage({
                               {delivery.status === 'CONCLUIDA' ? 'Concluída' : delivery.status === 'ATRASADA' ? 'Atrasada' : delivery.status === 'ANDAMENTO' ? 'Em Andamento' : delivery.status === 'PREVISTA' ? 'Prevista' : 'Inativa'}
                             </div>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {deleteConfirmId === delivery.id ? (
-                                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1" onClick={e => e.stopPropagation()}>
-                                  <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-md bg-red-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-red-700">Sim</button>
-                                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-md bg-white dark:bg-slate-700 px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-slate-300">Não</button>
-                                </div>
-                              ) : (
-                                <>
-                                  {delivery.status !== 'CONCLUIDA' && (
-                                    <button onClick={(e) => handleQuickStatusChange(delivery.id, 'CONCLUIDA', e)} className="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Marcar como Concluída">
-                                      <CheckCircle2 className="w-4 h-4" />
+                          {profile?.role !== 'OPERATOR' && (
+                            <td className="px-4 py-2 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {deleteConfirmId === delivery.id ? (
+                                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1" onClick={e => e.stopPropagation()}>
+                                    <button onClick={(e) => handleDelete(delivery.id, e)} className="rounded-md bg-red-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-red-700">Sim</button>
+                                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }} className="rounded-md bg-white dark:bg-slate-700 px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-slate-300">Não</button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {delivery.status !== 'CONCLUIDA' && (
+                                      <button onClick={(e) => handleQuickStatusChange(delivery.id, 'CONCLUIDA', e)} className="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Marcar como Concluída">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Excluir">
+                                      <span className="sr-only">Excluir</span>
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                     </button>
-                                  )}
-                                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(delivery.id); }} className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Excluir">
-                                    <span className="sr-only">Excluir</span>
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          )}
                         </motion.tr>
                       ))}
                     </React.Fragment>

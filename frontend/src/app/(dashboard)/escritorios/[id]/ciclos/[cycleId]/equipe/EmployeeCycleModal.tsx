@@ -29,7 +29,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
   // Allocation Data
   const [selectedFront, setSelectedFront] = useState('');
   const [selectedSubdivision, setSelectedSubdivision] = useState('');
-  const [allocatedHours, setAllocatedHours] = useState('8');
+  const [allocatedHours, setAllocatedHours] = useState('6');
   const [predictableRecurrentTimePercentage, setPredictableRecurrentTimePercentage] = useState('');
   const [unpredictableRecurrentTimePercentage, setUnpredictableRecurrentTimePercentage] = useState('');
   const [allocationStartDate, setAllocationStartDate] = useState('');
@@ -78,7 +78,7 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
     setObservations('');
     setSelectedFront('');
     setSelectedSubdivision('');
-    setAllocatedHours('8');
+    setAllocatedHours('6');
     setPredictableRecurrentTimePercentage('');
     setUnpredictableRecurrentTimePercentage('');
     setAllocationStartDate('');

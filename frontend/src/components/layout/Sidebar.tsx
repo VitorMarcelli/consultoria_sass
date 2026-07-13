@@ -21,6 +21,7 @@ import { createClient } from '@/utils/supabase/client';
 
 const menuItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'Entregas', path: '/entregas', icon: CheckSquare },
   { name: 'Escritórios', path: '/escritorios', icon: Building2 },
   { name: 'Administradores', path: '/admin/administradores', icon: ShieldCheck },
   { name: 'Consultores', path: '/admin/consultores', icon: Users },
@@ -114,6 +115,9 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       <div className="mt-8 px-3 flex-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
         <nav className="flex flex-col gap-2">
           {menuItems.filter(item => {
+            if (profile?.role === 'OPERATOR') {
+              return item.name === 'Entregas';
+            }
             if (item.path.startsWith('/admin') || item.path === '/') {
               return profile?.role === 'ADMIN';
             }

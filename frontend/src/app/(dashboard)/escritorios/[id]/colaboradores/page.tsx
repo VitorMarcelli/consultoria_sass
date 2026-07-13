@@ -29,7 +29,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [colaboradores, setColaboradores] = useState<{id: string, nome: string, cargo: string, nivel: string, email: string, salario_bruto: string, status: string, observations: string, dbId?: string}[]>([]);
+  const [colaboradores, setColaboradores] = useState<{id: string, nome: string, cargo: string, nivel: string, email: string, salario_bruto: string, status: string, observations: string, dbId?: string, createAccount?: boolean}[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -45,12 +45,13 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
             salario_bruto: emp.grossSalary ? emp.grossSalary.toString() : '',
             status: emp.status || 'ACTIVE',
             observations: emp.observations || '',
-            dbId: emp.id
+            dbId: emp.id,
+            createAccount: false
           }));
           setColaboradores(loadedRows);
         } else {
           // Linha vazia por padrão
-          setColaboradores([{ id: crypto.randomUUID(), nome: '', cargo: '', nivel: '', email: '', salario_bruto: '', status: 'ACTIVE', observations: '' }]);
+          setColaboradores([{ id: crypto.randomUUID(), nome: '', cargo: '', nivel: '', email: '', salario_bruto: '', status: 'ACTIVE', observations: '', createAccount: false }]);
         }
       } catch (err) {
         console.error('Erro ao buscar colaboradores:', err);
@@ -67,6 +68,11 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
       for (const row of colaboradores) {
         if (!row.nome.trim() || !row.cargo.trim()) continue;
         
+        if (row.createAccount && !row.email.trim()) {
+          alert(`O E-mail é obrigatório para criar o acesso ao sistema para ${row.nome}.`);
+          return; // Stop saving
+        }
+
         const payload = {
           tenantId: id,
           name: row.nome,
@@ -75,7 +81,8 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
           email: row.email,
           status: row.status,
           observations: row.observations,
-          grossSalary: row.salario_bruto ? parseFloat(row.salario_bruto.replace(',', '.')) : null
+          grossSalary: row.salario_bruto ? parseFloat(row.salario_bruto.replace(',', '.')) : null,
+          createAccount: row.createAccount
         };
         
         if (row.dbId) {
@@ -100,7 +107,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
   };
 
   const handleAddRow = () => {
-    setColaboradores([...colaboradores, { id: crypto.randomUUID(), nome: '', cargo: '', nivel: '', email: '', salario_bruto: '', status: 'ACTIVE', observations: '' }]);
+    setColaboradores([...colaboradores, { id: crypto.randomUUID(), nome: '', cargo: '', nivel: '', email: '', salario_bruto: '', status: 'ACTIVE', observations: '', createAccount: false }]);
   };
 
   const handleDeleteRow = async (rowId: string) => {
@@ -341,6 +348,31 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                     </div>
                   </div>
 
+                  {!colaborador.dbId && (
+                    <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl mt-2">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">Criar Acesso ao Sistema</span>
+                        <span className="text-xs text-slate-500">Enviar convite por e-mail</span>
+                      </div>
+                      <label className="flex items-center cursor-pointer">
+                        <div className="relative">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only" 
+                            checked={colaborador.createAccount || false}
+                            onChange={(e) => {
+                              const newRows = [...colaboradores];
+                              newRows.find(c => c.id === colaborador.id)!.createAccount = e.target.checked;
+                              setColaboradores(newRows);
+                            }}
+                          />
+                          <div className={`block w-10 h-6 rounded-full transition-colors ${colaborador.createAccount ? 'bg-teal-500' : 'bg-slate-200'}`}></div>
+                          <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${colaborador.createAccount ? 'transform translate-x-4' : ''}`}></div>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Observações</label>
                     <input 
@@ -371,6 +403,7 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                   <th className="px-6 py-5 font-bold">E-mail Profissional</th>
                   <th className="px-6 py-5 font-bold">Salário Bruto (R$)</th>
                   <th className="px-6 py-5 font-bold">Status</th>
+                  <th className="px-6 py-5 font-bold">Criar Acesso</th>
                   <th className="px-6 py-5 font-bold">Observações</th>
                   <th className="px-6 py-5 text-right font-bold w-24">Ações</th>
                 </tr>
@@ -476,6 +509,31 @@ export default function CadastroColaboradoresPage({ params }: { params: Promise<
                           <option value="ACTIVE">Ativo</option>
                           <option value="INACTIVE">Inativo</option>
                         </select>
+                      </td>
+                      <td className="px-6 py-5 min-w-[150px]">
+                        {!colaborador.dbId ? (
+                          <label className="flex items-center cursor-pointer gap-2">
+                            <div className="relative">
+                              <input 
+                                type="checkbox" 
+                                className="sr-only" 
+                                checked={colaborador.createAccount || false}
+                                onChange={(e) => {
+                                  const newRows = [...colaboradores];
+                                  newRows.find(c => c.id === colaborador.id)!.createAccount = e.target.checked;
+                                  setColaboradores(newRows);
+                                }}
+                              />
+                              <div className={`block w-10 h-6 rounded-full transition-colors ${colaborador.createAccount ? 'bg-teal-500' : 'bg-slate-200'}`}></div>
+                              <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${colaborador.createAccount ? 'transform translate-x-4' : ''}`}></div>
+                            </div>
+                            <span className="text-xs font-bold text-slate-500">
+                              {colaborador.createAccount ? 'Sim' : 'Não'}
+                            </span>
+                          </label>
+                        ) : (
+                          <span className="text-xs text-slate-400 font-medium">Já cadastrado</span>
+                        )}
                       </td>
                       <td className="px-6 py-5 min-w-[200px]">
                         <input 

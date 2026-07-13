@@ -16,9 +16,10 @@ interface DeliverySlideOverProps {
   onClose: () => void;
   delivery: any;
   onStatusChanged?: () => void;
+  userRole?: string;
 }
 
-export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusChanged }: DeliverySlideOverProps) {
+export default function DeliverySlideOver({ isOpen, onClose, delivery, onStatusChanged, userRole }: DeliverySlideOverProps) {
   const params = useParams();
   const tenantId = params.id as string;
 
