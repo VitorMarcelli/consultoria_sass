@@ -126,6 +126,14 @@ export class ManagementCyclesService {
     });
   }
 
+  async updateCycle(tenantId: string, cycleId: string, data: { goal?: string, status?: string }) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+    return tenantPrisma.managementCycle.update({
+      where: { id: cycleId },
+      data,
+    });
+  }
+
   async createCycle(tenantId: string, data: { month: number, year: number }) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
 
@@ -301,6 +309,14 @@ export class ManagementCyclesService {
   async getDashboardStats(tenantId: string, cycleId: string, frontId?: string, subdivisionId?: string) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
 
+    const cycle = await tenantPrisma.managementCycle.findUnique({
+      where: { id: cycleId }
+    });
+
+    if (!cycle) throw new NotFoundException('Ciclo não encontrado');
+
+    const competence = `${cycle.month.toString().padStart(2, '0')}/${cycle.year}`;
+
     const whereClause: any = { cycleId };
     if (frontId) whereClause.frontId = frontId;
     if (subdivisionId) whereClause.subdivisionId = subdivisionId;
@@ -355,8 +371,33 @@ export class ManagementCyclesService {
       }
     }
 
+    // Get delivery stats
+    const deliveriesWhere: any = { competence };
+    if (frontId) deliveriesWhere.frontId = frontId;
+    if (subdivisionId) deliveriesWhere.subdivisionId = subdivisionId;
+    
+    const allTasks = await tenantPrisma.delivery.findMany({
+      where: deliveriesWhere,
+      select: { status: true, estimatedTimeMinutes: true }
+    });
+
+    const totalTasks = allTasks.length;
+    const completedTasks = allTasks.filter(t => t.status === 'CONCLUIDA').length;
+    
+    let totalEstimatedMinutes = 0;
+    let completedEstimatedMinutes = 0;
+    
+    for (const t of allTasks) {
+      const mins = t.estimatedTimeMinutes || 30; // fallback to 30 mins
+      totalEstimatedMinutes += mins;
+      if (t.status === 'CONCLUIDA') {
+        completedEstimatedMinutes += mins;
+      }
+    }
+
     return {
       cycleId,
+      goal: cycle.goal,
       totalRevenue: uniqueClientsTotalRevenue,
       totalPersonnelCost: uniqueEmployeesTotalCost,
       kpiPersonnelCostPercent: uniqueClientsTotalRevenue > 0 ? (uniqueEmployeesTotalCost / uniqueClientsTotalRevenue) * 100 : 0,
@@ -364,7 +405,11 @@ export class ManagementCyclesService {
       teamCount: employeeIdsCounted.size,
       distributionByTaxRegime,
       distributionByComplexity,
-      distributionByFrequency
+      distributionByFrequency,
+      totalTasks,
+      completedTasks,
+      totalEstimatedMinutes,
+      completedEstimatedMinutes
     };
   }
 

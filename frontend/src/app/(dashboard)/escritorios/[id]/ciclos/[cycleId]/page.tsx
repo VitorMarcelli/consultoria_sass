@@ -54,8 +54,37 @@ export default function CycleOverviewPage({
     teamCount = 0,
     distributionByTaxRegime = {},
     distributionByComplexity = {},
-    distributionByFrequency = {}
+    distributionByFrequency = {},
+    goal = '',
+    totalTasks = 0,
+    completedTasks = 0,
+    totalEstimatedMinutes = 0,
+    completedEstimatedMinutes = 0,
   } = stats || {};
+
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [currentGoal, setCurrentGoal] = useState(goal);
+  const [savingGoal, setSavingGoal] = useState(false);
+
+  useEffect(() => {
+    if (goal) setCurrentGoal(goal);
+  }, [goal]);
+
+  const handleSaveGoal = async () => {
+    try {
+      setSavingGoal(true);
+      await apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ goal: currentGoal })
+      });
+      setIsEditingGoal(false);
+      // Reload stats is not strictly necessary, we updated local state
+    } catch (err) {
+      console.error('Erro ao salvar meta', err);
+    } finally {
+      setSavingGoal(false);
+    }
+  };
 
   const contributionMargin = totalRevenue - totalPersonnelCost;
   const avgTicket = clientsCount > 0 ? totalRevenue / clientsCount : 0;
@@ -93,8 +122,105 @@ export default function CycleOverviewPage({
     { name: 'Clientes / Colab', value: clientsPerEmployee.toFixed(1), total: 'Carteira', color: 'text-violet-500', stripColor: 'bg-violet-500', icon: Users2, progress: 100, desc: 'Proporção' },
   ];
 
+  const progressPercent = totalEstimatedMinutes > 0 ? Math.round((completedEstimatedMinutes / totalEstimatedMinutes) * 100) : 0;
+  const taskProgressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
   return (
     <div className="space-y-6 pb-12">
+      
+      {/* Metas e Progresso do Ciclo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Meta do Ciclo */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 flex flex-col relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+          
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+              Metas do Sprint (Ciclo)
+            </h3>
+            {!isEditingGoal && (
+              <button 
+                onClick={() => setIsEditingGoal(true)}
+                className="text-xs font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Editar
+              </button>
+            )}
+          </div>
+
+          {isEditingGoal ? (
+            <div className="flex flex-col gap-3 flex-1 justify-center">
+              <textarea 
+                value={currentGoal}
+                onChange={e => setCurrentGoal(e.target.value)}
+                placeholder="Ex: Garantir fechamento de folha sem multas e concluir onboarding de 3 novos clientes..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none h-24"
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button 
+                  onClick={() => setIsEditingGoal(false)}
+                  disabled={savingGoal}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleSaveGoal}
+                  disabled={savingGoal}
+                  className="px-4 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  {savingGoal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Salvar Meta'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center">
+              {currentGoal ? (
+                <p className="text-lg sm:text-xl font-black text-slate-800 leading-snug">
+                  "{currentGoal}"
+                </p>
+              ) : (
+                <p className="text-sm font-medium text-slate-400 italic">
+                  Nenhuma meta definida para este ciclo. Adicione um objetivo para guiar o time!
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Barra de Progresso Macro */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 flex flex-col justify-center">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              Progresso do Ciclo
+            </h3>
+            <span className="text-2xl font-black text-indigo-600">{progressPercent}%</span>
+          </div>
+
+          <div className="relative w-full h-4 bg-slate-100 rounded-full overflow-hidden mb-6">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full"
+            />
+          </div>
+
+          <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-400 uppercase">Esforço (Horas)</span>
+              <span className="text-sm font-black text-slate-700">{Math.round(completedEstimatedMinutes/60)}h / {Math.round(totalEstimatedMinutes/60)}h</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-xs font-bold text-slate-400 uppercase">Tarefas</span>
+              <span className="text-sm font-black text-slate-700">{completedTasks} / {totalTasks} ({taskProgressPercent}%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Fileira de KPIs Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {cycleStats.map((stat, i) => (

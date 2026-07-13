@@ -54,6 +54,14 @@ export class ManagementCyclesController {
     return this.cyclesService.createCycle(body.tenantId, body);
   }
 
+  @Put(':id')
+  updateCycle(
+    @Param('id') cycleId: string,
+    @Body() body: { tenantId: string, goal?: string, status?: string }
+  ) {
+    return this.cyclesService.updateCycle(body.tenantId, cycleId, { goal: body.goal, status: body.status });
+  }
+
   @Post(':id/clients')
   allocateClient(
     @Param('id') cycleId: string,

@@ -462,6 +462,7 @@ model ManagementCycle {
   month  Int
   year   Int
   status String @default("OPEN") // OPEN, CLOSED
+  goal   String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
