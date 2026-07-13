@@ -215,6 +215,8 @@ export default function DeliveryAllocationBoard({
               const totalHoursStr = formatMinutesToHours(totalMinutes);
               const delayedTasks = allTasks.filter(t => t.status === 'ATRASADA').length;
               const completedTasks = allTasks.filter(t => t.status === 'CONCLUIDA').length;
+              const inProgressTasks = allTasks.filter(t => t.status === 'ANDAMENTO').length;
+              const plannedTasks = allTasks.filter(t => t.status === 'PREVISTA' || !t.status).length;
 
               return (
                 <div key={empId} className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
@@ -248,12 +250,24 @@ export default function DeliveryAllocationBoard({
                           <span className="text-sm font-black text-slate-700 dark:text-slate-300">{totalHoursStr || '0h'}</span>
                         </div>
 
-                        {(delayedTasks > 0 || completedTasks > 0) && (
+                        {(delayedTasks > 0 || completedTasks > 0 || inProgressTasks > 0 || plannedTasks > 0) && (
                           <div className="flex items-center gap-1.5 ml-2">
                             {completedTasks > 0 && (
                               <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-lg text-xs font-bold border border-emerald-100 dark:border-emerald-500/20" title="Concluídas">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 {completedTasks}
+                              </div>
+                            )}
+                            {inProgressTasks > 0 && (
+                              <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-lg text-xs font-bold border border-amber-100 dark:border-amber-500/20" title="Em Andamento">
+                                <Clock className="w-3.5 h-3.5" />
+                                {inProgressTasks}
+                              </div>
+                            )}
+                            {plannedTasks > 0 && (
+                              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700" title="Previstas">
+                                <CalendarIcon className="w-3.5 h-3.5" />
+                                {plannedTasks}
                               </div>
                             )}
                             {delayedTasks > 0 && (
