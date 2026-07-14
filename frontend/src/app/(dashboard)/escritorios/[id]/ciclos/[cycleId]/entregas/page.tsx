@@ -287,6 +287,11 @@ export default function CycleDeliveriesPage({
 
   // Filtragem
   const filteredDeliveries = deliveries.filter(d => {
+    // Regra: Responsável comum só vê suas próprias tarefas
+    if (profile?.role === 'OPERATOR' && d.responsibleId !== profile.id && d.responsible?.name !== profile?.name) {
+      return false;
+    }
+
     const matchQuery = (d.standardizedName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (d.originalName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (d.client?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -796,6 +801,7 @@ export default function CycleDeliveriesPage({
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tempo Padrão (Minutos)</label>
                     <input type="number" required value={formData.estimatedTimeMinutes} onChange={e => setFormData({...formData, estimatedTimeMinutes: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: 120" />
+                    <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1 font-semibold">⚠️ É fundamental definir o tempo para controle de entrega e alocação!</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data Planejada</label>
@@ -843,6 +849,8 @@ export default function CycleDeliveriesPage({
             deliveries={filteredDeliveries} 
             onDeliveryClick={openTaskModal} 
             onStatusChange={handleKanbanStatusChange} 
+            userRole={profile?.role}
+            userId={profile?.id}
           />
         </div>
       ) : viewMode === 'ALLOCATION' ? (

@@ -26,6 +26,8 @@ interface DeliveryKanbanBoardProps {
   deliveries: Delivery[];
   onDeliveryClick: (delivery: Delivery) => void;
   onStatusChange: (deliveryId: string, newStatus: string) => void;
+  userRole?: string;
+  userId?: string;
 }
 
 const KANBAN_COLUMNS = [
@@ -36,7 +38,13 @@ const KANBAN_COLUMNS = [
   { id: 'INATIVA', label: 'Inativa', color: 'slate' }
 ];
 
-export default function DeliveryKanbanBoard({ deliveries, onDeliveryClick, onStatusChange }: DeliveryKanbanBoardProps) {
+export default function DeliveryKanbanBoard({ 
+  deliveries, 
+  onDeliveryClick, 
+  onStatusChange,
+  userRole,
+  userId
+}: DeliveryKanbanBoardProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -94,9 +102,13 @@ export default function DeliveryKanbanBoard({ deliveries, onDeliveryClick, onSta
                       snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 border-dashed' : 'bg-transparent'
                     }`}
                   >
-                    {colDeliveries.map((delivery, index) => (
-                      <Draggable key={delivery.id} draggableId={delivery.id} index={index}>
-                        {(provided, snapshot) => (
+                    {colDeliveries.map((delivery, index) => {
+                      // Determinar se o usuário pode arrastar o card
+                      const canDrag = userRole === 'SUPERADMIN' || userRole === 'ADMIN' || userRole === 'CONSULTANT' || delivery.responsibleId === userId;
+                      
+                      return (
+                        <Draggable key={delivery.id} draggableId={delivery.id} index={index} isDragDisabled={!canDrag}>
+                          {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
@@ -104,7 +116,8 @@ export default function DeliveryKanbanBoard({ deliveries, onDeliveryClick, onSta
                             onClick={() => onDeliveryClick(delivery)}
                             className={`group relative mb-3 p-4 rounded-xl border bg-white dark:bg-slate-900 
                               hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer
-                              ${snapshot.isDragging ? 'shadow-xl scale-105 border-indigo-500/50 z-50' : 'border-slate-200 dark:border-slate-800 shadow-sm'}`}
+                              ${snapshot.isDragging ? 'shadow-xl scale-105 border-indigo-500/50 z-50' : 'border-slate-200 dark:border-slate-800 shadow-sm'}
+                              ${!canDrag ? 'opacity-90 cursor-not-allowed hover:translate-y-0' : ''}`}
                             style={provided.draggableProps.style}
                           >
                             {/* Card Top Border Accent */}
@@ -170,9 +183,10 @@ export default function DeliveryKanbanBoard({ deliveries, onDeliveryClick, onSta
                               </button>
                             </div>
                           </div>
-                        )}
-                      </Draggable>
-                    ))}
+                          )}
+                        </Draggable>
+                      );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
