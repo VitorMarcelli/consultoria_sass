@@ -1,13 +1,20 @@
 import { Injectable, ConflictException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
 
 @Injectable()
 export class TenantsService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    console.log('Iniciando sincronização automática de schemas de tenants...');
+    // Inicia a sincronização em background sem bloquear o startup do NestJS
+    this.syncAllSchemasInBackground().catch(console.error);
+  }
+
+  private async syncAllSchemasInBackground() {
+    console.log('Iniciando sincronização automática de schemas de tenants (Background)...');
     try {
       const tenants = await this.prisma.tenant.findMany();
       for (const tenant of tenants) {
@@ -22,13 +29,13 @@ export class TenantsService implements OnModuleInit {
           const directUrl = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL!);
           directUrl.searchParams.set('schema', schemaName);
 
-          execSync('npx prisma db push --accept-data-loss --skip-generate', {
+          // Executa de forma assíncrona para não travar o event loop
+          await execAsync('npx prisma db push --accept-data-loss --skip-generate', {
             env: {
               ...process.env,
               DATABASE_URL: dbUrl.toString(),
               DIRECT_URL: directUrl.toString(),
-            },
-            stdio: 'pipe'
+            }
           });
           console.log(`Schema ${schemaName} sincronizado com sucesso.`);
         } catch (err: any) {
