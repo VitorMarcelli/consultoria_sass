@@ -17,10 +17,9 @@ async function bootstrap() {
   
   // Enable CORS with permissive options to allow Vercel to connect
   app.enableCors({
-    origin: true,
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning, X-Device-Session-Id',
+    allowedHeaders: '*',
   });
   
   const port = process.env.PORT || 3333;
