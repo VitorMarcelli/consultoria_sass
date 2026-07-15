@@ -9,8 +9,10 @@ export class TenantsService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    // Inicia a sincronização em background sem bloquear o startup do NestJS
-    this.syncAllSchemasInBackground().catch(console.error);
+    // Aguarda 10 segundos para o servidor ligar e o Render mapear a porta antes de sugar a CPU
+    setTimeout(() => {
+      this.syncAllSchemasInBackground().catch(console.error);
+    }, 10000);
   }
 
   private async syncAllSchemasInBackground() {
