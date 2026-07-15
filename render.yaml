@@ -7,8 +7,6 @@ services:
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm run start:prod
     envVars:
-      - key: PORT
-        value: 3333
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL

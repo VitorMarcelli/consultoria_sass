@@ -22,7 +22,7 @@ async function bootstrap() {
     allowedHeaders: '*',
   });
   
-  const port = process.env.PORT || 3333;
+  const port = process.env.PORT || 10000;
   await app.listen(port, '0.0.0.0');
   console.log(`Backend server is running on port ${port} (restarted)`);
 }
