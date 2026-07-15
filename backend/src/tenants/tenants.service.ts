@@ -86,13 +86,12 @@ export class TenantsService implements OnModuleInit {
       const directUrl = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL!);
       directUrl.searchParams.set('schema', schemaName);
 
-      execSync('npx prisma db push --accept-data-loss --skip-generate', {
+      await execAsync('npx prisma db push --accept-data-loss --skip-generate', {
         env: {
           ...process.env,
           DATABASE_URL: dbUrl.toString(),
           DIRECT_URL: directUrl.toString(),
-        },
-        stdio: 'pipe' // Keep it quiet unless error
+        }
       });
 
       console.log(`Schema e tabelas criadas dinamicamente para o Tenant: ${tenant.name} (${schemaName})`);
