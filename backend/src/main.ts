@@ -35,9 +35,9 @@ async function bootstrap() {
 
   // INTERNAL DIAGNOSTIC LOOP
   setInterval(() => {
-    require('http').get(`http://127.0.0.1:${port}/`, (res) => {
+    require('http').get(`http://127.0.0.1:${port}/`, (res: any) => {
       console.log(`[INTERNAL PING] Health check to itself: HTTP ${res.statusCode}`);
-    }).on('error', (err) => {
+    }).on('error', (err: any) => {
       console.error(`[INTERNAL PING] Failed to reach itself:`, err.message);
     });
   }, 10000);
