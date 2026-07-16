@@ -10,7 +10,7 @@ export class ImportsService {
     private readonly prismaManager: PrismaClientManager,
   ) {}
 
-  private async getTenantPrisma(tenantId: string) {
+  private getTenantPrisma(tenantId: string) {
     if (!tenantId)
       throw new NotFoundException('ID do escritório não informado.');
     const schemaName = `tenant_${tenantId.replace(/-/g, '_')}`;
