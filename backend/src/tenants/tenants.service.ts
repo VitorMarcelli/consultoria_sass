@@ -9,10 +9,11 @@ export class TenantsService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    // Aguarda 10 segundos para o servidor ligar e o Render mapear a porta antes de sugar a CPU
-    setTimeout(() => {
-      this.syncAllSchemasInBackground().catch(console.error);
-    }, 10000);
+    // A sincronização automática de todos os schemas no startup foi desativada!
+    // Motivo: O npx prisma db push gasta tanta CPU (no plano Free do Render)
+    // que causa timeout nos Health Checks HTTP do painel de controle, 
+    // fazendo o roteador global derrubar a rota (erro no-server).
+    console.log('Startup do TenantsService concluído (sincronização automática desativada para manter estabilidade).');
   }
 
   private async syncAllSchemasInBackground() {
