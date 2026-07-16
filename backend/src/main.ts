@@ -23,7 +23,23 @@ async function bootstrap() {
   });
   
   const port = parseInt(process.env.PORT || '10000', 10);
+  
+  // Bind explicitly to 0.0.0.0 (IPv4) but also allow IPv6 if supported by omitting host, 
+  // or just use 0.0.0.0 which is the standard for Render.
   await app.listen(port, '0.0.0.0');
-  console.log(`Backend server is running on port ${port} (restarted)`);
+
+  const server = app.getHttpServer();
+  const address = server.address();
+  console.log(`[NETWORK] Backend server is running on port ${port} (restarted)`);
+  console.log(`[NETWORK] Server physical binding address: ${JSON.stringify(address)}`);
+
+  // INTERNAL DIAGNOSTIC LOOP
+  setInterval(() => {
+    require('http').get(`http://127.0.0.1:${port}/`, (res) => {
+      console.log(`[INTERNAL PING] Health check to itself: HTTP ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.error(`[INTERNAL PING] Failed to reach itself:`, err.message);
+    });
+  }, 10000);
 }
 bootstrap();
