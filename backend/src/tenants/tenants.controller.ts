@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete, Request, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Patch,
+  Delete,
+  Request,
+  ForbiddenException,
+} from '@nestjs/common';
 import { TenantsService } from './tenants.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -8,7 +19,15 @@ export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
   @Post()
-  create(@Body() createTenantDto: { name: string; cnpj?: string; slug: string; consultantId?: string }) {
+  create(
+    @Body()
+    createTenantDto: {
+      name: string;
+      cnpj?: string;
+      slug: string;
+      consultantId?: string;
+    },
+  ) {
     return this.tenantsService.create(createTenantDto);
   }
 
@@ -25,17 +44,18 @@ export class TenantsController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateTenantDto: { 
-      name?: string; 
-      cnpj?: string; 
-      consultantId?: string; 
+    @Body()
+    updateTenantDto: {
+      name?: string;
+      cnpj?: string;
+      consultantId?: string;
       status?: string;
       city?: string;
       state?: string;
       size?: string;
       accountingSystem?: string;
       observations?: string;
-    }
+    },
   ) {
     return this.tenantsService.update(id, updateTenantDto);
   }
@@ -48,7 +68,13 @@ export class TenantsController {
   @Post(':id/templates')
   updateTemplateStatus(
     @Param('id') id: string,
-    @Body() data: { layer: number; templateName: string; status: string; fileUrl?: string }
+    @Body()
+    data: {
+      layer: number;
+      templateName: string;
+      status: string;
+      fileUrl?: string;
+    },
   ) {
     return this.tenantsService.updateTemplateStatus(id, data);
   }
@@ -57,7 +83,9 @@ export class TenantsController {
   async remove(@Request() req: any, @Param('id') id: string) {
     // Check if the user is trying to delete their own base tenant
     if (req.user?.tenantId === id) {
-      throw new ForbiddenException('Você não pode excluir o seu próprio escritório base (Workspace principal).');
+      throw new ForbiddenException(
+        'Você não pode excluir o seu próprio escritório base (Workspace principal).',
+      );
     }
 
     return this.tenantsService.remove(id);

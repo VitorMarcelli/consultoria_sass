@@ -105,6 +105,7 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, t
                       type="file" 
                       accept=".csv, .xlsx"
                       onChange={handleFileChange}
+                      aria-label="Upload de arquivo"
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <div className="flex flex-col items-center gap-2">

@@ -1,4 +1,12 @@
-import { Controller, Get, Param, UseGuards, Patch, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  Patch,
+  Body,
+  Query,
+} from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -22,7 +30,11 @@ export class DashboardController {
     @Param('frontId') frontId: string,
     @Query('tenantId') tenantId: string,
   ) {
-    return this.dashboardService.getCapacityPlanning(tenantId, cycleId, frontId);
+    return this.dashboardService.getCapacityPlanning(
+      tenantId,
+      cycleId,
+      frontId,
+    );
   }
 
   @Get('leveling/:cycleId/:frontId')
@@ -36,8 +48,17 @@ export class DashboardController {
 
   @Patch('leveling/reschedule')
   async rescheduleDeliveries(
-    @Body() payload: { deliveryIds: string[], newExecutionDate: string, tenantId: string }
+    @Body()
+    payload: {
+      deliveryIds: string[];
+      newExecutionDate: string;
+      tenantId: string;
+    },
   ) {
-    return this.dashboardService.rescheduleBulkDeliveries(payload.tenantId, payload.deliveryIds, payload.newExecutionDate);
+    return this.dashboardService.rescheduleBulkDeliveries(
+      payload.tenantId,
+      payload.deliveryIds,
+      payload.newExecutionDate,
+    );
   }
 }

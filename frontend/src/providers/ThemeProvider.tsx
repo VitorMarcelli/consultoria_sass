@@ -29,10 +29,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const savedColor = localStorage.getItem('theme-color') as AccentColor;
     const savedDensity = localStorage.getItem('theme-density') as Density;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedTheme) setTheme(savedTheme);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedColor) setAccentColor(savedColor);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedDensity) setDensity(savedDensity);
     
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

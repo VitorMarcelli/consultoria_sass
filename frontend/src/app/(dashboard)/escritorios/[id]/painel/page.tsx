@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { StatsCard } from '@/components/ui/StatsCard';
 
-const COLORS = ['#0d9488', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
+const COLORS = ['#0d9488', '#3b82f6', '#f59e0b', '#14B8A6', '#ec4899', '#64748b'];
 
 const containerVariants = {
   hidden: { opacity: 0 },

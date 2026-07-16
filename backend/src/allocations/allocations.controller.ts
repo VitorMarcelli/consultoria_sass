@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { AllocationsService } from './allocations.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -9,7 +19,10 @@ export class AllocationsController {
 
   @Post()
   create(@Body() createAllocationDto: any) {
-    return this.allocationsService.create(createAllocationDto.tenantId, createAllocationDto);
+    return this.allocationsService.create(
+      createAllocationDto.tenantId,
+      createAllocationDto,
+    );
   }
 
   @Get()
@@ -19,7 +32,11 @@ export class AllocationsController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateAllocationDto: any) {
-    return this.allocationsService.update(updateAllocationDto.tenantId, id, updateAllocationDto);
+    return this.allocationsService.update(
+      updateAllocationDto.tenantId,
+      id,
+      updateAllocationDto,
+    );
   }
 
   @Delete(':id')

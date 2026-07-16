@@ -11,7 +11,9 @@ export class AuthService {
     try {
       const parts = token.split('.');
       if (parts.length === 3) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+        const payload = JSON.parse(
+          Buffer.from(parts[1], 'base64').toString('utf-8'),
+        );
         if (payload.session_id) {
           sessionId = payload.session_id;
         }
@@ -22,7 +24,13 @@ export class AuthService {
     return sessionId;
   }
 
-  async createSession(userId: string, token: string, userAgent: string, ipAddress: string, deviceSessionId?: string) {
+  async createSession(
+    userId: string,
+    token: string,
+    userAgent: string,
+    ipAddress: string,
+    deviceSessionId?: string,
+  ) {
     const sessionId = deviceSessionId || this.getSessionIdFromToken(token);
 
     // Identificar dispositivo e navegador via User-Agent
@@ -31,11 +39,13 @@ export class AuthService {
     const browserResult = parser.getBrowser();
     const deviceResult = parser.getDevice();
 
-    let deviceFamily = `${deviceResult.vendor || ''} ${deviceResult.model || ''}`.trim();
+    let deviceFamily =
+      `${deviceResult.vendor || ''} ${deviceResult.model || ''}`.trim();
     if (!deviceFamily) {
       deviceFamily = `${os.name || 'Dispositivo'} ${os.version || ''}`.trim();
     }
-    const browser = `${browserResult.name || 'Navegador'} ${browserResult.version || ''}`.trim();
+    const browser =
+      `${browserResult.name || 'Navegador'} ${browserResult.version || ''}`.trim();
 
     // Rastreamento de Geolocalização por IP com timeout rígido de 1.5s
     let location = 'Localização Indisponível';
@@ -43,7 +53,9 @@ export class AuthService {
       if (ipAddress && ipAddress !== '127.0.0.1' && ipAddress !== '::1') {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), 1500);
-        const res = await fetch(`http://ip-api.com/json/${ipAddress}`, { signal: controller.signal });
+        const res = await fetch(`http://ip-api.com/json/${ipAddress}`, {
+          signal: controller.signal,
+        });
         clearTimeout(id);
         if (res.ok) {
           const geo = await res.json();
@@ -98,8 +110,13 @@ export class AuthService {
     });
   }
 
-  async getSessions(userId: string, currentToken: string, deviceSessionId?: string) {
-    const currentSessionId = deviceSessionId || this.getSessionIdFromToken(currentToken);
+  async getSessions(
+    userId: string,
+    currentToken: string,
+    deviceSessionId?: string,
+  ) {
+    const currentSessionId =
+      deviceSessionId || this.getSessionIdFromToken(currentToken);
 
     const sessions = await this.prisma.userSession.findMany({
       where: { userId },
@@ -108,7 +125,8 @@ export class AuthService {
 
     return sessions.map((session) => ({
       ...session,
-      isCurrentSession: session.refreshToken === currentSessionId && session.isActive,
+      isCurrentSession:
+        session.refreshToken === currentSessionId && session.isActive,
     }));
   }
 

@@ -9,7 +9,7 @@ export class PrismaClientManager implements OnModuleDestroy {
   getClient(tenantId: string): PrismaClient {
     if (!this.clients[tenantId]) {
       const databaseUrl = process.env.DATABASE_URL;
-      
+
       if (!databaseUrl) {
         throw new Error('DATABASE_URL is not defined');
       }

@@ -7,11 +7,12 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class SupabaseStrategy extends PassportStrategy(Strategy, 'supabase') {
   constructor(private configService: ConfigService) {
-
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('SUPABASE_JWT_SECRET') || 'super-secret-jwt-token-with-at-least-32-characters-long',
+      secretOrKey:
+        configService.get<string>('SUPABASE_JWT_SECRET') ||
+        'super-secret-jwt-token-with-at-least-32-characters-long',
       algorithms: ['HS256'],
     });
   }

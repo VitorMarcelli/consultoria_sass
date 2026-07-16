@@ -8,7 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { StatsCard } from '@/components/ui/StatsCard';
 
-const COLORS = ['#0d9488', '#f43f5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#64748b'];
+const COLORS = ['#0d9488', '#f43f5e', '#3b82f6', '#f59e0b', '#14B8A6', '#10b981', '#64748b'];
 
 export default function CycleOverviewPage({
   params,
@@ -121,7 +121,7 @@ export default function CycleOverviewPage({
   const secondaryStats = [
     { name: 'Ticket Médio', value: formatCurrency(avgTicket), total: 'Receita / Clientes', color: 'text-indigo-500', stripColor: 'bg-indigo-500', icon: DollarSign, progress: 100, desc: 'Por Cliente' },
     { name: 'Custo Médio/Colab', value: formatCurrency(avgCostPerEmployee), total: 'Custo / Colab', color: 'text-slate-500', stripColor: 'bg-slate-500', icon: Users, progress: 100, desc: 'Por Funcionário' },
-    { name: 'Clientes / Colab', value: clientsPerEmployee.toFixed(1), total: 'Carteira', color: 'text-violet-500', stripColor: 'bg-violet-500', icon: Users2, progress: 100, desc: 'Proporção' },
+    { name: 'Clientes / Colab', value: clientsPerEmployee.toFixed(1), total: 'Carteira', color: 'text-teal-500', stripColor: 'bg-teal-500', icon: Users2, progress: 100, desc: 'Proporção' },
   ];
 
   const progressPercent = totalEstimatedMinutes > 0 ? Math.round((completedEstimatedMinutes / totalEstimatedMinutes) * 100) : 0;

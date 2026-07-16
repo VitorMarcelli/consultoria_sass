@@ -166,7 +166,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
                 {/* 0 a 5 */}
                 <Bar dataKey="0" stackId="a" fill="#3b82f6" name="Nível 0" />
                 <Bar dataKey="1" stackId="a" fill="#f97316" name="Nível 1" />
-                <Bar dataKey="2" stackId="a" fill="#8b5cf6" name="Nível 2" />
+                <Bar dataKey="2" stackId="a" fill="#14B8A6" name="Nível 2" />
                 <Bar dataKey="3" stackId="a" fill="#eab308" name="Nível 3" />
                 <Bar dataKey="4" stackId="a" fill="#06b6d4" name="Nível 4" />
                 <Bar dataKey="5" stackId="a" fill="#ef4444" name="Nível 5" />

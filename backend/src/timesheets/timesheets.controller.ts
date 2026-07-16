@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Query, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  UseGuards,
+  Query,
+  Request,
+} from '@nestjs/common';
 import { TimesheetsService } from './timesheets.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -8,12 +17,24 @@ export class TimesheetsController {
   constructor(private readonly timesheetsService: TimesheetsService) {}
 
   @Get()
-  findAll(@Query('tenantId') tenantId: string, @Query('clientId') clientId?: string) {
+  findAll(
+    @Query('tenantId') tenantId: string,
+    @Query('clientId') clientId?: string,
+  ) {
     return this.timesheetsService.findAll(tenantId, clientId);
   }
 
   @Post('start')
-  startTimer(@Body() body: any) {
+  startTimer(
+    @Body()
+    body: {
+      tenantId: string;
+      clientId: string;
+      employeeId: string;
+      deliveryId?: string;
+      activityDescription?: string;
+    },
+  ) {
     return this.timesheetsService.startTimer(body.tenantId, body);
   }
 
@@ -23,7 +44,17 @@ export class TimesheetsController {
   }
 
   @Post('manual')
-  createManual(@Body() body: any) {
+  createManual(
+    @Body()
+    body: {
+      tenantId: string;
+      clientId: string;
+      employeeId: string;
+      deliveryId?: string;
+      activityDescription?: string;
+      durationMinutes: number;
+    },
+  ) {
     return this.timesheetsService.createManual(body.tenantId, body);
   }
 
@@ -31,9 +62,13 @@ export class TimesheetsController {
   calculateContractDre(
     @Param('clientId') clientId: string,
     @Query('tenantId') tenantId: string,
-    @Request() req: any,
+    @Request() req: { user?: { role?: string } },
   ) {
     const userRole = req.user?.role || 'CONSULTANT';
-    return this.timesheetsService.calculateContractDre(tenantId, clientId, userRole);
+    return this.timesheetsService.calculateContractDre(
+      tenantId,
+      clientId,
+      userRole,
+    );
   }
 }

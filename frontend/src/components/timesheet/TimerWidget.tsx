@@ -79,6 +79,7 @@ export default function TimerWidget() {
   // Carrega DRE quando muda aba ou cliente
   useEffect(() => {
     if (tab === 'dre' && tenantId && selectedClientId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoadingDre(true);
       apiRequest(`/timesheets/dre/${selectedClientId}?tenantId=${tenantId}`)
         .then(res => setDreData(res))
@@ -105,7 +106,8 @@ export default function TimerWidget() {
       setActiveLogId(res.id);
       setIsRunning(true);
       setElapsedSeconds(0);
-    } catch (err: any) {
+    } catch (error) {
+      const err = error as any;
       alert(err.message || 'Erro ao iniciar timer.');
     }
   };
@@ -124,7 +126,8 @@ export default function TimerWidget() {
       if (tab === 'dre') {
         apiRequest(`/timesheets/dre/${selectedClientId}?tenantId=${tenantId}`).then(setDreData);
       }
-    } catch (err: any) {
+    } catch (error) {
+      const err = error as any;
       alert(err.message || 'Erro ao parar timer.');
     }
   };
@@ -149,7 +152,8 @@ export default function TimerWidget() {
       if (tab === 'dre') {
         apiRequest(`/timesheets/dre/${selectedClientId}?tenantId=${tenantId}`).then(setDreData);
       }
-    } catch (err: any) {
+    } catch (error) {
+      const err = error as any;
       alert(err.message || 'Erro ao gravar lançamento manual.');
     }
   };
@@ -455,7 +459,7 @@ export default function TimerWidget() {
                         </h4>
                         {dreData.detailedLogs?.length ? (
                           <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
-                            {dreData.detailedLogs.map((log: any) => (
+                            {dreData.detailedLogs.map((log: Record<string, any>) => (
                               <div key={log.id} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-center justify-between gap-3">
                                 <div className="flex flex-col truncate">
                                   <span className="text-xs font-bold text-slate-900 dark:text-white truncate">{log.activityDescription}</span>

@@ -80,7 +80,7 @@ export default function ConfiguracoesPage() {
               ) : (
                 <div className="relative overflow-hidden rounded-container bg-gradient-to-br from-teal-600 to-teal-900 p-10 shadow-lg shadow-teal-900/10 border border-teal-500/20">
                   <div className="absolute right-0 top-0 -mt-16 -mr-16 h-56 w-56 rounded-full bg-white/10 blur-[80px] mix-blend-screen pointer-events-none"></div>
-                  <div className="absolute left-1/4 bottom-0 -mb-16 h-56 w-56 rounded-full bg-purple-500/20 blur-[80px] mix-blend-screen pointer-events-none"></div>
+                  <div className="absolute left-1/4 bottom-0 -mb-16 h-56 w-56 rounded-full bg-teal-500/20 blur-[80px] mix-blend-screen pointer-events-none"></div>
                   <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
                     <div className="flex shrink-0 h-16 w-16 items-center justify-center rounded-inner bg-white/10 border border-white/20 shadow-sm">
                       <Construction className="h-8 w-8 text-teal-50" />

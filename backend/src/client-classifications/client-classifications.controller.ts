@@ -1,19 +1,33 @@
-import { Controller, Get, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ClientClassificationsService } from './client-classifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('clients/:clientId/fronts/:frontId/classification')
 @UseGuards(JwtAuthGuard)
 export class ClientClassificationsController {
-  constructor(private readonly classificationsService: ClientClassificationsService) {}
+  constructor(
+    private readonly classificationsService: ClientClassificationsService,
+  ) {}
 
   @Get()
   async getClassification(
     @Query('tenantId') tenantId: string,
     @Param('clientId') clientId: string,
-    @Param('frontId') frontId: string
+    @Param('frontId') frontId: string,
   ) {
-    return this.classificationsService.getClassification(tenantId, clientId, frontId);
+    return this.classificationsService.getClassification(
+      tenantId,
+      clientId,
+      frontId,
+    );
   }
 
   @Put()
@@ -21,8 +35,13 @@ export class ClientClassificationsController {
     @Body('tenantId') tenantId: string,
     @Param('clientId') clientId: string,
     @Param('frontId') frontId: string,
-    @Body() body: any
+    @Body() body: any,
   ) {
-    return this.classificationsService.updateClassification(tenantId, clientId, frontId, body);
+    return this.classificationsService.updateClassification(
+      tenantId,
+      clientId,
+      frontId,
+      body,
+    );
   }
 }

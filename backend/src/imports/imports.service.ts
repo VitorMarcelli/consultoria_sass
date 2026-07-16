@@ -11,7 +11,8 @@ export class ImportsService {
   ) {}
 
   private async getTenantPrisma(tenantId: string) {
-    if (!tenantId) throw new NotFoundException('ID do escritório não informado.');
+    if (!tenantId)
+      throw new NotFoundException('ID do escritório não informado.');
     const schemaName = `tenant_${tenantId.replace(/-/g, '_')}`;
     return this.prismaManager.getClient(schemaName);
   }
@@ -21,44 +22,79 @@ export class ImportsService {
   }
 
   async importClientsJson(tenantId: string, records: any[], cycleId?: string) {
-    const prisma = await this.getTenantPrisma(tenantId);
+    const prisma = this.getTenantPrisma(tenantId);
     let count = 0;
 
-    const fronts = await prisma.operationalFront.findMany({ where: { status: 'ACTIVE' } });
-    const employees = await prisma.employee.findMany({ where: { status: 'ACTIVE' } });
+    const fronts = await prisma.operationalFront.findMany({
+      where: { status: 'ACTIVE' },
+    });
+    const employees = await prisma.employee.findMany({
+      where: { status: 'ACTIVE' },
+    });
 
-    const getFront = (name: string) => fronts.find(f => f.name.toLowerCase().trim() === name.toLowerCase().trim());
+    const getFront = (name: string) =>
+      fronts.find(
+        (f) => f.name.toLowerCase().trim() === name.toLowerCase().trim(),
+      );
     const getEmployeeId = (name: string) => {
       if (!name || name.trim() === '') return null;
-      const e = employees.find(emp => emp.name.toLowerCase().includes(name.toLowerCase().trim()));
+      const e = employees.find((emp) =>
+        emp.name.toLowerCase().includes(name.toLowerCase().trim()),
+      );
       return e ? e.id : null;
     };
 
     for (const record of records) {
-      const row = record as any;
-      
+      const row = record;
+
       const getVal = (keys: string[]) => {
-        const foundKey = Object.keys(row).find(k => 
-          keys.some(expected => k.toLowerCase().trim() === expected.toLowerCase().trim())
+        const foundKey = Object.keys(row).find((k) =>
+          keys.some(
+            (expected) =>
+              k.toLowerCase().trim() === expected.toLowerCase().trim(),
+          ),
         );
         return foundKey ? row[foundKey] : null;
       };
 
-      const name = getVal(['Razão Social', 'Razao Social', 'razaoSocial', 'name', 'Nome']);
-      if (!name) continue; 
-      
+      const name = getVal([
+        'Razão Social',
+        'Razao Social',
+        'razaoSocial',
+        'name',
+        'Nome',
+      ]);
+      if (!name) continue;
+
       const cnpj = getVal(['CNPJ', 'cnpj']);
-      const tradeName = getVal(['Nome Fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
+      const tradeName = getVal([
+        'Nome Fantasia',
+        'nomeFantasia',
+        'tradeName',
+        'Fantasia',
+      ]);
       const statusVal = getVal(['Status', 'status']) || 'ACTIVE';
-      const taxRegime = getVal(['Regime Tributário', 'regimeTributario']) || null;
+      const taxRegime =
+        getVal(['Regime Tributário', 'regimeTributario']) || null;
       const segment = getVal(['Segmento', 'segmento']) || null;
-      const revenueBracket = getVal(['Faixa de Faturamento', 'faixaFaturamento']) || null;
+      const revenueBracket =
+        getVal(['Faixa de Faturamento', 'faixaFaturamento']) || null;
       const feesStr = getVal(['Honorários', 'honorarios']);
-      const monthlyFee = feesStr ? parseFloat(String(feesStr).replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) : null;
+      const monthlyFee = feesStr
+        ? parseFloat(
+            String(feesStr)
+              .replace('R$', '')
+              .replace(/\./g, '')
+              .replace(',', '.')
+              .trim(),
+          )
+        : null;
       const classification = getVal(['Classificação', 'classificacao']) || null;
 
-      let client = cnpj ? await prisma.client.findUnique({ where: { cnpj } }) : null;
-      
+      let client = cnpj
+        ? await prisma.client.findUnique({ where: { cnpj } })
+        : null;
+
       const clientData = {
         name,
         tradeName: tradeName || null,
@@ -66,18 +102,19 @@ export class ImportsService {
         taxRegime,
         segment,
         revenueBracket,
-        monthlyFee: (monthlyFee === null || isNaN(monthlyFee)) ? null : monthlyFee,
+        monthlyFee:
+          monthlyFee === null || isNaN(monthlyFee) ? null : monthlyFee,
         classification,
       };
 
       if (client) {
         client = await prisma.client.update({
           where: { id: client.id },
-          data: clientData
+          data: clientData,
         });
       } else {
         client = await prisma.client.create({
-          data: { ...clientData, cnpj }
+          data: { ...clientData, cnpj },
         });
       }
 
@@ -87,34 +124,56 @@ export class ImportsService {
           const front = getFront(frontName);
           if (!front) return;
 
-          let classification = await prisma.clientFrontClassification.findUnique({
-            where: { clientId_frontId: { clientId: client.id, frontId: front.id } }
-          });
+          let classification =
+            await prisma.clientFrontClassification.findUnique({
+              where: {
+                clientId_frontId: { clientId: client.id, frontId: front.id },
+              },
+            });
 
-          const leaderId = getEmployeeId(getVal([`${prefix} - Líder responsável`]));
+          const leaderId = getEmployeeId(
+            getVal([`${prefix} - Líder responsável`]),
+          );
           const operator1Id = getEmployeeId(getVal([`${prefix} - Operador 1`]));
           const operator2Id = getEmployeeId(getVal([`${prefix} - Operador 2`]));
           const complexityStr = getVal([`${prefix} - Complexidade`]);
-          const parsedComplexity = complexityStr ? parseInt(String(complexityStr)) : null;
-          const complexity = (parsedComplexity === null || isNaN(parsedComplexity)) ? null : parsedComplexity;
+          const parsedComplexity = complexityStr
+            ? parseInt(String(complexityStr))
+            : null;
+          const complexity =
+            parsedComplexity === null || isNaN(parsedComplexity)
+              ? null
+              : parsedComplexity;
 
-          const data = { actsInFront: 'YES', leaderId, operator1Id, operator2Id, complexity };
+          const data = {
+            actsInFront: 'YES',
+            leaderId,
+            operator1Id,
+            operator2Id,
+            complexity,
+          };
 
           if (classification) {
             classification = await prisma.clientFrontClassification.update({
               where: { id: classification.id },
-              data
+              data,
             });
           } else {
             classification = await prisma.clientFrontClassification.create({
-              data: { clientId: client.id, frontId: front.id, ...data }
+              data: { clientId: client.id, frontId: front.id, ...data },
             });
           }
 
           if (cycleId) {
-            const existingSnapshot = await prisma.clientCycleSnapshot.findFirst({
-              where: { clientId: client.id, cycleId: cycleId, frontId: front.id }
-            });
+            const existingSnapshot = await prisma.clientCycleSnapshot.findFirst(
+              {
+                where: {
+                  clientId: client.id,
+                  cycleId: cycleId,
+                  frontId: front.id,
+                },
+              },
+            );
             if (!existingSnapshot) {
               await prisma.clientCycleSnapshot.create({
                 data: {
@@ -125,8 +184,8 @@ export class ImportsService {
                   segment: clientData.segment,
                   monthlyFee: clientData.monthlyFee,
                   classification: clientData.classification,
-                  complexity: complexity
-                }
+                  complexity: complexity,
+                },
               });
             }
           }
@@ -139,7 +198,11 @@ export class ImportsService {
 
       count++;
     }
-    
-    return { success: true, count, message: `Foram importados/atualizados ${count} clientes com sucesso.` };
+
+    return {
+      success: true,
+      count,
+      message: `Foram importados/atualizados ${count} clientes com sucesso.`,
+    };
   }
 }

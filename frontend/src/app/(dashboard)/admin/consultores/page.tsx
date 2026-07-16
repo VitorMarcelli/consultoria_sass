@@ -247,7 +247,7 @@ export default function ConsultoresPage() {
                     >
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-700 font-black border border-indigo-200/50">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-100 to-teal-100 flex items-center justify-center text-indigo-700 font-black border border-indigo-200/50">
                             {consultor.name?.charAt(0).toUpperCase()}
                           </div>
                           <div>

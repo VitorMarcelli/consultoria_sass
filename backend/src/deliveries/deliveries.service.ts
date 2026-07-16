@@ -13,13 +13,14 @@ export class DeliveriesService {
   ) {}
 
   private getTenantPrisma(tenantId: string) {
-    if (!tenantId) throw new NotFoundException('ID do escritório não informado.');
+    if (!tenantId)
+      throw new NotFoundException('ID do escritório não informado.');
     const schemaName = `tenant_${tenantId.replace(/-/g, '_')}`;
     return this.prismaManager.getClient(schemaName);
   }
 
   async findAll(tenantId: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.delivery.findMany({
       include: {
         client: true,
@@ -35,7 +36,7 @@ export class DeliveriesService {
   }
 
   async create(tenantId: string, data: any) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.delivery.create({
       data: {
         clientId: data.clientId,
@@ -47,17 +48,25 @@ export class DeliveriesService {
         standardizedName: data.standardizedName,
         status: data.status || 'PREVISTA',
         priority: data.priority || 'MEDIUM',
-        estimatedTimeMinutes: data.estimatedTimeMinutes ? parseInt(data.estimatedTimeMinutes, 10) : null,
-        realTimeMinutes: data.realTimeMinutes ? parseInt(data.realTimeMinutes, 10) : null,
+        estimatedTimeMinutes: data.estimatedTimeMinutes
+          ? parseInt(data.estimatedTimeMinutes, 10)
+          : null,
+        realTimeMinutes: data.realTimeMinutes
+          ? parseInt(data.realTimeMinutes, 10)
+          : null,
         legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
-        internalDeadline: data.internalDeadline ? new Date(data.internalDeadline) : null,
-        executionDeadline: data.executionDeadline ? new Date(data.executionDeadline) : null,
-      }
+        internalDeadline: data.internalDeadline
+          ? new Date(data.internalDeadline)
+          : null,
+        executionDeadline: data.executionDeadline
+          ? new Date(data.executionDeadline)
+          : null,
+      },
     });
   }
 
   async update(tenantId: string, id: string, data: any) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.delivery.update({
       where: { id },
       data: {
@@ -70,19 +79,27 @@ export class DeliveriesService {
         standardizedName: data.standardizedName,
         status: data.status,
         priority: data.priority,
-        estimatedTimeMinutes: data.estimatedTimeMinutes ? parseInt(data.estimatedTimeMinutes, 10) : null,
-        realTimeMinutes: data.realTimeMinutes ? parseInt(data.realTimeMinutes, 10) : null,
+        estimatedTimeMinutes: data.estimatedTimeMinutes
+          ? parseInt(data.estimatedTimeMinutes, 10)
+          : null,
+        realTimeMinutes: data.realTimeMinutes
+          ? parseInt(data.realTimeMinutes, 10)
+          : null,
         legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
-        internalDeadline: data.internalDeadline ? new Date(data.internalDeadline) : null,
-        executionDeadline: data.executionDeadline ? new Date(data.executionDeadline) : null,
-      }
+        internalDeadline: data.internalDeadline
+          ? new Date(data.internalDeadline)
+          : null,
+        executionDeadline: data.executionDeadline
+          ? new Date(data.executionDeadline)
+          : null,
+      },
     });
   }
 
   async remove(tenantId: string, id: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.delivery.delete({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -91,20 +108,26 @@ export class DeliveriesService {
   // ========================================================
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCronDailyDeliveryGeneration() {
-    this.logger.log('Iniciando CRON diário para geração automática de entregas (Padrão Domínio)...');
+    this.logger.log(
+      'Iniciando CRON diário para geração automática de entregas (Padrão Domínio)...',
+    );
     try {
-      const tenants = await this.globalPrisma.tenant.findMany({ where: { status: 'ACTIVE' } });
+      const tenants = await this.globalPrisma.tenant.findMany({
+        where: { status: 'ACTIVE' },
+      });
       for (const tenant of tenants) {
         await this.generateMonthlyDeliveries(tenant.id);
       }
-      this.logger.log('CRON diário de entregas executado com sucesso em todos os tenants.');
+      this.logger.log(
+        'CRON diário de entregas executado com sucesso em todos os tenants.',
+      );
     } catch (error) {
       this.logger.error('Erro ao executar CRON diário de entregas:', error);
     }
   }
 
   async generateMonthlyDeliveries(tenantId: string, targetCompetence?: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     let competence = targetCompetence;
     if (!competence) {
       const now = new Date();
@@ -119,27 +142,65 @@ export class DeliveriesService {
       // Injeta alguns templates padrões de mercado se estiver vazio
       await tenantPrisma.deliveryTemplate.createMany({
         data: [
-          { taxRegime: 'Simples Nacional', standardizedName: 'Apuração do Simples (DAS)', deliveryGroup: 'Imposto', deliveryType: 'DAS', periodicity: 'Mensal', baseLegalDeadlineDays: 20, defaultComplexity: 1 },
-          { taxRegime: 'Simples Nacional', standardizedName: 'Envio de Folha e eSocial', deliveryGroup: 'Folha', deliveryType: 'eSocial', periodicity: 'Mensal', baseLegalDeadlineDays: 15, defaultComplexity: 2 },
-          { taxRegime: 'Lucro Presumido', standardizedName: 'EFD Contribuições (PIS/COFINS)', deliveryGroup: 'Imposto', deliveryType: 'SPED', periodicity: 'Mensal', baseLegalDeadlineDays: 15, defaultComplexity: 3 },
-          { taxRegime: 'Lucro Presumido', standardizedName: 'SPED Fiscal (ICMS/IPI)', deliveryGroup: 'Imposto', deliveryType: 'SPED', periodicity: 'Mensal', baseLegalDeadlineDays: 20, defaultComplexity: 3 },
+          {
+            taxRegime: 'Simples Nacional',
+            standardizedName: 'Apuração do Simples (DAS)',
+            deliveryGroup: 'Imposto',
+            deliveryType: 'DAS',
+            periodicity: 'Mensal',
+            baseLegalDeadlineDays: 20,
+            defaultComplexity: 1,
+          },
+          {
+            taxRegime: 'Simples Nacional',
+            standardizedName: 'Envio de Folha e eSocial',
+            deliveryGroup: 'Folha',
+            deliveryType: 'eSocial',
+            periodicity: 'Mensal',
+            baseLegalDeadlineDays: 15,
+            defaultComplexity: 2,
+          },
+          {
+            taxRegime: 'Lucro Presumido',
+            standardizedName: 'EFD Contribuições (PIS/COFINS)',
+            deliveryGroup: 'Imposto',
+            deliveryType: 'SPED',
+            periodicity: 'Mensal',
+            baseLegalDeadlineDays: 15,
+            defaultComplexity: 3,
+          },
+          {
+            taxRegime: 'Lucro Presumido',
+            standardizedName: 'SPED Fiscal (ICMS/IPI)',
+            deliveryGroup: 'Imposto',
+            deliveryType: 'SPED',
+            periodicity: 'Mensal',
+            baseLegalDeadlineDays: 20,
+            defaultComplexity: 3,
+          },
         ],
       });
     }
 
     const activeTemplates = await tenantPrisma.deliveryTemplate.findMany();
-    const clients = await tenantPrisma.client.findMany({ where: { status: 'ACTIVE' } });
+    const clients = await tenantPrisma.client.findMany({
+      where: { status: 'ACTIVE' },
+    });
     let generatedCount = 0;
 
     for (const client of clients) {
       const clientRegime = client.taxRegime || 'Simples Nacional';
-      const matchingTemplates = activeTemplates.filter(t => t.taxRegime === clientRegime);
+      const matchingTemplates = activeTemplates.filter(
+        (t) => t.taxRegime === clientRegime,
+      );
 
       // Busca a frente operacional e responsável do cliente para vincular a entrega
-      const frontClass = await tenantPrisma.clientFrontClassification.findFirst({
-        where: { clientId: client.id },
-        include: { front: true, operator1: true, leader: true },
-      });
+      const frontClass = await tenantPrisma.clientFrontClassification.findFirst(
+        {
+          where: { clientId: client.id },
+          include: { front: true, operator1: true, leader: true },
+        },
+      );
 
       if (!frontClass || !frontClass.operator1Id) continue; // Pula se não tiver operador configurado
 
@@ -159,7 +220,11 @@ export class DeliveriesService {
             const [compMonthStr, compYearStr] = competence.split('/');
             const compYearNum = Number(compYearStr);
             const compMonthNum = Number(compMonthStr) - 1; // 0-indexed month
-            legalDeadline = new Date(compYearNum, compMonthNum + 1, template.baseLegalDeadlineDays);
+            legalDeadline = new Date(
+              compYearNum,
+              compMonthNum + 1,
+              template.baseLegalDeadlineDays,
+            );
           }
 
           await tenantPrisma.delivery.create({
@@ -178,7 +243,8 @@ export class DeliveriesService {
               periodicity: template.periodicity,
               status: 'PREVISTA',
               legalDeadline,
-              observations: 'Gerado automaticamente pelo Motor de Matriz de Conformidade TASS.',
+              observations:
+                'Gerado automaticamente pelo Motor de Matriz de Conformidade TASS.',
             },
           });
           generatedCount++;
@@ -193,11 +259,16 @@ export class DeliveriesService {
   // AÇÕES RÁPIDAS (SLIDE-OVER)
   // ========================================================
 
-  async updateStatus(tenantId: string, id: string, status: string, authorName: string = 'Sistema') {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+  async updateStatus(
+    tenantId: string,
+    id: string,
+    status: string,
+    authorName: string = 'Sistema',
+  ) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     const updated = await tenantPrisma.delivery.update({
       where: { id },
-      data: { status }
+      data: { status },
     });
 
     await tenantPrisma.deliveryHistory.create({
@@ -205,71 +276,99 @@ export class DeliveriesService {
         deliveryId: id,
         action: 'STATUS_CHANGED',
         description: `Status alterado para ${status}`,
-        authorName
-      }
+        authorName,
+      },
     });
     return updated;
   }
 
-  async updateEstimatedTime(tenantId: string, id: string, estimatedTimeMinutes: number, authorName: string = 'Sistema') {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+  async updateEstimatedTime(
+    tenantId: string,
+    id: string,
+    estimatedTimeMinutes: number,
+    authorName: string = 'Sistema',
+  ) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     const updated = await tenantPrisma.delivery.update({
       where: { id },
-      data: { estimatedTimeMinutes: estimatedTimeMinutes ? parseInt(String(estimatedTimeMinutes), 10) : null }
+      data: {
+        estimatedTimeMinutes: estimatedTimeMinutes
+          ? parseInt(String(estimatedTimeMinutes), 10)
+          : null,
+      },
     });
 
     await tenantPrisma.deliveryHistory.create({
       data: {
         deliveryId: id,
         action: 'COMMENT',
-        description: estimatedTimeMinutes 
-          ? `Atualizou o tempo estimado para ${Math.floor(estimatedTimeMinutes / 60)}h ${estimatedTimeMinutes % 60}m` 
+        description: estimatedTimeMinutes
+          ? `Atualizou o tempo estimado para ${Math.floor(estimatedTimeMinutes / 60)}h ${estimatedTimeMinutes % 60}m`
           : 'Removeu o tempo estimado',
-        authorName
-      }
+        authorName,
+      },
     });
     return updated;
   }
 
   async getSlideOverData(tenantId: string, id: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.delivery.findUnique({
       where: { id },
       include: {
         checklists: { orderBy: { createdAt: 'asc' } },
         proofs: { orderBy: { createdAt: 'desc' } },
         history: { orderBy: { createdAt: 'desc' } },
-        timeLogs: true
-      }
+        timeLogs: true,
+      },
     });
   }
 
-  async addChecklistItem(tenantId: string, deliveryId: string, description: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+  async addChecklistItem(
+    tenantId: string,
+    deliveryId: string,
+    description: string,
+  ) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.deliveryChecklistItem.create({
-      data: { deliveryId, description }
+      data: { deliveryId, description },
     });
   }
 
-  async toggleChecklistItem(tenantId: string, deliveryId: string, itemId: string, isCompleted: boolean) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+  async toggleChecklistItem(
+    tenantId: string,
+    deliveryId: string,
+    itemId: string,
+    isCompleted: boolean,
+  ) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.deliveryChecklistItem.update({
       where: { id: itemId },
-      data: { isCompleted }
+      data: { isCompleted },
     });
   }
 
-  async removeChecklistItem(tenantId: string, deliveryId: string, itemId: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+  async removeChecklistItem(
+    tenantId: string,
+    deliveryId: string,
+    itemId: string,
+  ) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.deliveryChecklistItem.delete({
-      where: { id: itemId }
+      where: { id: itemId },
     });
   }
 
-  async addProof(tenantId: string, deliveryId: string, title: string, url: string, authorName: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+  async addProof(
+    tenantId: string,
+    deliveryId: string,
+    title: string,
+    url: string,
+    authorName: string,
+  ) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     const proof = await tenantPrisma.deliveryProof.create({
-      data: { deliveryId, title, url, addedBy: authorName }
+      data: { deliveryId, title, url, addedBy: authorName },
     });
 
     await tenantPrisma.deliveryHistory.create({
@@ -277,28 +376,33 @@ export class DeliveriesService {
         deliveryId,
         action: 'PROOF_ADDED',
         description: `Anexou o comprovante: ${title}`,
-        authorName
-      }
+        authorName,
+      },
     });
     return proof;
   }
 
   async removeProof(tenantId: string, deliveryId: string, proofId: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.deliveryProof.delete({
-      where: { id: proofId }
+      where: { id: proofId },
     });
   }
 
-  async addHistoryComment(tenantId: string, deliveryId: string, description: string, authorName: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+  async addHistoryComment(
+    tenantId: string,
+    deliveryId: string,
+    description: string,
+    authorName: string,
+  ) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
     return tenantPrisma.deliveryHistory.create({
       data: {
         deliveryId,
         action: 'COMMENT',
         description,
-        authorName
-      }
+        authorName,
+      },
     });
   }
 
@@ -307,24 +411,26 @@ export class DeliveriesService {
   // =====================================
 
   async startTimer(tenantId: string, deliveryId: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
-    
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+
     // Verifica se a entrega tem responsável
     const delivery = await tenantPrisma.delivery.findUnique({
-      where: { id: deliveryId }
+      where: { id: deliveryId },
     });
 
     if (!delivery) throw new NotFoundException('Entrega não encontrada.');
     if (!delivery.responsibleId) {
-      throw new Error('A entrega precisa de um responsável atribuído para iniciar o tempo.');
+      throw new Error(
+        'A entrega precisa de um responsável atribuído para iniciar o tempo.',
+      );
     }
 
     // Verifica se já tem um rodando
     const runningLog = await tenantPrisma.timeLog.findFirst({
       where: {
         deliveryId,
-        status: 'RUNNING'
-      }
+        status: 'RUNNING',
+      },
     });
 
     if (runningLog) {
@@ -337,19 +443,19 @@ export class DeliveriesService {
         clientId: delivery.clientId,
         employeeId: delivery.responsibleId,
         startTime: new Date(),
-        status: 'RUNNING'
-      }
+        status: 'RUNNING',
+      },
     });
   }
 
   async stopTimer(tenantId: string, deliveryId: string) {
-    const tenantPrisma = await this.getTenantPrisma(tenantId);
+    const tenantPrisma = this.getTenantPrisma(tenantId);
 
     const runningLog = await tenantPrisma.timeLog.findFirst({
       where: {
         deliveryId,
-        status: 'RUNNING'
-      }
+        status: 'RUNNING',
+      },
     });
 
     if (!runningLog) {
@@ -357,7 +463,10 @@ export class DeliveriesService {
     }
 
     const endTime = new Date();
-    const durationMinutes = Math.max(1, Math.round((endTime.getTime() - runningLog.startTime.getTime()) / 60000));
+    const durationMinutes = Math.max(
+      1,
+      Math.round((endTime.getTime() - runningLog.startTime.getTime()) / 60000),
+    );
 
     // Atualiza o TimeLog
     const finishedLog = await tenantPrisma.timeLog.update({
@@ -365,12 +474,14 @@ export class DeliveriesService {
       data: {
         status: 'FINISHED',
         endTime,
-        durationMinutes
-      }
+        durationMinutes,
+      },
     });
 
     // Soma o tempo na entrega
-    const delivery = await tenantPrisma.delivery.findUnique({ where: { id: deliveryId } });
+    const delivery = await tenantPrisma.delivery.findUnique({
+      where: { id: deliveryId },
+    });
     const currentRealTime = delivery?.realTimeMinutes || 0;
     const newRealTimeMinutes = currentRealTime + durationMinutes;
 
@@ -378,9 +489,9 @@ export class DeliveriesService {
     let becameOverdue = false;
 
     if (
-      delivery?.estimatedTimeMinutes && 
-      delivery?.status !== 'CONCLUIDA' && 
-      delivery?.status !== 'ATRASADA' && 
+      delivery?.estimatedTimeMinutes &&
+      delivery?.status !== 'CONCLUIDA' &&
+      delivery?.status !== 'ATRASADA' &&
       newRealTimeMinutes > delivery.estimatedTimeMinutes
     ) {
       newStatus = 'ATRASADA';
@@ -391,8 +502,8 @@ export class DeliveriesService {
       where: { id: deliveryId },
       data: {
         realTimeMinutes: newRealTimeMinutes,
-        status: newStatus
-      }
+        status: newStatus,
+      },
     });
 
     if (becameOverdue) {
@@ -401,8 +512,8 @@ export class DeliveriesService {
           deliveryId,
           action: 'STATUS_CHANGED',
           description: `Status alterado automaticamente para ATRASADA (tempo limite excedido)`,
-          authorName: 'Sistema (Timer)'
-        }
+          authorName: 'Sistema (Timer)',
+        },
       });
     }
 

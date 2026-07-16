@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -9,7 +20,13 @@ export class ClientsController {
 
   @Post()
   create(@Body() createClientDto: any) {
-    return this.clientsService.create(createClientDto.tenantId, createClientDto, createClientDto.cycleId, createClientDto.frontId, createClientDto.subdivisionId);
+    return this.clientsService.create(
+      createClientDto.tenantId,
+      createClientDto,
+      createClientDto.cycleId,
+      createClientDto.frontId,
+      createClientDto.subdivisionId,
+    );
   }
 
   @Post('bulk')
@@ -28,11 +45,12 @@ export class ClientsController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateClientDto: any,
-  ) {
-    return this.clientsService.update(updateClientDto.tenantId, id, updateClientDto);
+  update(@Param('id') id: string, @Body() updateClientDto: any) {
+    return this.clientsService.update(
+      updateClientDto.tenantId,
+      id,
+      updateClientDto,
+    );
   }
 
   @Delete(':id')

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { OpportunitiesService } from './opportunities.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -8,7 +18,10 @@ export class OpportunitiesController {
   constructor(private readonly opportunitiesService: OpportunitiesService) {}
 
   @Get()
-  findAll(@Query('tenantId') tenantId: string, @Query('clientId') clientId?: string) {
+  findAll(
+    @Query('tenantId') tenantId: string,
+    @Query('clientId') clientId?: string,
+  ) {
     return this.opportunitiesService.findAll(tenantId, clientId);
   }
 
@@ -28,7 +41,7 @@ export class OpportunitiesController {
   }
 
   @Post()
-  create(@Body() createDto: any) {
+  create(@Body() createDto: Record<string, any>) {
     return this.opportunitiesService.create(createDto.tenantId, createDto);
   }
 

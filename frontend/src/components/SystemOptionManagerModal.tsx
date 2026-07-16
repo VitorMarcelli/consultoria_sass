@@ -22,7 +22,7 @@ const COLORS = [
   { value: 'blue', label: 'Azul', class: 'bg-blue-500' },
   { value: 'slate', label: 'Cinza', class: 'bg-slate-500' },
   { value: 'rose', label: 'Vermelho', class: 'bg-rose-500' },
-  { value: 'purple', label: 'Roxo', class: 'bg-purple-500' },
+  { value: 'teal', label: 'Roxo', class: 'bg-teal-500' },
 ];
 
 export default function SystemOptionManagerModal({

@@ -310,7 +310,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                         <div className="bg-gradient-to-br from-white to-slate-50 p-5 rounded-[2rem] border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Curva ABC</p>
                           <div className="mt-auto">
-                            <span className="inline-flex w-12 h-12 rounded-[1rem] bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 items-center justify-center font-black text-xl border border-indigo-100/50 shadow-sm">
+                            <span className="inline-flex w-12 h-12 rounded-[1rem] bg-gradient-to-br from-indigo-50 to-teal-50 text-indigo-700 items-center justify-center font-black text-xl border border-indigo-100/50 shadow-sm">
                               {client.classification || 'B'}
                             </span>
                           </div>

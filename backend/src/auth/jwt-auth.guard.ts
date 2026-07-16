@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -12,7 +17,7 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = request.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       console.error('JwtAuthGuard: Token ausente no cabeçalho');
       throw new UnauthorizedException('Token ausente');
@@ -22,7 +27,9 @@ export class JwtAuthGuard implements CanActivate {
     const supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY');
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('JwtAuthGuard: SUPABASE_URL ou SUPABASE_ANON_KEY ausentes no .env');
+      console.error(
+        'JwtAuthGuard: SUPABASE_URL ou SUPABASE_ANON_KEY ausentes no .env',
+      );
       throw new UnauthorizedException('Erro de configuração do servidor');
     }
 
@@ -31,9 +38,9 @@ export class JwtAuthGuard implements CanActivate {
       // Isso resolve completamente problemas de algoritmo (ES256 vs HS256), JWKS e chaves assimétricas.
       const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
         headers: {
-          'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${token}`
-        }
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -42,21 +49,24 @@ export class JwtAuthGuard implements CanActivate {
       }
 
       const userData = await response.json();
-      
+
       // Mapeamos os dados retornados para o request.user esperado pelo NestJS
-      request.user = { 
-        id: userData.id, 
-        email: userData.email, 
-        role: userData.role || 'authenticated' 
+      request.user = {
+        id: userData.id,
+        email: userData.email,
+        role: userData.role || 'authenticated',
       };
 
       // Invalidação em tempo real: checar se a sessão do token está ativa (se houver registro no UserSession)
       try {
-        const isCreatingSession = request.method === 'POST' && request.url.includes('/auth/sessions');
+        const isCreatingSession =
+          request.method === 'POST' && request.url.includes('/auth/sessions');
         if (!isCreatingSession) {
           const parts = token.split('.');
           if (parts.length === 3) {
-            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+            const payload = JSON.parse(
+              Buffer.from(parts[1], 'base64').toString('utf-8'),
+            );
             const deviceSessionId = request.headers['x-device-session-id'];
             const sessionId = deviceSessionId || payload.session_id;
             if (sessionId) {
@@ -64,7 +74,9 @@ export class JwtAuthGuard implements CanActivate {
                 where: { refreshToken: sessionId, userId: userData.id },
               });
               if (session && !session.isActive) {
-                throw new UnauthorizedException('Sessão desconectada ou substituída por outro dispositivo');
+                throw new UnauthorizedException(
+                  'Sessão desconectada ou substituída por outro dispositivo',
+                );
               }
             }
           }
@@ -75,11 +87,15 @@ export class JwtAuthGuard implements CanActivate {
         }
         // Em caso de erro leve de decodificação, prosseguimos
       }
-      
+
       return true;
     } catch (err: any) {
       console.error('JwtAuthGuard Verificaçao Falhou:', err.message);
-      throw new UnauthorizedException(err instanceof UnauthorizedException ? err.message : `Erro JWT: ${err.message}`);
+      throw new UnauthorizedException(
+        err instanceof UnauthorizedException
+          ? err.message
+          : `Erro JWT: ${err.message}`,
+      );
     }
   }
 }

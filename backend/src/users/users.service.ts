@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient } from '@supabase/supabase-js';
 import { CreateConsultantDto } from './dto/create-consultant.dto';
@@ -10,7 +15,7 @@ import { TenantsService } from '../tenants/tenants.service';
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly tenantsService: TenantsService
+    private readonly tenantsService: TenantsService,
   ) {}
 
   async findMe(userId: string, email?: string) {
@@ -34,17 +39,18 @@ export class UsersService {
         where: { email },
         include: {
           tenant: {
-            select: { id: true, name: true, slug: true, cnpj: true }
-          }
-        }
+            select: { id: true, name: true, slug: true, cnpj: true },
+          },
+        },
       });
-      
+
       if (user) {
         // Update the ID to match Supabase's new ID
-        // Note: Prisma might not allow updating the primary key directly depending on the version/schema, 
+        // Note: Prisma might not allow updating the primary key directly depending on the version/schema,
         // but we can try using executeRaw if update fails, or simply create a new user if we delete the old one.
         try {
-          await this.prisma.$executeRaw`UPDATE "User" SET id = ${userId} WHERE email = ${email}`;
+          await this.prisma
+            .$executeRaw`UPDATE "User" SET id = ${userId} WHERE email = ${email}`;
           user.id = userId;
         } catch (e) {
           console.error('Failed to update User ID:', e);
@@ -60,8 +66,8 @@ export class UsersService {
           data: {
             name: 'Consultoria Principal',
             slug: 'consultoria-principal',
-            status: 'ACTIVE'
-          }
+            status: 'ACTIVE',
+          },
         });
       }
 
@@ -72,18 +78,18 @@ export class UsersService {
             email: email || 'usuario@recuperado.com',
             name: 'Consultor Recuperado',
             tenantId: defaultTenant.id,
-            role: 'CONSULTANT'
+            role: 'CONSULTANT',
           },
           include: {
             tenant: {
-              select: { id: true, name: true, slug: true, cnpj: true }
-            }
-          }
+              select: { id: true, name: true, slug: true, cnpj: true },
+            },
+          },
         });
       } catch (err: any) {
-         // In case of unique constraint error (another user has the email but different ID)
-         console.error('Error creating user recovery:', err);
-         throw err;
+        // In case of unique constraint error (another user has the email but different ID)
+        console.error('Error creating user recovery:', err);
+        throw err;
       }
     }
 
@@ -103,18 +109,30 @@ export class UsersService {
     });
   }
 
-  async updateRole(requesterId: string, targetId: string, role: 'ADMIN' | 'LEADER' | 'CONSULTANT') {
-    const requester = await this.prisma.user.findUnique({ where: { id: requesterId } });
-    const target = await this.prisma.user.findUnique({ where: { id: targetId } });
-    
+  async updateRole(
+    requesterId: string,
+    targetId: string,
+    role: 'ADMIN' | 'LEADER' | 'CONSULTANT',
+  ) {
+    const requester = await this.prisma.user.findUnique({
+      where: { id: requesterId },
+    });
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetId },
+    });
+
     if (!requester || !target) {
       throw new NotFoundException('Usuário não encontrado.');
     }
     if (requester.tenantId !== target.tenantId) {
-      throw new ForbiddenException('Sem permissão para alterar usuários de outro tenant.');
+      throw new ForbiddenException(
+        'Sem permissão para alterar usuários de outro tenant.',
+      );
     }
     if (requester.role !== 'ADMIN') {
-      throw new ForbiddenException('Apenas administradores podem alterar permissões.');
+      throw new ForbiddenException(
+        'Apenas administradores podem alterar permissões.',
+      );
     }
 
     return this.prisma.user.update({
@@ -137,28 +155,35 @@ export class UsersService {
   }
 
   async createConsultant(requesterId: string, data: CreateConsultantDto) {
-    const requester = await this.prisma.user.findUnique({ where: { id: requesterId } });
+    const requester = await this.prisma.user.findUnique({
+      where: { id: requesterId },
+    });
     if (!requester || requester.role !== 'ADMIN') {
-      throw new ForbiddenException('Apenas administradores podem convidar consultores.');
+      throw new ForbiddenException(
+        'Apenas administradores podem convidar consultores.',
+      );
     }
 
     const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const serviceRoleKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new BadRequestException('ERRO CRÍTICO: Configuração do Supabase ausente no servidor.');
+      throw new BadRequestException(
+        'ERRO CRÍTICO: Configuração do Supabase ausente no servidor.',
+      );
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     });
 
     // 1. Create User in Supabase Auth
     let authData, authError;
-    
+
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       // Se tiver a chave admin, usa admin.createUser para burlar confirmação de email
       const result = await supabaseAdmin.auth.admin.createUser({
@@ -166,8 +191,8 @@ export class UsersService {
         password: data.password || 'Sevilha123!',
         email_confirm: true,
         user_metadata: {
-          name: data.name
-        }
+          name: data.name,
+        },
       });
       authData = result.data.user;
       authError = result.error;
@@ -178,9 +203,9 @@ export class UsersService {
         password: data.password || 'Sevilha123!',
         options: {
           data: {
-            name: data.name
-          }
-        }
+            name: data.name,
+          },
+        },
       });
       authData = result.data.user;
       authError = result.error;
@@ -191,14 +216,19 @@ export class UsersService {
     }
 
     if (!authData || !authData.id) {
-      throw new BadRequestException('Erro no Auth: Usuário não retornado pelo Supabase.');
+      throw new BadRequestException(
+        'Erro no Auth: Usuário não retornado pelo Supabase.',
+      );
     }
 
     const authUserId = authData.id;
     try {
       // 2. Create Tenant (Escritório) with schema generation
-      const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 6);
-      
+      const slug =
+        data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') +
+        '-' +
+        Math.random().toString(36).substring(2, 6);
+
       const tenant = await this.tenantsService.create({
         name: `Escritório de ${data.name}`,
         slug,
@@ -211,46 +241,54 @@ export class UsersService {
           email: data.email,
           name: data.name,
           role: 'CONSULTANT',
-          tenantId: tenant.id
-        }
+          tenantId: tenant.id,
+        },
       });
 
       // 4. Link Consultant to their Tenant
       await this.prisma.tenant.update({
         where: { id: tenant.id },
-        data: { consultantId: authUserId }
+        data: { consultantId: authUserId },
       });
 
       return user;
     } catch (err: any) {
       console.error('Failed to create consultant:', err);
-      throw err instanceof BadRequestException ? err : new BadRequestException(err.message || 'Falha ao registrar dados no banco.');
+      throw err instanceof BadRequestException
+        ? err
+        : new BadRequestException(
+            err.message || 'Falha ao registrar dados no banco.',
+          );
     }
   }
 
   async deleteConsultant(adminId: string, consultantId: string) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
     if (admin?.role !== 'ADMIN') {
-      throw new ForbiddenException('Apenas administradores podem excluir consultores.');
+      throw new ForbiddenException(
+        'Apenas administradores podem excluir consultores.',
+      );
     }
 
-    const consultant = await this.prisma.user.findUnique({ where: { id: consultantId } });
+    const consultant = await this.prisma.user.findUnique({
+      where: { id: consultantId },
+    });
     if (!consultant || consultant.role !== 'CONSULTANT') {
       throw new NotFoundException('Consultor não encontrado.');
     }
 
     // 1. Find and update the tenant
     const tenant = await this.prisma.tenant.findFirst({
-      where: { consultantId: consultant.id }
+      where: { consultantId: consultant.id },
     });
 
     if (tenant) {
       await this.prisma.tenant.update({
         where: { id: tenant.id },
-        data: { 
+        data: {
           consultantId: null,
-          status: 'DISCONTINUED'
-        }
+          status: 'DISCONTINUED',
+        },
       });
     }
 

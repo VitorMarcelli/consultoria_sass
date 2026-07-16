@@ -53,7 +53,11 @@ export class NotificationsService {
 
   async updatePreferences(
     userId: string,
-    data: { inAppAlerts?: boolean; emailAlerts?: boolean; dailyDigest?: boolean },
+    data: {
+      inAppAlerts?: boolean;
+      emailAlerts?: boolean;
+      dailyDigest?: boolean;
+    },
   ) {
     return this.prisma.notificationPreference.upsert({
       where: { userId },

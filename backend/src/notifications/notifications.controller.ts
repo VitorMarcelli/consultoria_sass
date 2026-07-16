@@ -1,4 +1,12 @@
-import { Controller, Get, Patch, Param, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -32,7 +40,12 @@ export class NotificationsController {
   @Patch('preferences')
   async updatePreferences(
     @Request() req: any,
-    @Body() body: { inAppAlerts?: boolean; emailAlerts?: boolean; dailyDigest?: boolean },
+    @Body()
+    body: {
+      inAppAlerts?: boolean;
+      emailAlerts?: boolean;
+      dailyDigest?: boolean;
+    },
   ) {
     return this.notificationsService.updatePreferences(req.user.id, body);
   }

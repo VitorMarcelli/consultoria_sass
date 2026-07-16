@@ -5,7 +5,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('client-classifications')
 @UseGuards(JwtAuthGuard)
 export class ClientClassificationsController {
-  constructor(private readonly classificationsService: ClientClassificationsService) {}
+  constructor(
+    private readonly classificationsService: ClientClassificationsService,
+  ) {}
 
   @Get()
   findAll(@Query('tenantId') tenantId: string) {
