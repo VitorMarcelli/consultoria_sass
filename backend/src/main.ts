@@ -24,9 +24,9 @@ async function bootstrap() {
   
   const port = parseInt(process.env.PORT || '10000', 10);
   
-  // Bind explicitly to 0.0.0.0 (IPv4) but also allow IPv6 if supported by omitting host, 
-  // or just use 0.0.0.0 which is the standard for Render.
-  await app.listen(port, '0.0.0.0');
+  // Allow Node.js to choose the best binding (dual-stack IPv4/IPv6)
+  // Hardcoding 0.0.0.0 can break Render's IPv6 internal routing mesh.
+  await app.listen(port);
 
   const server = app.getHttpServer();
   const address = server.address();
