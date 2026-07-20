@@ -11,9 +11,10 @@ import {
 } from '@nestjs/common';
 import { ManagementCyclesService } from './management-cycles.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TenantAccessGuard } from '../auth/tenant-access.guard';
 
 @Controller('management-cycles')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantAccessGuard)
 export class ManagementCyclesController {
   constructor(private readonly cyclesService: ManagementCyclesService) {}
 

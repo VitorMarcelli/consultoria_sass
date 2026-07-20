@@ -50,11 +50,24 @@ export class JwtAuthGuard implements CanActivate {
 
       const userData = await response.json();
 
+      // Resolvemos o papel e o tenant REAIS a partir da nossa base (tabela User),
+      // e não da claim do Supabase (que é sempre "authenticated"). Isso é o que
+      // permite ao TenantAccessGuard e às regras de RBAC confiarem em req.user.
+      const dbUser = await this.prisma.user
+        .findUnique({
+          where: { id: userData.id },
+          select: { role: true, tenantId: true },
+        })
+        .catch(() => null);
+
       // Mapeamos os dados retornados para o request.user esperado pelo NestJS
       request.user = {
         id: userData.id,
         email: userData.email,
-        role: userData.role || 'authenticated',
+        // null quando o usuário Supabase ainda não tem linha em User
+        // (fluxo de auto-provisionamento em GET /users/me).
+        role: dbUser?.role ?? null,
+        tenantId: dbUser?.tenantId ?? null,
       };
 
       // Invalidação em tempo real: checar se a sessão do token está ativa (se houver registro no UserSession)

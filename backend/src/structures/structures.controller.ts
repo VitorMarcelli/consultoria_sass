@@ -12,9 +12,10 @@ import {
 } from '@nestjs/common';
 import { StructuresService } from './structures.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TenantAccessGuard } from '../auth/tenant-access.guard';
 
 @Controller('structures')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantAccessGuard)
 export class StructuresController {
   constructor(private readonly structuresService: StructuresService) {}
 

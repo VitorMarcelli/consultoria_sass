@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, UseGuards, Query } from '@nestjs/common';
 import { ClientClassificationsService } from './client-classifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TenantAccessGuard } from '../auth/tenant-access.guard';
 
 @Controller('client-classifications')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantAccessGuard)
 export class ClientClassificationsController {
   constructor(
     private readonly classificationsService: ClientClassificationsService,

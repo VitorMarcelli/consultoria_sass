@@ -10,9 +10,10 @@ import {
 } from '@nestjs/common';
 import { TimesheetsService } from './timesheets.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TenantAccessGuard } from '../auth/tenant-access.guard';
 
 @Controller('timesheets')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantAccessGuard)
 export class TimesheetsController {
   constructor(private readonly timesheetsService: TimesheetsService) {}
 

@@ -18,8 +18,29 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
+  private assertAdmin(req: any) {
+    if (req.user?.role !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem executar esta ação.',
+      );
+    }
+  }
+
+  private async assertCanAccess(req: any, tenantId: string) {
+    const allowed = await this.tenantsService.userCanAccess(
+      tenantId,
+      req.user,
+    );
+    if (!allowed) {
+      throw new ForbiddenException(
+        'Você não tem acesso a este escritório.',
+      );
+    }
+  }
+
   @Post()
   create(
+    @Request() req: any,
     @Body()
     createTenantDto: {
       name: string;
@@ -28,6 +49,7 @@ export class TenantsController {
       consultantId?: string;
     },
   ) {
+    this.assertAdmin(req);
     return this.tenantsService.create(createTenantDto);
   }
 
@@ -37,12 +59,14 @@ export class TenantsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  async findOne(@Request() req: any, @Param('id') id: string) {
+    await this.assertCanAccess(req, id);
     return this.tenantsService.findOne(id);
   }
 
   @Patch(':id')
-  update(
+  async update(
+    @Request() req: any,
     @Param('id') id: string,
     @Body()
     updateTenantDto: {
@@ -57,16 +81,19 @@ export class TenantsController {
       observations?: string;
     },
   ) {
+    await this.assertCanAccess(req, id);
     return this.tenantsService.update(id, updateTenantDto);
   }
 
   @Get(':id/templates')
-  getTemplates(@Param('id') id: string) {
+  async getTemplates(@Request() req: any, @Param('id') id: string) {
+    await this.assertCanAccess(req, id);
     return this.tenantsService.getTemplates(id);
   }
 
   @Post(':id/templates')
-  updateTemplateStatus(
+  async updateTemplateStatus(
+    @Request() req: any,
     @Param('id') id: string,
     @Body()
     data: {
@@ -76,12 +103,16 @@ export class TenantsController {
       fileUrl?: string;
     },
   ) {
+    await this.assertCanAccess(req, id);
     return this.tenantsService.updateTemplateStatus(id, data);
   }
 
   @Delete(':id')
   async remove(@Request() req: any, @Param('id') id: string) {
-    // Check if the user is trying to delete their own base tenant
+    // Exclusão de escritório é destrutiva (DROP SCHEMA CASCADE) e irreversível.
+    this.assertAdmin(req);
+
+    // Impede que o admin exclua o próprio tenant "casa" por engano.
     if (req.user?.tenantId === id) {
       throw new ForbiddenException(
         'Você não pode excluir o seu próprio escritório base (Workspace principal).',

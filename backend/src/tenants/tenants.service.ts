@@ -163,6 +163,27 @@ export class TenantsService implements OnModuleInit {
     });
   }
 
+  /**
+   * ADMIN (equipe interna Sevilha) acessa qualquer escritório. Demais papéis só
+   * acessam o próprio tenant "casa" ou tenants sob sua carteira de consultor.
+   */
+  async userCanAccess(
+    tenantId: string,
+    user: { id: string; role?: string | null; tenantId?: string | null },
+  ): Promise<boolean> {
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    if (user.tenantId && user.tenantId === tenantId) return true;
+    if (user.role === 'CONSULTANT') {
+      const tenant = await this.prisma.tenant.findFirst({
+        where: { id: tenantId, consultantId: user.id },
+        select: { id: true },
+      });
+      return !!tenant;
+    }
+    return false;
+  }
+
   async findOne(id: string) {
     return this.prisma.tenant.findUnique({
       where: { id },
