@@ -105,6 +105,9 @@ model UserSession {
   status       String   @default("ACTIVE") // ACTIVE, SUPERSEDED, REVOKED
   lastActive   DateTime @default(now())
   createdAt    DateTime @default(now())
+
+  // Consultado a cada requisição autenticada em JwtAuthGuard (refreshToken + userId).
+  @@index([refreshToken])
 }
 
 enum Role {
