@@ -450,8 +450,12 @@ export class ClientsService {
     // Check if client exists
     await this.findOne(tenantId, id);
 
-    return tenantPrisma.client.delete({
+    // Soft delete: preserva o histórico (entregas, timesheets, oportunidades)
+    // em vez de apagar em cascata. Ver docs/PRDcliente.md — "Status em vez
+    // de exclusão".
+    return tenantPrisma.client.update({
       where: { id },
+      data: { status: 'INACTIVE' },
     });
   }
 }

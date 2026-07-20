@@ -98,8 +98,14 @@ export class DeliveriesService {
 
   async remove(tenantId: string, id: string) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
-    return tenantPrisma.delivery.delete({
+
+    // Soft delete: preserva o histórico (checklists, provas, timesheets,
+    // comparação mês a mês) em vez de apagar em cascata. Ver
+    // docs/PRDcliente.md — "Status em vez de exclusão". 'INATIVA' já é um
+    // status reconhecido pelo Kanban/board de entregas no frontend.
+    return tenantPrisma.delivery.update({
       where: { id },
+      data: { status: 'INATIVA' },
     });
   }
 
