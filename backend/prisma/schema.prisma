@@ -571,6 +571,7 @@ model TimeLog {
   costAmount          Float?    // Calculado a partir de grossSalary / horas mensais
   activityDescription String?
   status              String    @default("RUNNING") // RUNNING, PAUSED, FINISHED
+  type                String    @default("RECURRENT") // RECURRENT, EXTRA, REWORK
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

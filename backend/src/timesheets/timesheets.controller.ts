@@ -20,9 +20,14 @@ export class TimesheetsController {
   @Get()
   findAll(
     @Query('tenantId') tenantId: string,
-    @Query('clientId') clientId?: string,
+    @Query('clientId') clientId: string | undefined,
+    @Request() req: { user?: { role?: string } },
   ) {
-    return this.timesheetsService.findAll(tenantId, clientId);
+    return this.timesheetsService.findAll(
+      tenantId,
+      clientId,
+      req.user?.role || 'CONSULTANT',
+    );
   }
 
   @Post('start')
@@ -54,6 +59,8 @@ export class TimesheetsController {
       deliveryId?: string;
       activityDescription?: string;
       durationMinutes: number;
+      type?: 'RECURRENT' | 'EXTRA' | 'REWORK';
+      logDate?: string;
     },
   ) {
     return this.timesheetsService.createManual(body.tenantId, body);

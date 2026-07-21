@@ -16,9 +16,13 @@ export class TimesheetsService {
     return this.prismaManager.getClient(schemaName);
   }
 
-  async findAll(tenantId: string, clientId?: string) {
+  async findAll(
+    tenantId: string,
+    clientId?: string,
+    requesterRole: string = 'CONSULTANT',
+  ) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
-    return tenantPrisma.timeLog.findMany({
+    const logs = await tenantPrisma.timeLog.findMany({
       where: clientId ? { clientId } : {},
       include: {
         client: true,
@@ -27,6 +31,10 @@ export class TimesheetsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Oculta o custo unitário se for consultor/operador base para proteger sigilo salarial
+    if (['ADMIN', 'LEADER'].includes(requesterRole)) return logs;
+    return logs.map((log) => ({ ...log, costAmount: undefined }));
   }
 
   async startTimer(
@@ -104,6 +112,8 @@ export class TimesheetsService {
       deliveryId?: string;
       activityDescription?: string;
       durationMinutes: number;
+      type?: 'RECURRENT' | 'EXTRA' | 'REWORK';
+      logDate?: string;
     },
   ) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
@@ -117,10 +127,14 @@ export class TimesheetsService {
       ((costPerHour / 60) * data.durationMinutes).toFixed(2),
     );
 
-    const endTime = new Date();
-    const startTime = new Date(
-      endTime.getTime() - data.durationMinutes * 60000,
-    );
+    // Sem entrega vinculada, o apontamento não pode ser "recorrente" (não há
+    // obrigação mapeada por trás) — cai em EXTRA por padrão.
+    const type = data.type || (data.deliveryId ? 'RECURRENT' : 'EXTRA');
+
+    const endTime = data.logDate
+      ? new Date(`${data.logDate}T12:00:00`)
+      : new Date();
+    const startTime = new Date(endTime.getTime() - data.durationMinutes * 60000);
 
     return tenantPrisma.timeLog.create({
       data: {
@@ -133,6 +147,7 @@ export class TimesheetsService {
         durationMinutes: data.durationMinutes,
         costAmount,
         status: 'FINISHED',
+        type,
       },
       include: { client: true, employee: true, delivery: true },
     });

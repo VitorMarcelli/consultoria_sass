@@ -135,18 +135,47 @@ export class DashboardService {
       timeByEmployee.set(empId, (timeByEmployee.get(empId) || 0) + time);
     });
 
+    // Extra/Retrabalho vêm de apontamentos reais (TimeLog) dentro do mês do
+    // ciclo — 'recurrent' continua sendo a estimativa das entregas (baseline
+    // que funciona desde o dia 1, mesmo antes de a equipe apontar tempo).
+    const [monthStr, yearStr] = competence.split('/');
+    const monthStart = new Date(Number(yearStr), Number(monthStr) - 1, 1);
+    const monthEnd = new Date(Number(yearStr), Number(monthStr), 1);
+    const employeeIds = uniqueAllocations.map((a) => a.employeeId);
+
+    const realLogs = employeeIds.length
+      ? await tenantPrisma.timeLog.findMany({
+          where: {
+            employeeId: { in: employeeIds },
+            status: 'FINISHED',
+            type: { in: ['EXTRA', 'REWORK'] },
+            startTime: { gte: monthStart, lt: monthEnd },
+          },
+        })
+      : [];
+
+    const extraMinutesByEmployee = new Map<string, number>();
+    const reworkMinutesByEmployee = new Map<string, number>();
+    realLogs.forEach((log) => {
+      const mins = log.durationMinutes || 0;
+      const map =
+        log.type === 'REWORK' ? reworkMinutesByEmployee : extraMinutesByEmployee;
+      map.set(log.employeeId, (map.get(log.employeeId) || 0) + mins);
+    });
+
     const capacityData = uniqueAllocations.map((alloc) => {
       const dailyHours = alloc.dailyAvailableTime || 6; // Default to 6 hours
       const availableHours = dailyHours * 21; // ex: 21 dias uteis no mes
       const estimatedMinutes = timeByEmployee.get(alloc.employeeId) || 0;
       const estimatedHours = Math.floor(estimatedMinutes / 60);
 
-      // 'extra' e 'rework' ainda não têm fonte de dado real (nenhum
-      // TimeLog é classificado por tipo hoje) — permanecem em 0 até a
-      // camada de apontamento de tempo real ser construída.
       const recurrent = estimatedHours;
-      const extra = 0;
-      const rework = 0;
+      const extra = Math.floor(
+        (extraMinutesByEmployee.get(alloc.employeeId) || 0) / 60,
+      );
+      const rework = Math.floor(
+        (reworkMinutesByEmployee.get(alloc.employeeId) || 0) / 60,
+      );
       const committed = recurrent + extra + rework;
       const idleHours = Math.max(0, availableHours - committed);
       const utilizationPercent =

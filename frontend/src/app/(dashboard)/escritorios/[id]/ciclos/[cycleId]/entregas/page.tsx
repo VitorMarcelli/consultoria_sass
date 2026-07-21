@@ -27,6 +27,7 @@ import DeliveryAllocationBoard from '@/components/DeliveryAllocationBoard';
 import DashboardMappingTab from './components/DashboardMappingTab';
 import DashboardCapacityTab from './components/DashboardCapacityTab';
 import DashboardLevelingTab from './components/DashboardLevelingTab';
+import DashboardTimesheetTab from './components/DashboardTimesheetTab';
 
 interface Delivery {
   id: string;
@@ -88,7 +89,7 @@ export default function CycleDeliveriesPage({
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
 
   // Modal CRUD
-  const [activeTab, setActiveTab] = useState<'LIST' | 'MAPPING' | 'CAPACITY' | 'LEVELING'>('LIST');
+  const [activeTab, setActiveTab] = useState<'LIST' | 'MAPPING' | 'CAPACITY' | 'LEVELING' | 'TIMESHEET'>('LIST');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -477,6 +478,7 @@ export default function CycleDeliveriesPage({
           { id: 'MAPPING', label: 'Diagnóstico' },
           { id: 'CAPACITY', label: 'Capacidade' },
           { id: 'LEVELING', label: 'Nivelamento' },
+          { id: 'TIMESHEET', label: 'Apontamentos' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -502,6 +504,7 @@ export default function CycleDeliveriesPage({
       {activeTab === 'MAPPING' && <DashboardMappingTab tenantId={id} cycleId={cycleId} />}
       {activeTab === 'CAPACITY' && <DashboardCapacityTab tenantId={id} cycleId={cycleId} />}
       {activeTab === 'LEVELING' && <DashboardLevelingTab tenantId={id} cycleId={cycleId} />}
+      {activeTab === 'TIMESHEET' && <DashboardTimesheetTab tenantId={id} cycleId={cycleId} />}
 
       {/* Painel de Matriz de Conformidade (Dashboard Extra Premium Luminous) */}
       <div className={activeTab !== 'LIST' ? 'hidden' : ''}>
