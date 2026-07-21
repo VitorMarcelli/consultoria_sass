@@ -314,7 +314,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
               <div className="flex-1 flex flex-col border-r border-slate-200 dark:border-slate-800 overflow-y-auto custom-scrollbar p-6 sm:p-8 bg-white dark:bg-slate-950/50">
                 
                 {/* Meta-data Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-2 gap-4 mb-6">
                   {/* Responsável */}
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
@@ -336,15 +336,64 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
                       <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{delivery?.competence || '-'}</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Data Planejada */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                      <Calendar className="w-4 h-4 text-slate-500" />
+                {/* As 4 datas da obrigação */}
+                <div className="mb-8">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Datas da Obrigação</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200/70 dark:border-slate-800/70">
+                    {/* Vencimento */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400" title="Data que vence a obrigação do cliente">Vencimento</span>
+                      <input
+                        type="date"
+                        disabled={userRole === 'OPERATOR'}
+                        value={delivery?.legalDeadline ? delivery.legalDeadline.split('T')[0] : ''}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          const date = val ? new Date(`${val}T12:00:00Z`).toISOString() : null;
+                          try {
+                            await apiRequest(`/deliveries/${delivery.id}`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ tenantId, legalDeadline: date })
+                            });
+                            onClose();
+                          } catch (err) {
+                            alert('Erro ao atualizar o vencimento.');
+                          }
+                        }}
+                        className="text-sm font-extrabold text-slate-800 dark:text-slate-200 bg-transparent outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed -ml-0.5"
+                      />
                     </div>
-                    <div className="flex flex-col flex-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Data Planejada</span>
-                      <input 
+
+                    {/* Prazo Interno */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400" title="Limite interno para envio ao cliente">Prazo Interno</span>
+                      <input
+                        type="date"
+                        disabled={userRole === 'OPERATOR'}
+                        value={delivery?.internalDeadline ? delivery.internalDeadline.split('T')[0] : ''}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          const date = val ? new Date(`${val}T12:00:00Z`).toISOString() : null;
+                          try {
+                            await apiRequest(`/deliveries/${delivery.id}`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ tenantId, internalDeadline: date })
+                            });
+                            onClose();
+                          } catch (err) {
+                            alert('Erro ao atualizar o prazo interno.');
+                          }
+                        }}
+                        className="text-sm font-extrabold text-slate-800 dark:text-slate-200 bg-transparent outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed -ml-0.5"
+                      />
+                    </div>
+
+                    {/* Data Prevista */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400" title="Dia em que o colaborador deve executar (agenda)">Data Prevista</span>
+                      <input
                         type="date"
                         disabled={userRole === 'OPERATOR'}
                         value={delivery?.executionDeadline ? delivery.executionDeadline.split('T')[0] : ''}
@@ -358,14 +407,24 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
                             });
                             onClose(); // Reload data
                           } catch (err) {
-                            alert('Erro ao atualizar data planejada.');
+                            alert('Erro ao atualizar data prevista.');
                           }
                         }}
-                        className="w-full text-sm font-extrabold text-slate-800 dark:text-slate-200 bg-transparent outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed -ml-1"
+                        className="text-sm font-extrabold text-slate-800 dark:text-slate-200 bg-transparent outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed -ml-0.5"
                       />
                     </div>
-                  </div>
 
+                    {/* Data de Entrega / Realização — preenchida automaticamente ao concluir */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400" title="Preenchida automaticamente ao marcar como Concluída">Data de Entrega</span>
+                      <span className={`text-sm font-extrabold ${delivery?.completedAt ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600'}`}>
+                        {delivery?.completedAt ? new Date(delivery.completedAt).toLocaleDateString('pt-BR') : 'Ainda não concluída'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-8">
                   {/* Tempo Padrão */}
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">

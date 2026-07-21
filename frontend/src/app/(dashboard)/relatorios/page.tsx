@@ -53,7 +53,7 @@ export default function RelatoriosPage() {
         return;
       }
 
-      const headers = ['Competência', 'Cliente', 'Nome Padronizado', 'Área', 'Status', 'Responsável', 'Líder', 'Prazo Legal'];
+      const headers = ['Competência', 'Cliente', 'Nome Padronizado', 'Área', 'Status', 'Responsável', 'Líder', 'Vencimento', 'Prazo Interno', 'Data Prevista', 'Data de Entrega'];
       const rows = deliveries.map((d: any) => [
         d.competence,
         `"${d.client?.name || 'Sem Cliente'}"`,
@@ -62,7 +62,10 @@ export default function RelatoriosPage() {
         d.status,
         `"${d.responsible?.name || 'N/A'}"`,
         `"${d.leader?.name || 'N/A'}"`,
-        d.legalDeadline ? new Date(d.legalDeadline).toLocaleDateString('pt-BR') : 'N/A'
+        d.legalDeadline ? new Date(d.legalDeadline).toLocaleDateString('pt-BR') : 'N/A',
+        d.internalDeadline ? new Date(d.internalDeadline).toLocaleDateString('pt-BR') : 'N/A',
+        d.executionDeadline ? new Date(d.executionDeadline).toLocaleDateString('pt-BR') : 'N/A',
+        d.completedAt ? new Date(d.completedAt).toLocaleDateString('pt-BR') : 'N/A'
       ]);
 
       const csvContent = [

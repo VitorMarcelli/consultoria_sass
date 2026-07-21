@@ -61,12 +61,51 @@ export class DeliveriesService {
         executionDeadline: data.executionDeadline
           ? new Date(data.executionDeadline)
           : null,
+        completedAt: data.completedAt ? new Date(data.completedAt) : null,
       },
     });
   }
 
   async update(tenantId: string, id: string, data: any) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
+
+    // IMPORTANTE: os campos abaixo só entram no update quando presentes no
+    // payload (!== undefined). PATCHes parciais são o caso comum (ex: o
+    // board de Alocação só manda executionDeadline) — usar `data.x ? ... :
+    // null` incondicionalmente apagaria os outros campos de data/tempo a
+    // cada chamada parcial, mesmo sem a intenção de limpá-los.
+    const optionalFields: Record<string, any> = {};
+    if (data.estimatedTimeMinutes !== undefined) {
+      optionalFields.estimatedTimeMinutes = data.estimatedTimeMinutes
+        ? parseInt(data.estimatedTimeMinutes, 10)
+        : null;
+    }
+    if (data.realTimeMinutes !== undefined) {
+      optionalFields.realTimeMinutes = data.realTimeMinutes
+        ? parseInt(data.realTimeMinutes, 10)
+        : null;
+    }
+    if (data.legalDeadline !== undefined) {
+      optionalFields.legalDeadline = data.legalDeadline
+        ? new Date(data.legalDeadline)
+        : null;
+    }
+    if (data.internalDeadline !== undefined) {
+      optionalFields.internalDeadline = data.internalDeadline
+        ? new Date(data.internalDeadline)
+        : null;
+    }
+    if (data.executionDeadline !== undefined) {
+      optionalFields.executionDeadline = data.executionDeadline
+        ? new Date(data.executionDeadline)
+        : null;
+    }
+    if (data.completedAt !== undefined) {
+      optionalFields.completedAt = data.completedAt
+        ? new Date(data.completedAt)
+        : null;
+    }
+
     return tenantPrisma.delivery.update({
       where: { id },
       data: {
@@ -79,19 +118,7 @@ export class DeliveriesService {
         standardizedName: data.standardizedName,
         status: data.status,
         priority: data.priority,
-        estimatedTimeMinutes: data.estimatedTimeMinutes
-          ? parseInt(data.estimatedTimeMinutes, 10)
-          : null,
-        realTimeMinutes: data.realTimeMinutes
-          ? parseInt(data.realTimeMinutes, 10)
-          : null,
-        legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
-        internalDeadline: data.internalDeadline
-          ? new Date(data.internalDeadline)
-          : null,
-        executionDeadline: data.executionDeadline
-          ? new Date(data.executionDeadline)
-          : null,
+        ...optionalFields,
       },
     });
   }
@@ -272,9 +299,15 @@ export class DeliveriesService {
     authorName: string = 'Sistema',
   ) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
+
+    // Data de Entrega/Realização: preenchida automaticamente ao concluir,
+    // limpa se a tarefa for reaberta (deixa de fazer sentido "concluída em X"
+    // para uma tarefa que não está mais concluída).
+    const completedAt = status === 'CONCLUIDA' ? new Date() : null;
+
     const updated = await tenantPrisma.delivery.update({
       where: { id },
-      data: { status },
+      data: { status, completedAt },
     });
 
     await tenantPrisma.deliveryHistory.create({

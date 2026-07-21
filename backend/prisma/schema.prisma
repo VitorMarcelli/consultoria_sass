@@ -365,9 +365,10 @@ model Delivery {
   estimatedTimeMinutes Int?
   realTimeMinutes      Int?
 
-  legalDeadline     DateTime?
-  internalDeadline  DateTime?
-  executionDeadline DateTime?
+  legalDeadline     DateTime? // Vencimento: data que vence a obrigação do cliente
+  internalDeadline  DateTime? // Prazo Interno: limite estabelecido internamente para envio ao cliente
+  executionDeadline DateTime? // Data Prevista: dia em que o colaborador deve de fato executar (agenda/Heijunka)
+  completedAt       DateTime? // Data de Entrega/Realização: quando a tarefa foi de fato concluída
 
   observations String?
 

@@ -46,6 +46,8 @@ interface Delivery {
   realTimeMinutes?: number;
   executionDeadline?: string | null;
   legalDeadline?: string | null;
+  internalDeadline?: string | null;
+  completedAt?: string | null;
 }
 
 const tableVariants = {
@@ -94,7 +96,7 @@ export default function CycleDeliveriesPage({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '', executionDeadline: '' });
+  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '', legalDeadline: '', internalDeadline: '', executionDeadline: '', completedAt: '' });
   const [cycleComp, setCycleComp] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -178,7 +180,10 @@ export default function CycleDeliveriesPage({
         status: 'PREVISTA',
         priority: 'MEDIUM',
         estimatedTimeMinutes: '',
-        executionDeadline: ''
+        legalDeadline: '',
+        internalDeadline: '',
+        executionDeadline: '',
+        completedAt: ''
       });
     } catch(err) {
       console.error(err);
@@ -201,7 +206,10 @@ export default function CycleDeliveriesPage({
         status: delivery.status,
         priority: delivery.priority || 'MEDIUM',
         estimatedTimeMinutes: delivery.estimatedTimeMinutes ? String(delivery.estimatedTimeMinutes) : '',
-        executionDeadline: delivery.executionDeadline ? new Date(delivery.executionDeadline).toISOString().split('T')[0] : ''
+        legalDeadline: delivery.legalDeadline ? new Date(delivery.legalDeadline).toISOString().split('T')[0] : '',
+        internalDeadline: delivery.internalDeadline ? new Date(delivery.internalDeadline).toISOString().split('T')[0] : '',
+        executionDeadline: delivery.executionDeadline ? new Date(delivery.executionDeadline).toISOString().split('T')[0] : '',
+        completedAt: delivery.completedAt ? new Date(delivery.completedAt).toISOString().split('T')[0] : ''
       });
     } catch(err) {
       console.error(err);
@@ -795,7 +803,7 @@ export default function CycleDeliveriesPage({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Prioridade</label>
                     <select value={formData.priority} onChange={e => setFormData({...formData, priority: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
@@ -809,9 +817,29 @@ export default function CycleDeliveriesPage({
                     <input type="number" required value={formData.estimatedTimeMinutes} onChange={e => setFormData({...formData, estimatedTimeMinutes: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: 120" />
                     <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1 font-semibold">⚠️ É fundamental definir o tempo para controle de entrega e alocação!</p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data Planejada</label>
-                    <input type="date" value={formData.executionDeadline} onChange={e => setFormData({...formData, executionDeadline: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Datas da Obrigação</label>
+                  <div className={`grid grid-cols-2 ${selectedDelivery ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Vencimento</label>
+                      <input type="date" value={formData.legalDeadline} onChange={e => setFormData({...formData, legalDeadline: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" title="Data que vence a obrigação do cliente" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Prazo Interno</label>
+                      <input type="date" value={formData.internalDeadline} onChange={e => setFormData({...formData, internalDeadline: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" title="Limite interno para envio ao cliente" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Data Prevista</label>
+                      <input type="date" value={formData.executionDeadline} onChange={e => setFormData({...formData, executionDeadline: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" title="Dia em que o colaborador deve executar (agenda)" />
+                    </div>
+                    {selectedDelivery && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Data de Entrega</label>
+                        <input type="date" value={formData.completedAt} onChange={e => setFormData({...formData, completedAt: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" title="Preenchida automaticamente ao concluir — edite apenas para corrigir" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -930,6 +958,16 @@ export default function CycleDeliveriesPage({
                       <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Frente</span>
                       <span className="font-bold text-slate-700 dark:text-slate-300 truncate block mt-0.5">{delivery.front?.name || '-'}</span>
                     </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vencimento</span>
+                      <span className={`font-bold truncate block mt-0.5 ${
+                        delivery.legalDeadline && new Date(delivery.legalDeadline) < new Date() && !['CONCLUIDA', 'INATIVA'].includes(delivery.status)
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}>
+                        {delivery.legalDeadline ? new Date(delivery.legalDeadline).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-'}
+                      </span>
+                    </div>
                     <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
                       <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Responsável</span>
                       <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block mt-0.5">{delivery.responsible?.name || '-'}</span>
@@ -967,11 +1005,12 @@ export default function CycleDeliveriesPage({
               <thead className="bg-slate-50/80 dark:bg-slate-950/50 text-slate-400 text-[11px] uppercase tracking-widest border-b border-slate-200/60 dark:border-slate-800/60">
                 <tr>
                   <th className="px-4 py-3 font-bold w-[4%] text-center"></th>
-                  <th className="px-4 py-3 font-bold w-[25%]">Tarefa / Obrigação</th>
-                  <th className="px-4 py-3 font-bold w-[16%]">Cliente</th>
-                  <th className="px-4 py-3 font-bold w-[12%] text-center">Frente</th>
-                  <th className="px-4 py-3 font-bold w-[10%] text-center">Prioridade</th>
-                  <th className="px-0 py-3 font-bold text-center w-[15%]">Status</th>
+                  <th className="px-4 py-3 font-bold w-[21%]">Tarefa / Obrigação</th>
+                  <th className="px-4 py-3 font-bold w-[14%]">Cliente</th>
+                  <th className="px-4 py-3 font-bold w-[10%] text-center">Frente</th>
+                  <th className="px-4 py-3 font-bold w-[9%] text-center">Prioridade</th>
+                  <th className="px-4 py-3 font-bold w-[10%] text-center">Vencimento</th>
+                  <th className="px-0 py-3 font-bold text-center w-[13%]">Status</th>
                   {profile?.role !== 'OPERATOR' && (
                     <th className="px-4 py-3 font-bold text-right w-[10%]">Ações</th>
                   )}
@@ -983,7 +1022,7 @@ export default function CycleDeliveriesPage({
                     <React.Fragment key={groupName}>
                       {/* Group Header */}
                       <tr className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 group/header">
-                        <td colSpan={7} className="px-4 py-2">
+                        <td colSpan={8} className="px-4 py-2">
                           <div 
                             className="flex items-center gap-2 cursor-pointer w-max"
                             onClick={() => toggleGroup(groupName)}
@@ -1043,6 +1082,19 @@ export default function CycleDeliveriesPage({
                             >
                               {delivery.priority === 'HIGH' ? 'Alta' : delivery.priority === 'LOW' ? 'Baixa' : 'Média'}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-center border-r border-slate-100 dark:border-slate-800/40">
+                            {delivery.legalDeadline ? (
+                              <span className={`text-xs font-bold ${
+                                new Date(delivery.legalDeadline) < new Date() && !['CONCLUIDA', 'INATIVA'].includes(delivery.status)
+                                  ? 'text-rose-600 dark:text-rose-400'
+                                  : 'text-slate-600 dark:text-slate-400'
+                              }`}>
+                                {new Date(delivery.legalDeadline).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-300 dark:text-slate-700">-</span>
+                            )}
                           </td>
                           {/* Status Cell - Full Color Monday Style */}
                           <td className="px-0 py-0 border-r border-slate-100 dark:border-slate-800/40 p-0 m-0 align-middle">

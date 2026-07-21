@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Clock, CheckCircle2, AlertCircle, Building2, User, PlayCircle, MoreHorizontal } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Building2, User, PlayCircle, MoreHorizontal, CalendarDays } from 'lucide-react';
 
 interface Delivery {
   id: string;
@@ -20,6 +20,7 @@ interface Delivery {
   estimatedTimeMinutes?: number;
   realTimeMinutes?: number;
   timeLogs?: any[];
+  legalDeadline?: string | null;
 }
 
 interface DeliveryKanbanBoardProps {
@@ -171,13 +172,31 @@ export default function DeliveryKanbanBoard({
                               </div>
                             </div>
 
-                            {/* Competence - Always visible at bottom */}
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>{delivery.competence}</span>
+                            {/* Competence + Vencimento - Always visible at bottom */}
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 gap-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span>{delivery.competence}</span>
+                                </div>
+                                {delivery.legalDeadline && (() => {
+                                  const isOverdue = new Date(delivery.legalDeadline) < new Date() && !['CONCLUIDA', 'INATIVA'].includes(delivery.status);
+                                  return (
+                                    <div
+                                      className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full ${
+                                        isOverdue
+                                          ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10'
+                                          : 'text-slate-400 bg-slate-100 dark:bg-slate-800'
+                                      }`}
+                                      title="Vencimento"
+                                    >
+                                      <CalendarDays className="w-3.5 h-3.5" />
+                                      <span>{new Date(delivery.legalDeadline).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                                    </div>
+                                  );
+                                })()}
                               </div>
-                              
+
                               <button className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-indigo-500 transition-opacity p-1">
                                 <MoreHorizontal className="w-4 h-4" />
                               </button>
