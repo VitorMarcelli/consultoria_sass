@@ -204,8 +204,9 @@ export default function DeliveryAllocationBoard({
             
             {Object.entries(boardData).map(([empId, empData]: [string, any]) => {
               
-              const rawAvailable = empData.capacityData?.dailyAvailable || 6;
-              const dailyCapacityHours = rawAvailable > 24 ? Math.round(rawAvailable / 21) : rawAvailable;
+              // dailyAvailable já vem em horas/dia do backend (EmployeeCycleAllocation.dailyAvailableTime),
+              // sem necessidade de adivinhar se é um valor mensal.
+              const dailyCapacityHours = empData.capacityData?.dailyAvailable || 6;
               const dailyCapacityMins = dailyCapacityHours * 60;
               const isCollapsed = collapsedEmployees.includes(empId);
               

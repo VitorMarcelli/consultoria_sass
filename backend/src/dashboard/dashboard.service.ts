@@ -141,13 +141,33 @@ export class DashboardService {
       const estimatedMinutes = timeByEmployee.get(alloc.employeeId) || 0;
       const estimatedHours = Math.floor(estimatedMinutes / 60);
 
+      // 'extra' e 'rework' ainda não têm fonte de dado real (nenhum
+      // TimeLog é classificado por tipo hoje) — permanecem em 0 até a
+      // camada de apontamento de tempo real ser construída.
+      const recurrent = estimatedHours;
+      const extra = 0;
+      const rework = 0;
+      const committed = recurrent + extra + rework;
+      const idleHours = Math.max(0, availableHours - committed);
+      const utilizationPercent =
+        availableHours > 0 ? Math.round((committed / availableHours) * 100) : 0;
+
+      let status: 'OVERLOADED' | 'IDLE' | 'BALANCED' = 'BALANCED';
+      if (utilizationPercent > 100) status = 'OVERLOADED';
+      else if (utilizationPercent < 70) status = 'IDLE';
+
       return {
+        employeeId: alloc.employeeId,
         employee: alloc.employee.name,
         available: availableHours,
         dailyAvailable: dailyHours,
-        recurrent: estimatedHours,
-        extra: 0,
-        rework: 0,
+        recurrent,
+        extra,
+        rework,
+        committed,
+        idleHours,
+        utilizationPercent,
+        status,
       };
     });
 

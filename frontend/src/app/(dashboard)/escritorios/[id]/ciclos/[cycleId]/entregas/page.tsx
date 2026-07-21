@@ -369,14 +369,17 @@ export default function CycleDeliveriesPage({
         if (usedMins + taskMins <= dailyCapMins) {
           // Allocate here
           const execDate = new Date(`${dateStr}T12:00:00Z`).toISOString();
-          await apiRequest(`/deliveries/${d.id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ executionDeadline: execDate })
-          }).catch(console.error);
-          
-          // Optimistically update local deliveries to affect subsequent calculations
-          d.executionDeadline = execDate; 
-          updatedCount++;
+          try {
+            await apiRequest(`/deliveries/${d.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ tenantId: id, executionDeadline: execDate })
+            });
+            // Optimistically update local deliveries to affect subsequent calculations
+            d.executionDeadline = execDate;
+            updatedCount++;
+          } catch (err) {
+            console.error(err);
+          }
           break;
         }
       }

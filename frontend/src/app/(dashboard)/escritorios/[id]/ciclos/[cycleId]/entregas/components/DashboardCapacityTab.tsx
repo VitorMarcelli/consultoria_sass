@@ -87,6 +87,9 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
         </div>
       ) : (
       <div className="grid grid-cols-1 gap-6">
+        {/* Ranking de Carga: quem está ocioso vs sobrecarregado */}
+        <CapacityRanking capacityData={data.capacityData} />
+
         {/* Capacity Planning */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
           <div className="flex justify-between items-center mb-6">
@@ -110,6 +113,76 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
         </div>
       </div>
       )}
+    </div>
+  );
+}
+
+const STATUS_CONFIG: Record<string, { label: string; textClass: string; bgClass: string; barClass: string }> = {
+  OVERLOADED: { label: 'Sobrecarregado', textClass: 'text-rose-600 dark:text-rose-400', bgClass: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20', barClass: 'bg-rose-500' },
+  IDLE: { label: 'Ocioso', textClass: 'text-amber-600 dark:text-amber-400', bgClass: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20', barClass: 'bg-amber-500' },
+  BALANCED: { label: 'Equilibrado', textClass: 'text-emerald-600 dark:text-emerald-400', bgClass: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20', barClass: 'bg-emerald-500' },
+};
+
+function CapacityRanking({ capacityData }: { capacityData: any[] }) {
+  // Mais sobrecarregado primeiro, mais ocioso por último — é a lista que o
+  // dono do escritório usa pra decidir onde intervir agora.
+  const ranked = [...capacityData].sort((a, b) => (b.utilizationPercent || 0) - (a.utilizationPercent || 0));
+  const overloadedCount = ranked.filter(r => r.status === 'OVERLOADED').length;
+  const idleCount = ranked.filter(r => r.status === 'IDLE').length;
+
+  return (
+    <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">Ranking de Carga por Colaborador</h3>
+          <p className="text-sm text-slate-500 mt-1">Quem está sobrecarregado precisa de ajuda agora; quem está ocioso pode receber mais carteira.</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {overloadedCount > 0 && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20">
+              {overloadedCount} sobrecarregado{overloadedCount > 1 ? 's' : ''}
+            </span>
+          )}
+          {idleCount > 0 && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+              {idleCount} ocioso{idleCount > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {ranked.map((row) => {
+          const cfg = STATUS_CONFIG[row.status] || STATUS_CONFIG.BALANCED;
+          const barWidth = Math.min(100, row.utilizationPercent || 0);
+          const delta = row.available - row.committed;
+
+          return (
+            <div key={row.employeeId || row.employee} className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 p-4 rounded-2xl border ${cfg.bgClass}`}>
+              <div className="sm:w-40 shrink-0">
+                <span className="text-sm font-black text-slate-800 dark:text-white">{row.employee}</span>
+                <span className={`block text-[11px] font-bold mt-0.5 ${cfg.textClass}`}>{cfg.label}</span>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="h-2.5 w-full bg-white/70 dark:bg-slate-950/50 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${cfg.barClass}`} style={{ width: `${barWidth}%` }} />
+                </div>
+              </div>
+
+              <div className="sm:w-56 shrink-0 text-right sm:text-left">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200 tabular-nums">{row.utilizationPercent}%</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
+                  {row.committed}h de {row.available}h
+                </span>
+                <span className={`block text-[11px] font-bold mt-0.5 ${cfg.textClass}`}>
+                  {delta >= 0 ? `${delta}h livres` : `${Math.abs(delta)}h acima da capacidade`}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
