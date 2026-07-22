@@ -6,13 +6,29 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  // O guard é singleton (Nest não recria providers por request por padrão),
+  // então o JWKS remoto é buscado uma vez e cacheado em memória pelo próprio
+  // `jose` (com cooldown/revalidação automática) — reaproveitado por todas
+  // as requisições do processo, em vez de bater na rede a cada chamada.
+  private jwks: JWTVerifyGetKey | null = null;
+
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {}
+
+  private getJwks(supabaseUrl: string): JWTVerifyGetKey {
+    if (!this.jwks) {
+      this.jwks = createRemoteJWKSet(
+        new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`),
+      );
+    }
+    return this.jwks;
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -24,46 +40,40 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY');
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error(
-        'JwtAuthGuard: SUPABASE_URL ou SUPABASE_ANON_KEY ausentes no .env',
-      );
+    if (!supabaseUrl) {
+      console.error('JwtAuthGuard: SUPABASE_URL ausente no .env');
       throw new UnauthorizedException('Erro de configuração do servidor');
     }
 
     try {
-      // Usamos a própria API do Supabase para verificar o token.
-      // Isso resolve completamente problemas de algoritmo (ES256 vs HS256), JWKS e chaves assimétricas.
-      const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
-        headers: {
-          apikey: supabaseAnonKey,
-          Authorization: `Bearer ${token}`,
-        },
+      // Verificação local via JWKS (chave pública ES256 do projeto Supabase),
+      // sem round-trip de rede a cada requisição — antes isso era feito via
+      // fetch(`${supabaseUrl}/auth/v1/user`) em TODA chamada autenticada, o
+      // que somado às várias chamadas por tela pesava bastante no tempo de
+      // carregamento.
+      const { payload } = await jwtVerify(token, this.getJwks(supabaseUrl), {
+        issuer: `${supabaseUrl}/auth/v1`,
+        audience: 'authenticated',
       });
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.msg || 'Assinatura inválida ou token expirado');
-      }
-
-      const userData = await response.json();
+      const userId = payload.sub as string;
+      const email = payload.email as string | undefined;
 
       // Resolvemos o papel e o tenant REAIS a partir da nossa base (tabela User),
       // e não da claim do Supabase (que é sempre "authenticated"). Isso é o que
       // permite ao TenantAccessGuard e às regras de RBAC confiarem em req.user.
       const dbUser = await this.prisma.user
         .findUnique({
-          where: { id: userData.id },
+          where: { id: userId },
           select: { role: true, tenantId: true },
         })
         .catch(() => null);
 
-      // Mapeamos os dados retornados para o request.user esperado pelo NestJS
+      // Mapeamos os dados do token para o request.user esperado pelo NestJS
       request.user = {
-        id: userData.id,
-        email: userData.email,
+        id: userId,
+        email,
         // null quando o usuário Supabase ainda não tem linha em User
         // (fluxo de auto-provisionamento em GET /users/me).
         role: dbUser?.role ?? null,
@@ -75,22 +85,17 @@ export class JwtAuthGuard implements CanActivate {
         const isCreatingSession =
           request.method === 'POST' && request.url.includes('/auth/sessions');
         if (!isCreatingSession) {
-          const parts = token.split('.');
-          if (parts.length === 3) {
-            const payload = JSON.parse(
-              Buffer.from(parts[1], 'base64').toString('utf-8'),
-            );
-            const deviceSessionId = request.headers['x-device-session-id'];
-            const sessionId = deviceSessionId || payload.session_id;
-            if (sessionId) {
-              const session = await this.prisma.userSession.findFirst({
-                where: { refreshToken: sessionId, userId: userData.id },
-              });
-              if (session && !session.isActive) {
-                throw new UnauthorizedException(
-                  'Sessão desconectada ou substituída por outro dispositivo',
-                );
-              }
+          const deviceSessionId = request.headers['x-device-session-id'];
+          const sessionId =
+            deviceSessionId || (payload as Record<string, unknown>).session_id;
+          if (sessionId) {
+            const session = await this.prisma.userSession.findFirst({
+              where: { refreshToken: sessionId as string, userId },
+            });
+            if (session && !session.isActive) {
+              throw new UnauthorizedException(
+                'Sessão desconectada ou substituída por outro dispositivo',
+              );
             }
           }
         }
