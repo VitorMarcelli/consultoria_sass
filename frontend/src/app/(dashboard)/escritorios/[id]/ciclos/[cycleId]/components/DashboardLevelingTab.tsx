@@ -7,39 +7,20 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts';
 
-export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: string, cycleId: string }) {
+export default function DashboardLevelingTab({ tenantId, cycleId, activeFrontId }: { tenantId: string; cycleId: string; activeFrontId: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeFront, setActiveFront] = useState<string>('');
-  const [fronts, setFronts] = useState<any[]>([]);
 
   // States para o Drag and Drop simulado / Reagendamento
   const [rescheduling, setRescheduling] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [targetDate, setTargetDate] = useState<string>('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const frontsData = await apiRequest(`/structures/fronts?tenantId=${tenantId}`);
-        setFronts(frontsData);
-        if (frontsData.length > 0) {
-          const firstFrontId = frontsData[0].id;
-          setActiveFront(firstFrontId);
-          await loadLevelingData(firstFrontId);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchData();
-  }, [tenantId, cycleId]);
-
-  const loadLevelingData = async (frontId: string) => {
+  const loadLevelingData = async () => {
+    if (!activeFrontId || !tenantId || !cycleId) return;
     setLoading(true);
-    setActiveFront(frontId);
     try {
-      const dashData = await apiRequest(`/dashboard/leveling/${cycleId}/${frontId}?tenantId=${tenantId}`);
+      const dashData = await apiRequest(`/dashboard/leveling/${cycleId}/${activeFrontId}?tenantId=${tenantId}`);
       setData(dashData);
     } catch (err) {
       console.error(err);
@@ -48,9 +29,16 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
     }
   };
 
+  useEffect(() => {
+    setSelectedDate('');
+    setTargetDate('');
+    loadLevelingData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId, cycleId, activeFrontId]);
+
   const handleReschedule = async () => {
     if (!selectedDate || !targetDate) return;
-    
+
     // Pegar IDs das entregas daquela data selecionada
     const deliveriesToMove = data.deliveriesList.filter((d: any) => {
       if (!d.executionDeadline) return false;
@@ -65,14 +53,14 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
 
     const ids = deliveriesToMove.map((d: any) => d.id);
     setRescheduling(true);
-    
+
     try {
       await apiRequest(`/dashboard/leveling/reschedule`, {
         method: 'PATCH',
         body: JSON.stringify({ deliveryIds: ids, newExecutionDate: targetDate, tenantId })
       });
       alert(`Sucesso! ${ids.length} entregas foram reagendadas.`);
-      await loadLevelingData(activeFront); // Reload
+      await loadLevelingData(); // Reload
     } catch (err) {
       console.error(err);
       alert('Erro ao reagendar entregas.');
@@ -96,25 +84,6 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm">
-        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Departamento:</span>
-        <div className="flex gap-2">
-          {fronts.map(f => (
-            <button
-              key={f.id}
-              onClick={() => loadLevelingData(f.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeFront === f.id
-                  ? 'bg-teal-600 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              {f.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
@@ -128,20 +97,20 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
             </svg>
           </div>
           <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Sem Prazos Definidos</h3>
-          <p className="text-slate-500 mt-2 text-sm">Nenhuma entrega neste ciclo/departamento possui data de execução (Heijunka).</p>
+          <p className="text-slate-500 mt-2 text-sm">Nenhuma entrega nesta frente/ciclo possui data de execução (Heijunka).</p>
         </div>
       ) : (
       <div className="grid grid-cols-1 gap-6">
         {/* Nivelamento Heijunka */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
-          
+
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>
               <h3 className="text-xl font-black text-slate-900 dark:text-white">Nivelamento Diário (Heijunka)</h3>
               <p className="text-sm text-slate-500 mt-1">Achete a curva. Evite que todas as entregas se acumulem no dia do vencimento.</p>
               <p className="text-xs text-teal-600 mt-1 font-semibold">* Clique em uma barra no gráfico para selecionar as entregas desse dia.</p>
             </div>
-            
+
             <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-[1.5rem] flex items-end gap-3 w-full md:w-auto shadow-inner">
               <div>
                 <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Origem (Pico)</label>
@@ -152,8 +121,8 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
                 <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Destino (Vale)</label>
                 <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm" />
               </div>
-              <button 
-                onClick={handleReschedule} 
+              <button
+                onClick={handleReschedule}
                 disabled={rescheduling || !selectedDate || !targetDate || deliveriesToMove.length === 0}
                 className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
               >
@@ -164,19 +133,19 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
 
           <div className="h-80 relative z-10">
             {loading && <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 flex flex-col items-center justify-center z-20"><Loader2 className="w-8 h-8 text-teal-600 animate-spin" /></div>}
-            
+
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.timeline} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} angle={-45} textAnchor="end" />
                 <YAxis axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px' }} />
-                
+
                 <ReferenceLine y={avgDeliveries} stroke="#f97316" strokeDasharray="3 3" label={{ position: 'top', value: `Média Ideal (${avgDeliveries})`, fill: '#f97316', fontSize: 12, fontWeight: 'bold' }} />
-                
-                <Bar 
-                  dataKey="deliveries" 
-                  radius={[4, 4, 0, 0]} 
+
+                <Bar
+                  dataKey="deliveries"
+                  radius={[4, 4, 0, 0]}
                   name="Qtd Entregas"
                   onClick={(entry: any) => setSelectedDate(entry?.date || entry?.payload?.date)}
                   cursor="pointer"
@@ -193,13 +162,13 @@ export default function DashboardLevelingTab({ tenantId, cycleId }: { tenantId: 
               </BarChart>
             </ResponsiveContainer>
           </div>
-          
+
           {selectedDate && (
             <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6">
               <h4 className="text-md font-bold text-slate-800 dark:text-slate-200 mb-4">
                 Entregas alocadas no dia: <span className="text-teal-600">{new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}</span>
               </h4>
-              
+
               {deliveriesToMove.length === 0 ? (
                 <p className="text-sm text-slate-500">Nenhuma entrega encontrada para esta data.</p>
               ) : (

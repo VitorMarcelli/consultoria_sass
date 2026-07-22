@@ -24,9 +24,6 @@ import { apiRequest } from '@/utils/api';
 import DeliveryTaskModal from '@/components/DeliveryTaskModal';
 import DeliveryKanbanBoard from '@/components/DeliveryKanbanBoard';
 import DeliveryAllocationBoard from '@/components/DeliveryAllocationBoard';
-import DashboardMappingTab from './components/DashboardMappingTab';
-import DashboardCapacityTab from './components/DashboardCapacityTab';
-import DashboardLevelingTab from './components/DashboardLevelingTab';
 import DashboardTimesheetTab from './components/DashboardTimesheetTab';
 
 interface Delivery {
@@ -91,7 +88,7 @@ export default function CycleDeliveriesPage({
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
 
   // Modal CRUD
-  const [activeTab, setActiveTab] = useState<'LIST' | 'MAPPING' | 'CAPACITY' | 'LEVELING' | 'TIMESHEET'>('LIST');
+  const [activeTab, setActiveTab] = useState<'LIST' | 'TIMESHEET'>('LIST');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -483,9 +480,6 @@ export default function CycleDeliveriesPage({
       <div className="flex items-center gap-2 p-1.5 bg-slate-100/50 dark:bg-slate-800/30 rounded-2xl w-max max-w-full overflow-x-auto custom-scrollbar">
         {[
           { id: 'LIST', label: 'Lista de Entregas' },
-          { id: 'MAPPING', label: 'Diagnóstico' },
-          { id: 'CAPACITY', label: 'Capacidade' },
-          { id: 'LEVELING', label: 'Nivelamento' },
           { id: 'TIMESHEET', label: 'Apontamentos' },
         ].map(tab => (
           <button
@@ -509,9 +503,6 @@ export default function CycleDeliveriesPage({
         ))}
       </div>
 
-      {activeTab === 'MAPPING' && <DashboardMappingTab tenantId={id} cycleId={cycleId} />}
-      {activeTab === 'CAPACITY' && <DashboardCapacityTab tenantId={id} cycleId={cycleId} />}
-      {activeTab === 'LEVELING' && <DashboardLevelingTab tenantId={id} cycleId={cycleId} />}
       {activeTab === 'TIMESHEET' && <DashboardTimesheetTab tenantId={id} cycleId={cycleId} />}
 
       {/* Painel de Matriz de Conformidade (Dashboard Extra Premium Luminous) */}

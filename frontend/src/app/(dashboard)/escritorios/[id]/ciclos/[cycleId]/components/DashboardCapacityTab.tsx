@@ -7,69 +7,30 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: string, cycleId: string }) {
+export default function DashboardCapacityTab({ tenantId, cycleId, activeFrontId }: { tenantId: string; cycleId: string; activeFrontId: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeFront, setActiveFront] = useState<string>('');
-  const [fronts, setFronts] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchFronts = async () => {
+    if (!activeFrontId || !tenantId || !cycleId) return;
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const frontsData = await apiRequest(`/structures/fronts?tenantId=${tenantId}`);
-        setFronts(frontsData);
-        if (frontsData.length > 0) {
-          const firstFrontId = frontsData[0].id;
-          setActiveFront(firstFrontId);
-          const dashData = await apiRequest(`/dashboard/capacity/${cycleId}/${firstFrontId}?tenantId=${tenantId}`);
-          setData(dashData);
-        }
+        const dashData = await apiRequest(`/dashboard/capacity/${cycleId}/${activeFrontId}?tenantId=${tenantId}`);
+        setData(dashData);
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    if (cycleId && tenantId) fetchFronts();
-  }, [cycleId, tenantId]);
-
-  const loadFrontData = async (frontId: string) => {
-    setLoading(true);
-    setActiveFront(frontId);
-    try {
-      const dashData = await apiRequest(`/dashboard/capacity/${cycleId}/${frontId}?tenantId=${tenantId}`);
-      setData(dashData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    fetchData();
+  }, [tenantId, cycleId, activeFrontId]);
 
   const hasData = data && data.capacityData && data.capacityData.length > 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm">
-        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Departamento:</span>
-        <div className="flex gap-2">
-          {fronts.map(f => (
-            <button
-              key={f.id}
-              onClick={() => loadFrontData(f.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeFront === f.id
-                  ? 'bg-teal-600 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              {f.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
@@ -83,7 +44,7 @@ export default function DashboardCapacityTab({ tenantId, cycleId }: { tenantId: 
             </svg>
           </div>
           <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Nenhum operador alocado</h3>
-          <p className="text-slate-500 mt-2 text-sm">Não há membros da equipe alocados neste departamento para este ciclo.</p>
+          <p className="text-slate-500 mt-2 text-sm">Não há membros da equipe alocados nesta frente para este ciclo.</p>
         </div>
       ) : (
       <div className="grid grid-cols-1 gap-6">

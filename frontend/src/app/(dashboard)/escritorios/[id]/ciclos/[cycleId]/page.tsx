@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
-import { Loader2, TrendingUp, Users, DollarSign, Activity, PieChart as PieChartIcon, BarChart2, Users2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, use } from 'react';
+import { Loader2, TrendingUp, Users, DollarSign, Activity, PieChart as PieChartIcon, BarChart2, Users2, AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { StatsCard } from '@/components/ui/StatsCard';
+import DashboardMappingTab from './components/DashboardMappingTab';
+import DashboardCapacityTab from './components/DashboardCapacityTab';
+import DashboardLevelingTab from './components/DashboardLevelingTab';
 
 const COLORS = ['#0d9488', '#f43f5e', '#3b82f6', '#f59e0b', '#14B8A6', '#10b981', '#64748b'];
 
@@ -22,10 +25,48 @@ export default function CycleOverviewPage({
   
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
-  
+
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [currentGoal, setCurrentGoal] = useState('');
   const [savingGoal, setSavingGoal] = useState(false);
+
+  // Seletor de frente compartilhado pelas 3 seções operacionais abaixo
+  // (Diagnóstico, Capacidade, Nivelamento) — antes cada uma tinha o próprio
+  // seletor duplicado; agora é um só, controlando as três ao mesmo tempo.
+  const [fronts, setFronts] = useState<any[]>([]);
+  const [activeFrontId, setActiveFrontId] = useState('');
+
+  // Seções recolhidas por padrão (a página já é longa) — o card de alerta
+  // abre e leva direto para a Capacidade quando há gente sobrecarregada.
+  const [expandedSections, setExpandedSections] = useState({ mapping: false, capacity: false, leveling: false });
+  const toggleSection = (key: 'mapping' | 'capacity' | 'leveling') =>
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  const capacitySectionRef = useRef<HTMLDivElement>(null);
+
+  // Capacidade agregada de todas as frentes, só para o card de alerta no
+  // topo — independente da frente selecionada nas 3 seções abaixo.
+  const [globalCapacity, setGlobalCapacity] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiRequest(`/structures/fronts?tenantId=${id}`)
+      .then((data: any[]) => {
+        setFronts(data || []);
+        if (data && data.length > 0) setActiveFrontId(data[0].id);
+      })
+      .catch(() => setFronts([]));
+
+    apiRequest(`/dashboard/capacity/${cycleId}/all?tenantId=${id}`)
+      .then((res: any) => setGlobalCapacity(res?.capacityData || []))
+      .catch(() => setGlobalCapacity([]));
+  }, [id, cycleId]);
+
+  const overloadedEmployees = globalCapacity.filter((c: any) => c.status === 'OVERLOADED');
+  const idleEmployees = globalCapacity.filter((c: any) => c.status === 'IDLE');
+
+  const goToCapacity = () => {
+    setExpandedSections(prev => ({ ...prev, capacity: true }));
+    setTimeout(() => capacitySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
 
   useEffect(() => {
     async function loadStats() {
@@ -129,7 +170,56 @@ export default function CycleOverviewPage({
 
   return (
     <div className="space-y-6 pb-12">
-      
+
+      {/* Alerta de Carga — o problema mais urgente, visível sem rolar nem clicar */}
+      {overloadedEmployees.length > 0 ? (
+        <motion.button
+          onClick={goToCapacity}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full flex items-center justify-between gap-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-3xl p-5 text-left hover:bg-rose-100/70 dark:hover:bg-rose-500/15 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-rose-700 dark:text-rose-400">
+                {overloadedEmployees.length === 1
+                  ? '1 colaborador sobrecarregado neste ciclo'
+                  : `${overloadedEmployees.length} colaboradores sobrecarregados neste ciclo`}
+              </p>
+              <p className="text-xs font-medium text-rose-600/80 dark:text-rose-400/70 mt-0.5">
+                {overloadedEmployees.slice(0, 3).map((e: any) => e.employee).join(', ')}
+                {overloadedEmployees.length > 3 ? ` e mais ${overloadedEmployees.length - 3}` : ''} — acima da capacidade estimada.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-black text-rose-700 dark:text-rose-400 uppercase tracking-wider whitespace-nowrap shrink-0">Ver detalhes →</span>
+        </motion.button>
+      ) : globalCapacity.length > 0 ? (
+        <motion.button
+          onClick={goToCapacity}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full flex items-center justify-between gap-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-3xl p-5 text-left hover:bg-emerald-100/70 dark:hover:bg-emerald-500/15 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">Equipe equilibrada neste ciclo</p>
+              <p className="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">
+                Nenhum colaborador acima da capacidade estimada
+                {idleEmployees.length > 0 ? ` — ${idleEmployees.length} com folga para receber mais carteira.` : '.'}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap shrink-0">Ver detalhes →</span>
+        </motion.button>
+      ) : null}
+
       {/* Metas e Progresso do Ciclo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Meta do Ciclo */}
@@ -332,6 +422,119 @@ export default function CycleOverviewPage({
         </motion.div>
 
       </div>
+
+      {/* Leitura Operacional (Diagnóstico, Capacidade, Nivelamento) */}
+      {fronts.length > 0 && (
+        <div className="pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">Leitura Operacional</h2>
+              <p className="text-sm text-slate-500 mt-1">Raio-X da carteira, capacidade da equipe e nivelamento diário — por frente.</p>
+            </div>
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm w-max">
+              {fronts.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFrontId(f.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    activeFrontId === f.id
+                      ? 'bg-teal-600 text-white shadow-md'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <AccordionSection
+              title="Diagnóstico"
+              subtitle="Raio-X da carteira: status, tributação, segmento e complexidade"
+              expanded={expandedSections.mapping}
+              onToggle={() => toggleSection('mapping')}
+            >
+              <DashboardMappingTab tenantId={id} cycleId={cycleId} activeFrontId={activeFrontId} />
+            </AccordionSection>
+
+            <AccordionSection
+              title="Capacidade"
+              subtitle="Quem está sobrecarregado ou ocioso na frente selecionada"
+              expanded={expandedSections.capacity}
+              onToggle={() => toggleSection('capacity')}
+              sectionRef={capacitySectionRef}
+              highlight={overloadedEmployees.length > 0}
+            >
+              <DashboardCapacityTab tenantId={id} cycleId={cycleId} activeFrontId={activeFrontId} />
+            </AccordionSection>
+
+            <AccordionSection
+              title="Nivelamento"
+              subtitle="Heijunka diário: evita concentração de entregas no dia do vencimento"
+              expanded={expandedSections.leveling}
+              onToggle={() => toggleSection('leveling')}
+            >
+              <DashboardLevelingTab tenantId={id} cycleId={cycleId} activeFrontId={activeFrontId} />
+            </AccordionSection>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AccordionSection({
+  title,
+  subtitle,
+  expanded,
+  onToggle,
+  children,
+  sectionRef,
+  highlight,
+}: {
+  title: string;
+  subtitle: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+  sectionRef?: React.RefObject<HTMLDivElement | null>;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      ref={sectionRef}
+      className={`bg-white dark:bg-slate-900 rounded-3xl border shadow-sm overflow-hidden scroll-mt-6 transition-colors ${
+        highlight ? 'border-rose-300 dark:border-rose-500/40' : 'border-slate-200 dark:border-slate-800'
+      }`}
+    >
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          {highlight && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
+          <div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">{title}</h3>
+            <p className="text-xs font-medium text-slate-500 mt-0.5">{subtitle}</p>
+          </div>
+        </div>
+        <ChevronDown className={`w-5 h-5 text-slate-400 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-6 pb-6 pt-1">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

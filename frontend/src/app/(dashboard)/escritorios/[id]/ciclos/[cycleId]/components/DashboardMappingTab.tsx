@@ -10,23 +10,17 @@ import {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: string, cycleId: string }) {
+export default function DashboardMappingTab({ tenantId, cycleId, activeFrontId }: { tenantId: string; cycleId: string; activeFrontId: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeFront, setActiveFront] = useState<string>(''); // Ficará dinâmico, mas mockaremos o 'fiscal'
-  const [fronts, setFronts] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!activeFrontId || !tenantId || !cycleId) return;
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const frontsData = await apiRequest(`/structures/fronts?tenantId=${tenantId}`);
-        setFronts(frontsData);
-        if (frontsData.length > 0) {
-          const firstFrontId = frontsData[0].id;
-          setActiveFront(firstFrontId);
-          const dashData = await apiRequest(`/dashboard/cycle-mapping/${cycleId}/${firstFrontId}?tenantId=${tenantId}`);
-          setData(dashData);
-        }
+        const dashData = await apiRequest(`/dashboard/cycle-mapping/${cycleId}/${activeFrontId}?tenantId=${tenantId}`);
+        setData(dashData);
       } catch (err) {
         console.error(err);
       } finally {
@@ -34,46 +28,12 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
       }
     };
     fetchData();
-  }, [tenantId, cycleId]);
-
-  const loadFrontData = async (frontId: string) => {
-    setLoading(true);
-    setActiveFront(frontId);
-    try {
-      const dashData = await apiRequest(`/dashboard/cycle-mapping/${cycleId}/${frontId}?tenantId=${tenantId}`);
-      setData(dashData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  }, [tenantId, cycleId, activeFrontId]);
 
   const hasData = data && data.statusData?.total > 0;
 
   return (
     <div className="space-y-6">
-      {/* Filtro de Departamento */}
-      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Departamento:</span>
-        <div className="flex gap-2">
-          {fronts.map(f => (
-            <button
-              key={f.id}
-              onClick={() => loadFrontData(f.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeFront === f.id
-                  ? 'bg-teal-600 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              {f.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <Loader2 className="h-10 w-10 text-teal-500 animate-spin" />
@@ -87,7 +47,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
             </svg>
           </div>
           <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Nenhum dado encontrado</h3>
-          <p className="text-slate-500 mt-2 text-sm">Não há entregas alocadas neste departamento para este ciclo.</p>
+          <p className="text-slate-500 mt-2 text-sm">Não há entregas alocadas nesta frente para este ciclo.</p>
         </div>
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -135,7 +95,7 @@ export default function DashboardMappingTab({ tenantId, cycleId }: { tenantId: s
             </ResponsiveContainer>
           </div>
         </div>
-        
+
         {/* Segmento */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm col-span-1 lg:col-span-2">
           <h3 className="text-lg font-black text-slate-900 dark:text-white mb-6">Empresas por Segmento</h3>
