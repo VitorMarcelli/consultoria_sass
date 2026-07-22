@@ -114,11 +114,18 @@ export default function CycleDeliveriesPage({
 
   const fetchDeliveries = async () => {
     try {
-      const user = await apiRequest('/users/me').catch(() => null);
+      // Nenhuma dessas 4 chamadas depende do resultado da outra — rodar em
+      // paralelo em vez de em série corta a espera de "soma dos 4 tempos"
+      // para "o tempo do mais lento dos 4".
+      const [user, cycleData, data, capData] = await Promise.all([
+        apiRequest('/users/me').catch(() => null),
+        apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`).catch(() => null),
+        apiRequest(`/deliveries?tenantId=${id}`).catch(() => []),
+        apiRequest(`/dashboard/capacity/${cycleId}/all?tenantId=${id}`).catch(() => null),
+      ]);
+
       if (user) setProfile(user);
 
-      // 1) Busca os dados do ciclo para saber a competência
-      const cycleData = await apiRequest(`/management-cycles/${cycleId}?tenantId=${id}`).catch(() => null);
       let cycleCompetence = '';
       if (cycleData) {
         const mm = String(cycleData.month).padStart(2, '0');
@@ -126,16 +133,10 @@ export default function CycleDeliveriesPage({
         setCycleComp(cycleCompetence);
       }
 
-      // 2) Traz as entregas atreladas ao tenant (escritorio)
-      const data = await apiRequest(`/deliveries?tenantId=${id}`).catch(() => []);
-      
-      // 3) Filtra apenas as entregas deste ciclo (mesma competência)
+      // Filtra apenas as entregas deste ciclo (mesma competência)
       const cycleDeliveries = cycleCompetence ? data.filter((d: any) => d.competence === cycleCompetence) : data;
-      
       setDeliveries(cycleDeliveries);
 
-      // 4) Busca dados globais de capacidade
-      const capData = await apiRequest(`/dashboard/capacity/${cycleId}/all?tenantId=${id}`).catch(() => null);
       if (capData && capData.capacityData) {
         setGlobalCapacity(capData.capacityData);
       }
