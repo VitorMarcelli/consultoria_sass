@@ -32,18 +32,20 @@ export class TaxonomyController {
     return this.taxonomyService.findOne(id);
   }
 
-  // Escrita restrita a Super Admin (Role.ADMIN): a árvore é a "verdade
-  // absoluta" que permite comparar escritórios entre si.
+  // Escrita restrita a Super Admin e Consultor (Sevilha): a árvore é a
+  // "verdade absoluta" que permite comparar escritórios entre si, então fica
+  // fora do alcance de Líderes/Responsáveis de equipe (papéis do próprio
+  // escritório) e Operadores.
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'CONSULTANT')
   create(@Body() body: { name: string; parentId?: string }) {
     return this.taxonomyService.create(body);
   }
 
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'CONSULTANT')
   update(
     @Param('id') id: string,
     @Body() body: { name?: string; status?: string },
@@ -53,7 +55,7 @@ export class TaxonomyController {
 
   @Patch(':id/deactivate')
   @UseGuards(RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'CONSULTANT')
   deactivate(@Param('id') id: string) {
     return this.taxonomyService.deactivate(id);
   }

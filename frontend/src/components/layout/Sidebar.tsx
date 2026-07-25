@@ -120,6 +120,11 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             if (profile?.role === 'OPERATOR') {
               return item.name === 'Entregas';
             }
+            // Taxonomia é a única área /admin liberada também para Consultor
+            // (Líderes/Responsáveis de equipe e Operadores continuam de fora).
+            if (item.path === '/admin/taxonomia') {
+              return profile?.role === 'ADMIN' || profile?.role === 'CONSULTANT';
+            }
             if (item.path.startsWith('/admin') || item.path === '/') {
               return profile?.role === 'ADMIN';
             }

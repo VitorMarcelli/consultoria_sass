@@ -31,6 +31,19 @@ const menuItems = [
   { name: 'Consultores', path: '/admin/consultores', icon: Users },
 ];
 
+// Taxonomia é a única área /admin liberada também para Consultor (Líderes/
+// Responsáveis de equipe e Operadores continuam de fora); as demais áreas
+// /admin seguem restritas a Super Admin.
+function canSeeMenuItem(item: { path: string }, role?: string) {
+  if (item.path === '/admin/taxonomia') {
+    return role === 'ADMIN' || role === 'CONSULTANT';
+  }
+  if (item.path.startsWith('/admin') || item.path === '/') {
+    return role === 'ADMIN';
+  }
+  return true;
+}
+
 interface UserProfile {
   name: string;
   email: string;
@@ -95,12 +108,7 @@ export default function TopNavbar() {
             onMouseLeave={() => setHoveredTab(null)}
             className="hidden md:flex items-center bg-slate-200/50 dark:bg-slate-950/50 p-1.5 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] border border-slate-300/50 dark:border-slate-800/50 transition-all duration-500"
           >
-            {menuItems.filter(item => {
-              if (item.path.startsWith('/admin') || item.path === '/') {
-                return profile?.role === 'ADMIN';
-              }
-              return true;
-            }).map((item) => {
+            {menuItems.filter(item => canSeeMenuItem(item, profile?.role)).map((item) => {
               const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
               
               return (
@@ -247,12 +255,7 @@ export default function TopNavbar() {
               {/* Navigation Links */}
               <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">Menu Principal</div>
-                {menuItems.filter(item => {
-                  if (item.path.startsWith('/admin') || item.path === '/') {
-                    return profile?.role === 'ADMIN';
-                  }
-                  return true;
-                }).map((item) => {
+                {menuItems.filter(item => canSeeMenuItem(item, profile?.role)).map((item) => {
                   const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
                   const Icon = item.icon;
 

@@ -27,12 +27,12 @@ interface TaxonomyNode {
 function TaxonomyNodeRow({
   node,
   depth,
-  isAdmin,
+  canManage,
   onChanged
 }: {
   node: TaxonomyNode;
   depth: number;
-  isAdmin: boolean;
+  canManage: boolean;
   onChanged: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -143,7 +143,7 @@ function TaxonomyNodeRow({
                 Inativo
               </span>
             )}
-            {isAdmin && (
+            {canManage && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                 <button
                   onClick={() => setIsAddingChild(true)}
@@ -195,7 +195,7 @@ function TaxonomyNodeRow({
       {expanded && hasChildren && (
         <div>
           {node.children.map((child) => (
-            <TaxonomyNodeRow key={child.id} node={child} depth={depth + 1} isAdmin={isAdmin} onChanged={onChanged} />
+            <TaxonomyNodeRow key={child.id} node={child} depth={depth + 1} canManage={canManage} onChanged={onChanged} />
           ))}
         </div>
       )}
@@ -203,10 +203,16 @@ function TaxonomyNodeRow({
   );
 }
 
+// Só Super Admin e Consultor (Sevilha) administram a árvore global — Líderes/
+// Responsáveis de equipe do escritório e Operadores ficam só na leitura,
+// mesmo alcance de permissão aplicado no backend (RolesGuard em taxonomy.controller.ts).
+const MANAGE_ROLES = ['ADMIN', 'CONSULTANT'];
+
 export default function TaxonomiaPage() {
   const [tree, setTree] = useState<TaxonomyNode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [canManage, setCanManage] = useState(false);
   const [newRootName, setNewRootName] = useState('');
   const [savingRoot, setSavingRoot] = useState(false);
 
@@ -223,8 +229,9 @@ export default function TaxonomiaPage() {
 
   useEffect(() => {
     apiRequest('/users/me')
-      .then((profile) => setIsAdmin(profile?.role === 'ADMIN'))
-      .catch(() => setIsAdmin(false));
+      .then((profile) => setCanManage(MANAGE_ROLES.includes(profile?.role)))
+      .catch(() => setCanManage(false))
+      .finally(() => setProfileLoading(false));
     fetchTree();
   }, []);
 
@@ -266,9 +273,9 @@ export default function TaxonomiaPage() {
         </div>
       </motion.div>
 
-      {!isAdmin && !loading && (
+      {!canManage && !loading && !profileLoading && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-semibold text-amber-800">
-          Você está vendo a árvore em modo leitura. Só Super Admins podem criar, renomear ou desativar categorias.
+          Você está vendo a árvore em modo leitura. Só Super Admins e Consultores podem criar, renomear ou desativar categorias.
         </div>
       )}
 
@@ -278,7 +285,7 @@ export default function TaxonomiaPage() {
         transition={{ delay: 0.1 }}
         className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-6 sm:p-8"
       >
-        {loading ? (
+        {loading || profileLoading ? (
           <div className="flex justify-center items-center py-24">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
           </div>
@@ -290,12 +297,12 @@ export default function TaxonomiaPage() {
         ) : (
           <div className="space-y-0.5">
             {tree.map((node) => (
-              <TaxonomyNodeRow key={node.id} node={node} depth={0} isAdmin={isAdmin} onChanged={fetchTree} />
+              <TaxonomyNodeRow key={node.id} node={node} depth={0} canManage={canManage} onChanged={fetchTree} />
             ))}
           </div>
         )}
 
-        {isAdmin && (
+        {canManage && (
           <div className="mt-8 pt-6 border-t border-slate-100">
             <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
               <Plus className="w-4 h-4 text-slate-400" /> Nova Categoria Raiz
