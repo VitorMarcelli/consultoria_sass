@@ -45,6 +45,7 @@ interface Delivery {
   legalDeadline?: string | null;
   internalDeadline?: string | null;
   completedAt?: string | null;
+  activityCatalogId?: string | null;
 }
 
 const tableVariants = {
@@ -93,7 +94,9 @@ export default function CycleDeliveriesPage({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '', legalDeadline: '', internalDeadline: '', executionDeadline: '', completedAt: '' });
+  const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '', legalDeadline: '', internalDeadline: '', executionDeadline: '', completedAt: '', activityCatalogId: '' });
+  const [activities, setActivities] = useState<any[]>([]);
+  const selectedActivityForCreate = activities.find(a => a.id === formData.activityCatalogId) || null;
   const [cycleComp, setCycleComp] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -111,6 +114,18 @@ export default function CycleDeliveriesPage({
       setCurrentClassification(null);
     }
   }, [formData.clientId, formData.frontId, id, isModalOpen]);
+
+  // Atividades do Catálogo para a Frente escolhida — só faz sentido oferecer
+  // ao criar uma entrega nova; editar continua 100% com os campos livres.
+  useEffect(() => {
+    if (formData.frontId && isModalOpen && !selectedDelivery) {
+      apiRequest(`/activity-catalog?tenantId=${id}&frontId=${formData.frontId}`)
+        .then(res => setActivities(res || []))
+        .catch(() => setActivities([]));
+    } else {
+      setActivities([]);
+    }
+  }, [formData.frontId, id, isModalOpen, selectedDelivery]);
 
   const fetchDeliveries = async () => {
     try {
@@ -171,6 +186,7 @@ export default function CycleDeliveriesPage({
       setFormData({
         clientId: '',
         frontId: '',
+        activityCatalogId: '',
         responsibleId: '',
         competence: cycleComp || new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }),
         originalName: '',
@@ -197,6 +213,7 @@ export default function CycleDeliveriesPage({
       setFormData({
         clientId: delivery.clientId || '',
         frontId: delivery.frontId || '',
+        activityCatalogId: delivery.activityCatalogId || '',
         responsibleId: delivery.responsibleId || '',
         competence: delivery.competence,
         originalName: delivery.originalName,
@@ -777,6 +794,55 @@ export default function CycleDeliveriesPage({
                     </select>
                   </div>
                 </div>
+
+                {!selectedDelivery && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Atividade do Catálogo (opcional)</label>
+                    <select
+                      value={formData.activityCatalogId}
+                      onChange={e => {
+                        const activity = activities.find(a => a.id === e.target.value);
+                        if (!activity) {
+                          setFormData({ ...formData, activityCatalogId: '' });
+                          return;
+                        }
+                        setFormData({
+                          ...formData,
+                          activityCatalogId: activity.id,
+                          standardizedName: activity.name,
+                          estimatedTimeMinutes: formData.estimatedTimeMinutes || (activity.defaultEstimatedTimeMinutes ? String(activity.defaultEstimatedTimeMinutes) : formData.estimatedTimeMinutes)
+                        });
+                      }}
+                      disabled={!formData.frontId}
+                      className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.frontId
+                          ? 'Selecione a Frente primeiro...'
+                          : activities.length === 0
+                            ? 'Nenhuma atividade cadastrada para esta frente'
+                            : '— Nenhuma (preencher manualmente) —'}
+                      </option>
+                      {activities.map(a => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                          {a.compositionMode === 'CHECKLIST' ? ' · Checklist' : ''}
+                          {a.compositionMode === 'SUBTASKS' ? ` · ${a.subActivities?.length || 0} sub-atividades` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedActivityForCreate?.compositionMode === 'SUBTASKS' && selectedActivityForCreate.subActivities?.length > 0 && (
+                      <div className="mt-2 p-3 bg-teal-50 dark:bg-teal-500/10 rounded-xl border border-teal-200 dark:border-teal-900/50">
+                        <p className="text-xs font-bold text-teal-800 dark:text-teal-400">
+                          Esta atividade será dividida em {selectedActivityForCreate.subActivities.length} entregas: {selectedActivityForCreate.subActivities.map((s: any) => s.name).join(', ')}.
+                        </p>
+                        <p className="text-[10px] text-teal-700 dark:text-teal-500 mt-1">
+                          Cada sub-atividade usa seu próprio tempo padrão — o campo &quot;Tempo Padrão&quot; abaixo não se aplica neste caso.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
