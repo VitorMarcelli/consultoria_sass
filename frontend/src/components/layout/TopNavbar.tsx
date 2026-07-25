@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Users, 
+import {
+  LayoutDashboard,
+  Users,
   Building2,
   Sparkles,
   LogOut,
@@ -16,7 +16,8 @@ import {
   CheckSquare,
   Zap,
   Menu,
-  X
+  X,
+  GitBranch
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
@@ -26,6 +27,7 @@ const menuItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Escritórios', path: '/escritorios', icon: Building2 },
   { name: 'Administradores', path: '/admin/administradores', icon: ShieldCheck },
+  { name: 'Taxonomia', path: '/admin/taxonomia', icon: GitBranch },
   { name: 'Consultores', path: '/admin/consultores', icon: Users },
 ];
 
