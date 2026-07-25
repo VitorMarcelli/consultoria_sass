@@ -128,6 +128,29 @@ model SystemOption {
   updatedAt DateTime @updatedAt
 }
 
+// Árvore de classificação global de atividades (ex: Fiscal > Imposto > PIS),
+// mantida centralmente (só ADMIN escreve) para permitir comparar entregas
+// entre escritórios apesar de cada um nomear suas atividades diferente.
+// Nunca fazer hard-delete de um nó: ActivityCatalog.taxonomyNodeId (nos
+// schemas de tenant) aponta pro id aqui sem FK real entre schemas — apagar
+// um nó órfãos silenciosamente os catálogos que apontam pra ele. Usar status
+// INACTIVE para "remover".
+model TaxonomyNode {
+  id       String         @id @default(uuid())
+  parentId String?
+  parent   TaxonomyNode?  @relation("TaxonomyChildren", fields: [parentId], references: [id], onDelete: Restrict)
+  children TaxonomyNode[] @relation("TaxonomyChildren")
+
+  name   String
+  path   String // path materializado de ids ancestrais (ex: "/id1/id2/") para subtree queries sem CTE recursiva
+  status String @default("ACTIVE") // ACTIVE, INACTIVE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+}
+
 // ==========================================
 // CAMADAS 2 a 5 (Replicados nos schemas dos Tenants)
 // ==========================================
@@ -143,6 +166,7 @@ model OperationalFront {
   deliveries            Delivery[]
   cycleAllocations      EmployeeCycleAllocation[]
   clientCycleSnapshots  ClientCycleSnapshot[]
+  activityCatalogs      ActivityCatalog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -353,6 +377,17 @@ model Delivery {
   deliveryType  String? // ICMS, DAS...
   periodicity   String? // Mensal, Anual...
 
+  // Vínculo opcional com o Catálogo de Atividades do escritório: quando
+  // presente, os campos legados acima (standardizedName/deliveryClass/
+  // Group/Type) são preenchidos automaticamente a partir dele em vez de
+  // digitados à mão. Entregas antigas continuam válidas sem esse vínculo.
+  activityCatalogId String?
+  activityCatalog   ActivityCatalog? @relation(fields: [activityCatalogId], references: [id])
+
+  // Agrupa entregas-irmãs criadas juntas a partir de uma atividade em modo
+  // SUBTASKS (ex: Lançamento/Cálculo/Emissão/Envio geradas de uma vez).
+  deliveryGroupKey String?
+
   responsibleId String
   responsible   Employee @relation("DeliveryResponsible", fields: [responsibleId], references: [id])
 
@@ -380,6 +415,64 @@ model Delivery {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([deliveryGroupKey])
+}
+
+// Como uma atividade pode ser configurada quando vira Entrega(s):
+// SIMPLE = 1 atividade -> 1 Delivery.
+// CHECKLIST = 1 Delivery + checklistTemplates viram DeliveryChecklistItem.
+// SUBTASKS = a atividade é só um agrupador; cada subActivity vira sua
+// própria Delivery (compartilhando deliveryGroupKey). Quando este model é
+// usado numa subActivity (parentActivityId setado), o compositionMode dela
+// descreve a própria Delivery gerada por ela (tipicamente SIMPLE ou
+// CHECKLIST), independente do modo do "pai".
+enum CompositionMode {
+  SIMPLE
+  CHECKLIST
+  SUBTASKS
+}
+
+// Catálogo de atividades por escritório: cada escritório cadastra as
+// atividades do jeito que ele mesmo nomeia (ex: "Apuração PIS") e aponta
+// para um nó da árvore global (TaxonomyNode) para permitir comparação entre
+// escritórios. taxonomyNodeId é um id solto (sem @relation) porque
+// TaxonomyNode vive só no schema public e este model é replicado nos
+// schemas de tenant — mesmo padrão já usado em User.employeeId -> Employee.
+model ActivityCatalog {
+  id      String           @id @default(uuid())
+  frontId String
+  front   OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+
+  name           String // nome que o escritório usa, ex: "Apuração PIS"
+  taxonomyNodeId String? // aponta pro TaxonomyNode global, resolvido manualmente via TaxonomyService
+
+  compositionMode CompositionMode @default(SIMPLE)
+
+  parentActivityId String?
+  parentActivity    ActivityCatalog?  @relation("ActivitySteps", fields: [parentActivityId], references: [id], onDelete: Cascade)
+  subActivities     ActivityCatalog[] @relation("ActivitySteps")
+  order             Int? // ordem entre sub-atividades irmãs
+
+  defaultEstimatedTimeMinutes Int?
+  status                      String @default("ACTIVE")
+
+  checklistTemplates ActivityCatalogChecklistItem[]
+  deliveries         Delivery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([frontId])
+  @@index([parentActivityId])
+}
+
+model ActivityCatalogChecklistItem {
+  id          String          @id @default(uuid())
+  activityId  String
+  activity    ActivityCatalog @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  description String
+  order       Int             @default(0)
 }
 
 model DeliveryChecklistItem {

@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
@@ -10,6 +12,7 @@ export class DeliveriesService {
   constructor(
     private readonly globalPrisma: PrismaService,
     private readonly prismaManager: PrismaClientManager,
+    private readonly taxonomyService: TaxonomyService,
   ) {}
 
   private getTenantPrisma(tenantId: string) {
@@ -37,33 +40,176 @@ export class DeliveriesService {
 
   async create(tenantId: string, data: any) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
+
+    // Quando activityCatalogId vem no body, a Entrega (ou várias, no caso de
+    // uma atividade em modo SUBTASKS) é montada a partir do Catálogo de
+    // Atividades + Taxonomia global, em vez dos campos digitados à mão.
+    // Sem activityCatalogId, o comportamento é idêntico ao de antes.
+    if (data.activityCatalogId) {
+      return this.createFromActivityCatalog(tenantPrisma, data);
+    }
+
     return tenantPrisma.delivery.create({
-      data: {
-        clientId: data.clientId,
-        frontId: data.frontId,
-        subdivisionId: data.subdivisionId || null,
-        responsibleId: data.responsibleId,
-        competence: data.competence,
-        originalName: data.originalName,
-        standardizedName: data.standardizedName,
-        status: data.status || 'PREVISTA',
-        priority: data.priority || 'MEDIUM',
-        estimatedTimeMinutes: data.estimatedTimeMinutes
-          ? parseInt(data.estimatedTimeMinutes, 10)
-          : null,
-        realTimeMinutes: data.realTimeMinutes
-          ? parseInt(data.realTimeMinutes, 10)
-          : null,
-        legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
-        internalDeadline: data.internalDeadline
-          ? new Date(data.internalDeadline)
-          : null,
-        executionDeadline: data.executionDeadline
-          ? new Date(data.executionDeadline)
-          : null,
-        completedAt: data.completedAt ? new Date(data.completedAt) : null,
+      data: this.buildDeliveryCreateData(data),
+    });
+  }
+
+  // Monta o payload de criação de uma Delivery a partir do body da request,
+  // com `overrides` tomando precedência sobre os campos "crus" do body —
+  // usado tanto no fluxo manual (sem overrides) quanto no fluxo a partir do
+  // Catálogo de Atividades (overrides = nome/classificação/tempo resolvidos).
+  private buildDeliveryCreateData(
+    data: any,
+    overrides: Record<string, any> = {},
+  ) {
+    return {
+      clientId: data.clientId,
+      frontId: overrides.frontId ?? data.frontId,
+      subdivisionId: data.subdivisionId || null,
+      responsibleId: data.responsibleId,
+      competence: data.competence,
+      originalName: overrides.originalName ?? data.originalName,
+      standardizedName: overrides.standardizedName ?? data.standardizedName,
+      deliveryClass: overrides.deliveryClass ?? data.deliveryClass ?? null,
+      deliveryGroup: overrides.deliveryGroup ?? data.deliveryGroup ?? null,
+      deliveryType: overrides.deliveryType ?? data.deliveryType ?? null,
+      activityCatalogId: overrides.activityCatalogId ?? null,
+      deliveryGroupKey: overrides.deliveryGroupKey ?? null,
+      status: data.status || 'PREVISTA',
+      priority: data.priority || 'MEDIUM',
+      estimatedTimeMinutes:
+        overrides.estimatedTimeMinutes !== undefined
+          ? overrides.estimatedTimeMinutes
+          : data.estimatedTimeMinutes
+            ? parseInt(data.estimatedTimeMinutes, 10)
+            : null,
+      realTimeMinutes: data.realTimeMinutes
+        ? parseInt(data.realTimeMinutes, 10)
+        : null,
+      legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
+      internalDeadline: data.internalDeadline
+        ? new Date(data.internalDeadline)
+        : null,
+      executionDeadline: data.executionDeadline
+        ? new Date(data.executionDeadline)
+        : null,
+      completedAt: data.completedAt ? new Date(data.completedAt) : null,
+    };
+  }
+
+  // Resolve o breadcrumb da taxonomia (raiz -> folha) de um nó e mapeia para
+  // os campos legados de classificação. Mapeamento por profundidade: o 2º
+  // nível (ex: "Imposto") vira deliveryGroup, a folha classificada (ex:
+  // "PIS") vira deliveryType, e um eventual 3º nível intermediário vira
+  // deliveryClass. O 1º nível (ex: "Fiscal") não é usado aqui porque
+  // Delivery.frontId já cobre esse conceito operacionalmente.
+  private async resolveActivityFields(
+    name: string,
+    taxonomyNodeId: string | null,
+    defaultEstimatedTimeMinutes: number | null,
+    requestedEstimatedTimeMinutes: any,
+  ) {
+    let deliveryGroup: string | null = null;
+    let deliveryType: string | null = null;
+    let deliveryClass: string | null = null;
+
+    if (taxonomyNodeId) {
+      const breadcrumb =
+        await this.taxonomyService.getBreadcrumb(taxonomyNodeId);
+      if (breadcrumb.length >= 2) deliveryGroup = breadcrumb[1].name;
+      else if (breadcrumb.length === 1) deliveryGroup = breadcrumb[0].name;
+      if (breadcrumb.length >= 1)
+        deliveryType = breadcrumb[breadcrumb.length - 1].name;
+      if (breadcrumb.length >= 4) deliveryClass = breadcrumb[2].name;
+    }
+
+    return {
+      standardizedName: name,
+      deliveryGroup,
+      deliveryType,
+      deliveryClass,
+      estimatedTimeMinutes:
+        requestedEstimatedTimeMinutes !== undefined &&
+        requestedEstimatedTimeMinutes !== null &&
+        requestedEstimatedTimeMinutes !== ''
+          ? parseInt(requestedEstimatedTimeMinutes, 10)
+          : (defaultEstimatedTimeMinutes ?? null),
+    };
+  }
+
+  private async createFromActivityCatalog(tenantPrisma: any, data: any) {
+    const activity = await tenantPrisma.activityCatalog.findUnique({
+      where: { id: data.activityCatalogId },
+      include: {
+        subActivities: { orderBy: { order: 'asc' } },
+        checklistTemplates: { orderBy: { order: 'asc' } },
       },
     });
+    if (!activity) {
+      throw new NotFoundException('Atividade do catálogo não encontrada.');
+    }
+
+    // SUBTASKS: a atividade é só um agrupador — cada sub-atividade vira sua
+    // própria Delivery, com prazo/responsável próprios, compartilhando o
+    // mesmo deliveryGroupKey para a UI conseguir agrupá-las visualmente.
+    if (
+      activity.compositionMode === 'SUBTASKS' &&
+      activity.subActivities.length
+    ) {
+      const deliveryGroupKey = randomUUID();
+      const created = [];
+      for (const sub of activity.subActivities) {
+        const overrides = await this.resolveActivityFields(
+          sub.name,
+          sub.taxonomyNodeId,
+          sub.defaultEstimatedTimeMinutes,
+          undefined,
+        );
+        created.push(
+          await tenantPrisma.delivery.create({
+            data: this.buildDeliveryCreateData(data, {
+              frontId: sub.frontId,
+              ...overrides,
+              activityCatalogId: sub.id,
+              deliveryGroupKey,
+            }),
+          }),
+        );
+      }
+      return created;
+    }
+
+    const overrides = await this.resolveActivityFields(
+      activity.name,
+      activity.taxonomyNodeId,
+      activity.defaultEstimatedTimeMinutes,
+      data.estimatedTimeMinutes,
+    );
+    const delivery = await tenantPrisma.delivery.create({
+      data: this.buildDeliveryCreateData(data, {
+        frontId: activity.frontId,
+        ...overrides,
+        activityCatalogId: activity.id,
+      }),
+    });
+
+    // CHECKLIST: semeia o checklist operacional da Entrega a partir do
+    // template cadastrado na atividade (DeliveryChecklistItem já existia
+    // para checklists por-instância, só reaproveitado aqui).
+    if (
+      activity.compositionMode === 'CHECKLIST' &&
+      activity.checklistTemplates.length
+    ) {
+      await tenantPrisma.deliveryChecklistItem.createMany({
+        data: activity.checklistTemplates.map((item: any) => ({
+          deliveryId: delivery.id,
+          description: item.description,
+          order: item.order,
+        })),
+      });
+    }
+
+    return delivery;
   }
 
   async update(tenantId: string, id: string, data: any) {

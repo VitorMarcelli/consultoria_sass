@@ -20,6 +20,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TimesheetsModule } from './timesheets/timesheets.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { TaxonomyModule } from './taxonomy/taxonomy.module';
+import { ActivityCatalogModule } from './activity-catalog/activity-catalog.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     TimesheetsModule,
     OpportunitiesModule,
     DashboardModule,
+    TaxonomyModule,
+    ActivityCatalogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
