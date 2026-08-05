@@ -109,27 +109,44 @@ export default function CycleClientsPage({
       }
 
       setImportProgress({ current: 0, total: lines.length });
-      
+
       const CHUNK_SIZE = 500;
       let totalImported = 0;
-      
+      const allErrors: string[] = [];
+      const allWarnings: string[] = [];
+
       for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
         const chunk = lines.slice(i, i + CHUNK_SIZE);
-        
+
         const response = await apiRequest('/imports/clients-json', {
           method: 'POST',
           body: JSON.stringify({
             tenantId: id,
             cycleId: cycleId,
-            data: chunk
+            data: chunk,
+            fileName: file.name,
+            // +2: planilha é 1-based e a linha 1 é o cabeçalho, então a
+            // primeira linha de dados (índice 0) é a linha 2 da planilha.
+            startRow: i + 2
           })
         });
-        
+
         totalImported += response.count || 0;
+        if (response.errors?.length) allErrors.push(...response.errors);
+        if (response.warnings?.length) allWarnings.push(...response.warnings);
         setImportProgress({ current: Math.min(i + CHUNK_SIZE, lines.length), total: lines.length });
       }
-      
-      alert(`Importação de ${totalImported} registros concluída com sucesso!`);
+
+      let summary = `Importação de ${totalImported} registros concluída.`;
+      if (allErrors.length) {
+        summary += `\n\n${allErrors.length} erro(s) de validação (linhas rejeitadas parcialmente):\n${allErrors.slice(0, 20).join('\n')}`;
+        if (allErrors.length > 20) summary += `\n... e mais ${allErrors.length - 20}.`;
+      }
+      if (allWarnings.length) {
+        summary += `\n\n${allWarnings.length} aviso(s):\n${allWarnings.slice(0, 20).join('\n')}`;
+        if (allWarnings.length > 20) summary += `\n... e mais ${allWarnings.length - 20}.`;
+      }
+      alert(summary);
       setIsImportModalOpen(false);
       setImportProgress(null);
       await loadClients();

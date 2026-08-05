@@ -34,10 +34,18 @@ export class ImportsController {
     @Body('tenantId') tenantId: string,
     @Body('cycleId') cycleId: string | undefined,
     @Body('data') data: any[],
+    @Body('fileName') fileName: string | undefined,
+    @Body('startRow') startRow: number | undefined,
   ) {
     if (!tenantId) throw new BadRequestException('tenantId é obrigatório.');
     if (!data || !Array.isArray(data))
       throw new BadRequestException('O array de dados é obrigatório.');
-    return this.importsService.importClientsJson(tenantId, data, cycleId);
+    return this.importsService.importClientsJson(
+      tenantId,
+      data,
+      cycleId,
+      fileName,
+      startRow,
+    );
   }
 }
