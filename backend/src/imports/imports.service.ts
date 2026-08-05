@@ -377,6 +377,10 @@ export class ImportsService {
           // Espelha a avaliação recém-calculada no snapshot congelado do
           // ciclo (campos adicionados no Bloco A) — sem isso, os campos
           // novos do snapshot ficariam sempre nulos vindos de importação.
+          // primaryOwnerId/secondaryOwnerId também são congelados aqui: sem
+          // eles, o agrupamento por responsável do Diagnóstico (Bloco D)
+          // fica vazio toda vez que o snapshot existir (que é o caso
+          // prioritário segundo o D1 daquele bloco).
           const snapshotAssessmentFields = {
             scoreVolume: scores.scoreVolume,
             scoreService: scores.scoreService,
@@ -386,6 +390,8 @@ export class ImportsService {
             normalizedScore: assessment.normalizedScore,
             complexityClass: assessment.complexityClass,
             assessmentState: assessment.assessmentState,
+            primaryOwnerId: operator1Id,
+            secondaryOwnerId: operator2Id,
           };
           if (!existingSnapshot) {
             await prisma.clientCycleSnapshot.create({
