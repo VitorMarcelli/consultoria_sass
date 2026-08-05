@@ -290,8 +290,26 @@ model ClientFrontClassification {
   operator2   Employee? @relation("FrontOperator2", fields: [operator2Id], references: [id])
 
   frequency   String?
-  complexity  Int? // 0, 1, 2, 3
+  complexity  Int? // LEGADO: valor 0-3 digitado na planilha. Não usar em cálculo novo.
   particulars String?
+
+  // --- Avaliação de complexidade (notas 1..3 por critério) ---
+  scoreVolume       Int? // 1, 2 ou 3
+  scoreService      Int? // Atendimento
+  scoreTax          Int? // Tributação — null na frente Pessoal (não se aplica)
+  scoreOrganization Int? // Organização
+
+  // --- Derivados (nunca editáveis pelo usuário) ---
+  rawSum          Int? // soma dos critérios aplicáveis
+  normalizedScore Float? // 0..100, comparável entre frentes
+  complexityClass String? // C0, C1, C2, C3, C4, C5
+
+  // --- Governança da avaliação ---
+  assessmentState      String    @default("NOT_ASSESSED")
+  volumeSource         String? // CALCULATED | MANUAL
+  volumeOverrideReason String?
+  assessedById         String?
+  assessedAt           DateTime?
 
   taxInfo        ClientTaxInfo?
   hrInfo         ClientHrInfo?
