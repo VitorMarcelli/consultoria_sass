@@ -608,9 +608,26 @@ model ClientCycleSnapshot {
   segment        String?
   monthlyFee     Float?
   classification String?
-  complexity     Int? // 0, 1, 2, 3
+  complexity     Int? // LEGADO: 0, 1, 2, 3
   frequency      String?
   particulars    String?
+
+  // --- Avaliação congelada ---
+  scoreVolume       Int?
+  scoreService      Int?
+  scoreTax          Int?
+  scoreOrganization Int?
+  rawSum            Int?
+  normalizedScore   Float?
+  complexityClass   String?
+  assessmentState   String  @default("NOT_ASSESSED")
+
+  // --- Responsáveis congelados (hoje ausentes) ---
+  primaryOwnerId   String?
+  secondaryOwnerId String?
+
+  // --- Perfil operacional congelado ---
+  operationalProfile Json? // cópia integral de TaxInfo / HrInfo / AccountingInfo
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
