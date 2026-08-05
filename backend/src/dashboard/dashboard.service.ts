@@ -1,12 +1,26 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
+import { ComplexityService } from '../complexity/complexity.service';
+import { AssessmentState } from '../complexity/complexity.rules';
+
+const COMPLEXITY_CLASSES = ['C1', 'C2', 'C3', 'C4', 'C5'] as const;
+const PENDING_STATES: AssessmentState[] = [
+  'NOT_ASSESSED',
+  'PARTIAL',
+  'IMPORTED',
+];
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
 @Injectable()
 export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly prismaManager: PrismaClientManager,
+    private readonly complexityService: ComplexityService,
   ) {}
 
   private getTenantPrisma(tenantId: string) {
@@ -29,73 +43,171 @@ export class DashboardService {
     return `${monthStr}/${cycle.year}`;
   }
 
+  // D1: lê a carteira (ClientCycleSnapshot > ClientFrontClassification),
+  // nunca Delivery — um escritório sem nenhuma entrega cadastrada no ciclo
+  // não pode ver um diagnóstico vazio só por isso.
   async getCycleMapping(tenantId: string, cycleId: string, frontId: string) {
-    const competence = await this.getCompetenceFromCycle(tenantId, cycleId);
     const tenantPrisma = this.getTenantPrisma(tenantId);
 
-    // Busca entregas deste ciclo e frente
-    const deliveries = await tenantPrisma.delivery.findMany({
-      where: { frontId, competence },
-      include: {
-        client: true,
-        responsible: true,
-      },
+    const snapshots = await tenantPrisma.clientCycleSnapshot.findMany({
+      where: { cycleId, frontId },
+      include: { client: true },
     });
 
-    // Mapear clientes únicos ativos no ciclo
-    const uniqueClientsMap = new Map<string, any>();
-    deliveries.forEach((d) => {
-      if (!uniqueClientsMap.has(d.clientId)) {
-        uniqueClientsMap.set(d.clientId, d.client);
-      }
-    });
+    interface PortfolioRecord {
+      client: {
+        id: string;
+        status: string;
+        taxRegime: string | null;
+        segment: string | null;
+      };
+      complexityClass: string | null;
+      assessmentState: AssessmentState;
+      normalizedScore: number | null;
+      primaryOwnerId: string | null;
+    }
 
-    const cycleClients = Array.from(uniqueClientsMap.values());
+    let portfolio: PortfolioRecord[];
+    if (snapshots.length > 0) {
+      // Retrato congelado do ciclo — prioridade 1 (D1).
+      portfolio = snapshots.map((s) => ({
+        client: s.client,
+        complexityClass: s.complexityClass,
+        assessmentState: (s.assessmentState ??
+          'NOT_ASSESSED') as AssessmentState,
+        normalizedScore: s.normalizedScore,
+        primaryOwnerId: s.primaryOwnerId,
+      }));
+    } else {
+      // Sem snapshot: carteira viva de quem atua na frente — prioridade 2 (D1).
+      const classifications =
+        await tenantPrisma.clientFrontClassification.findMany({
+          where: { frontId, actsInFront: 'YES' },
+          include: { client: true },
+        });
+      portfolio = classifications.map((c) => ({
+        client: c.client,
+        complexityClass: c.complexityClass,
+        assessmentState: (c.assessmentState ??
+          'NOT_ASSESSED') as AssessmentState,
+        normalizedScore: c.normalizedScore,
+        primaryOwnerId: c.operator1Id, // D3: responsável principal da frente
+      }));
+    }
 
-    // 1. Status do Cliente
+    // "Ativos" para fins de cobertura/curva/CCA = clientes com Client.status
+    // ACTIVE (independente de estarem no snapshot congelado ou na carteira
+    // viva — os dois já só contêm quem atua na frente).
+    const activePortfolio = portfolio.filter(
+      (p) => p.client.status === 'ACTIVE',
+    );
+    const assessedPortfolio = activePortfolio.filter(
+      (p) => p.assessmentState === 'ASSESSED',
+    );
+
+    // statusData: sempre ao vivo a partir de actsInFront (YES/NO/NO_MOVEMENT)
+    // de TODA a ClientFrontClassification da frente — é a única fonte com um
+    // terceiro estado ("sem movimento"); Client.status só tem ACTIVE/INACTIVE
+    // e o snapshot não cobre quem não atua na frente.
+    const allClassifications =
+      await tenantPrisma.clientFrontClassification.findMany({
+        where: { frontId },
+      });
     const statusData = {
-      ativos: cycleClients.filter((c) => c.status === 'ACTIVE').length,
-      inativos: cycleClients.filter((c) => c.status !== 'ACTIVE').length,
-      total: cycleClients.length,
+      ativos: allClassifications.filter((c) => c.actsInFront === 'YES').length,
+      inativos: allClassifications.filter((c) => c.actsInFront === 'NO').length,
+      semMovimento: allClassifications.filter(
+        (c) => c.actsInFront === 'NO_MOVEMENT',
+      ).length,
+      total: allClassifications.length,
     };
 
-    // Mapas para os gráficos
+    // Tributação e segmento a partir da carteira ativa (não mais de entregas).
     const regimesMap = new Map<string, number>();
     const segmentsMap = new Map<string, number>();
-    const operatorMap = new Map<string, Record<string, number>>();
-
-    // Popula tributação e segmento com base nos clientes únicos
-    cycleClients.forEach((c) => {
-      const regime = c.taxRegime || 'Não Informado';
-      const segment = c.segment || 'Não Informado';
-
+    activePortfolio.forEach((p) => {
+      const regime = p.client.taxRegime || 'Não Informado';
+      const segment = p.client.segment || 'Não Informado';
       regimesMap.set(regime, (regimesMap.get(regime) || 0) + 1);
       segmentsMap.set(segment, (segmentsMap.get(segment) || 0) + 1);
     });
-
-    // Popula carga por responsável com base nas ENTREGAS do ciclo
-    deliveries.forEach((d) => {
-      const opName = d.responsible?.name || 'Sem Responsável';
-      if (!operatorMap.has(opName)) operatorMap.set(opName, { total: 0 });
-
-      const opData = operatorMap.get(opName)!;
-      // Usaremos prioridade como métrica de complexidade provisória
-      const priorityLevel =
-        d.priority === 'HIGH' ? '3' : d.priority === 'MEDIUM' ? '2' : '1';
-      opData[priorityLevel] = (opData[priorityLevel] || 0) + 1;
-      opData['total'] += 1;
-    });
-
-    const formatMap = (map: Map<string, any>) =>
+    const formatMap = (map: Map<string, number>) =>
       Array.from(map.entries()).map(([name, value]) => ({ name, value }));
 
+    // D2: curva de complexidade real (nunca mais prioridade da entrega).
+    // C0 e pendentes ficam fora da curva, expostos à parte (nunca somados a C1).
+    const c0Count = activePortfolio.filter(
+      (p) => p.assessmentState === 'NOT_APPLICABLE',
+    ).length;
+    const pendingCount = activePortfolio.filter((p) =>
+      PENDING_STATES.includes(p.assessmentState),
+    ).length;
+
+    const classCounts: Record<string, number> = {};
+    assessedPortfolio.forEach((p) => {
+      if (p.complexityClass) {
+        classCounts[p.complexityClass] =
+          (classCounts[p.complexityClass] || 0) + 1;
+      }
+    });
+    const complexityCurve = COMPLEXITY_CLASSES.map((cls) => ({
+      class: cls,
+      count: classCounts[cls] || 0,
+      percent:
+        assessedPortfolio.length > 0
+          ? round2(((classCounts[cls] || 0) / assessedPortfolio.length) * 100)
+          : 0,
+    }));
+
+    // D3/D4: CCA/CCR via motor de complexidade (Bloco B) + enriquecimento
+    // com nome do responsável e quebra por classe (o motor não conhece nome
+    // de funcionário nem complexityClass, só normalizedScore).
+    const coefficients = this.complexityService.calculateCoefficients(
+      activePortfolio.map((p) => ({
+        assessmentState: p.assessmentState,
+        normalizedScore: p.normalizedScore,
+        primaryOwnerId: p.primaryOwnerId,
+      })),
+    );
+
+    const employees = await tenantPrisma.employee.findMany();
+    const employeeNameById = new Map(employees.map((e) => [e.id, e.name]));
+
+    const byOwner = coefficients.byOwner.map((owner) => {
+      const ownerAssessed = assessedPortfolio.filter(
+        (p) => p.primaryOwnerId === owner.ownerId,
+      );
+      const byClass: Record<string, number> = {};
+      COMPLEXITY_CLASSES.forEach((cls) => {
+        byClass[cls] = ownerAssessed.filter(
+          (p) => p.complexityClass === cls,
+        ).length;
+      });
+      return {
+        ownerId: owner.ownerId,
+        ownerName: employeeNameById.get(owner.ownerId) || 'Desconhecido',
+        total: owner.count,
+        byClass,
+        ccr: owner.ccr,
+        distance: owner.distance,
+      };
+    });
+
     return {
+      coverage: {
+        totalClients: portfolio.length,
+        activeClients: activePortfolio.length,
+        assessedClients: assessedPortfolio.length,
+        coveragePercent: coefficients.coveragePercent,
+      },
       statusData,
       taxRegimes: formatMap(regimesMap),
       segments: formatMap(segmentsMap),
-      operatorComplexity: Array.from(operatorMap.entries()).map(
-        ([operator, counts]) => ({ operator, ...counts }),
-      ),
+      complexityCurve,
+      c0Count,
+      pendingCount,
+      cca: coefficients.cca,
+      byOwner,
     };
   }
 
@@ -159,7 +271,9 @@ export class DashboardService {
     realLogs.forEach((log) => {
       const mins = log.durationMinutes || 0;
       const map =
-        log.type === 'REWORK' ? reworkMinutesByEmployee : extraMinutesByEmployee;
+        log.type === 'REWORK'
+          ? reworkMinutesByEmployee
+          : extraMinutesByEmployee;
       map.set(log.employeeId, (map.get(log.employeeId) || 0) + mins);
     });
 
