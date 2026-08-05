@@ -48,6 +48,12 @@ export default function DashboardCapacityTab({ tenantId, cycleId, activeFrontId 
         </div>
       ) : (
       <div className="grid grid-cols-1 gap-6">
+        {data.employeesWithoutAvailability > 0 && (
+          <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl text-sm font-semibold text-amber-800 dark:text-amber-400">
+            {data.employeesWithoutAvailability} colaborador{data.employeesWithoutAvailability > 1 ? 'es' : ''} sem disponibilidade diária preenchida — usando um padrão de 6h/dia como estimativa. Os números de capacidade dess{data.employeesWithoutAvailability > 1 ? 'es colaboradores' : 'e colaborador'} podem não refletir a realidade até a disponibilidade real ser informada.
+          </div>
+        )}
+
         {/* Ranking de Carga: quem está ocioso vs sobrecarregado */}
         <CapacityRanking capacityData={data.capacityData} />
 
@@ -135,6 +141,9 @@ function CapacityRanking({ capacityData }: { capacityData: any[] }) {
                 <span className="text-sm font-black text-slate-700 dark:text-slate-200 tabular-nums">{row.utilizationPercent}%</span>
                 <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
                   {row.committed}h de {row.available}h
+                  {row.hasExplicitAvailability === false && (
+                    <span title="Disponibilidade diária não informada — usando padrão de 6h/dia" className="ml-1 text-amber-500 dark:text-amber-400">*estimado</span>
+                  )}
                 </span>
                 <span className={`block text-[11px] font-bold mt-0.5 ${cfg.textClass}`}>
                   {delta >= 0 ? `${delta}h livres` : `${Math.abs(delta)}h acima da capacidade`}

@@ -278,6 +278,10 @@ export class DashboardService {
     });
 
     const capacityData = uniqueAllocations.map((alloc) => {
+      // O fallback de 6h entra em silêncio quando ninguém preencheu a
+      // disponibilidade real — hasExplicitAvailability deixa a tela avisar
+      // que aquele denominador é um chute, não um dado informado (Bloco E).
+      const hasExplicitAvailability = alloc.dailyAvailableTime != null;
       const dailyHours = alloc.dailyAvailableTime || 6; // Default to 6 hours
       const availableHours = dailyHours * 21; // ex: 21 dias uteis no mes
       const estimatedMinutes = timeByEmployee.get(alloc.employeeId) || 0;
@@ -311,11 +315,15 @@ export class DashboardService {
         idleHours,
         utilizationPercent,
         status,
+        hasExplicitAvailability,
       };
     });
 
     return {
       capacityData,
+      employeesWithoutAvailability: capacityData.filter(
+        (c) => !c.hasExplicitAvailability,
+      ).length,
     };
   }
 
