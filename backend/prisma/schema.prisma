@@ -323,7 +323,8 @@ model ClientTaxInfo {
   classificationId String                    @unique
   classification   ClientFrontClassification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
 
-  monthlyNotesVolume       String?
+  monthlyNotesVolume       String? // mantido, legado
+  monthlyNotesCount        Int? // NOVO — driver numérico de volume
   outNotesVolume           String?
   inNotesVolume            String?
   automationLevel          String? // Manual, parcial, automatizada
@@ -370,7 +371,8 @@ model ClientAccountingInfo {
   infoReceiptMethod    String?
   integrationLevel     String?
   trialBalanceNeed     String?
-  launchesVolume       String?
+  launchesVolume       String? // mantido, legado
+  launchesCount        Int? // NOVO — driver numérico de volume
   particulars          String?
 }
 
