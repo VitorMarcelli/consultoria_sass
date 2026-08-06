@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
@@ -210,6 +215,122 @@ export class DeliveriesService {
     }
 
     return delivery;
+  }
+
+  // Geração em lote a partir do Catálogo de Atividades: diferente do
+  // generateMonthlyDeliveries (templates genéricos por regime tributário,
+  // rodando via CRON), este fluxo usa as atividades que o PRÓPRIO escritório
+  // cadastrou pra própria Frente — cada escritório tem seu jeito particular
+  // de nomear/organizar atividades, então não dá pra usar um template único.
+  // Disparado manualmente pela tela de Entregas Mensais.
+  async bulkGenerateFromCatalog(tenantId: string, data: any) {
+    const tenantPrisma = this.getTenantPrisma(tenantId);
+
+    if (!data.frontId) {
+      throw new BadRequestException('Selecione uma Frente.');
+    }
+    if (!data.competence) {
+      throw new BadRequestException('Competência é obrigatória.');
+    }
+
+    const activityWhere: any = {
+      frontId: data.frontId,
+      parentActivityId: null,
+      status: 'ACTIVE',
+    };
+    if (data.activityCatalogIds?.length) {
+      activityWhere.id = { in: data.activityCatalogIds };
+    }
+    const activities = await tenantPrisma.activityCatalog.findMany({
+      where: activityWhere,
+      include: { subActivities: true },
+    });
+    if (!activities.length) {
+      throw new BadRequestException(
+        'Nenhuma atividade ativa encontrada no catálogo desta Frente. Cadastre atividades primeiro.',
+      );
+    }
+
+    const classificationWhere: any = {
+      frontId: data.frontId,
+      actsInFront: 'YES',
+    };
+    if (data.clientIds?.length) {
+      classificationWhere.clientId = { in: data.clientIds };
+    }
+    const classifications =
+      await tenantPrisma.clientFrontClassification.findMany({
+        where: classificationWhere,
+        include: { client: true },
+      });
+
+    // Um único delivery.findMany cobrindo todos os pares cliente/atividade —
+    // evita N+1 consultas de "já existe?" dentro do loop abaixo.
+    const allCatalogIds = activities.flatMap((a: any) =>
+      a.compositionMode === 'SUBTASKS'
+        ? a.subActivities.map((s: any) => s.id)
+        : [a.id],
+    );
+    const existingDeliveries = await tenantPrisma.delivery.findMany({
+      where: {
+        competence: data.competence,
+        activityCatalogId: { in: allCatalogIds },
+        clientId: { in: classifications.map((c: any) => c.clientId) },
+      },
+      select: { clientId: true, activityCatalogId: true },
+    });
+    const existingSet = new Set(
+      existingDeliveries.map(
+        (d: any) => `${d.clientId}:${d.activityCatalogId}`,
+      ),
+    );
+
+    let createdCount = 0;
+    const skippedExisting: string[] = [];
+    const skippedNoResponsibleClients: string[] = [];
+
+    for (const classification of classifications) {
+      const responsibleId =
+        classification.leaderId ||
+        classification.operator1Id ||
+        classification.operator2Id;
+      if (!responsibleId) {
+        skippedNoResponsibleClients.push(classification.client.name);
+        continue;
+      }
+
+      for (const activity of activities) {
+        const relevantIds =
+          activity.compositionMode === 'SUBTASKS'
+            ? activity.subActivities.map((s: any) => s.id)
+            : [activity.id];
+        const alreadyExists = relevantIds.some((rid: string) =>
+          existingSet.has(`${classification.clientId}:${rid}`),
+        );
+        if (alreadyExists) {
+          skippedExisting.push(
+            `${classification.client.name} — ${activity.name}`,
+          );
+          continue;
+        }
+
+        const result = await this.create(tenantId, {
+          clientId: classification.clientId,
+          responsibleId,
+          competence: data.competence,
+          activityCatalogId: activity.id,
+          status: 'PREVISTA',
+          priority: 'MEDIUM',
+        });
+        createdCount += Array.isArray(result) ? result.length : 1;
+      }
+    }
+
+    return {
+      createdCount,
+      skippedExistingCount: skippedExisting.length,
+      skippedNoResponsibleClients: [...new Set(skippedNoResponsibleClients)],
+    };
   }
 
   async update(tenantId: string, id: string, data: any) {

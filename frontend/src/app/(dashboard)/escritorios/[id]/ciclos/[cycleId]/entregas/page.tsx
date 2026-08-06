@@ -18,13 +18,16 @@ import {
   ChevronDown,
   LayoutGrid,
   CalendarClock,
-  List
+  List,
+  ListChecks
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import DeliveryTaskModal from '@/components/DeliveryTaskModal';
 import DeliveryKanbanBoard from '@/components/DeliveryKanbanBoard';
 import DeliveryAllocationBoard from '@/components/DeliveryAllocationBoard';
 import DashboardTimesheetTab from './components/DashboardTimesheetTab';
+import ActivityCatalogModal from './components/ActivityCatalogModal';
+import BulkGenerateFromCatalogModal from './components/BulkGenerateFromCatalogModal';
 
 interface Delivery {
   id: string;
@@ -92,6 +95,8 @@ export default function CycleDeliveriesPage({
   const [activeTab, setActiveTab] = useState<'LIST' | 'TIMESHEET'>('LIST');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [isBulkGenerateModalOpen, setIsBulkGenerateModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [formData, setFormData] = useState({ clientId: '', frontId: '', responsibleId: '', competence: '', originalName: '', standardizedName: '', status: 'PREVISTA', priority: 'MEDIUM', estimatedTimeMinutes: '', legalDeadline: '', internalDeadline: '', executionDeadline: '', completedAt: '', activityCatalogId: '' });
@@ -472,10 +477,33 @@ export default function CycleDeliveriesPage({
         
         <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2 shrink-0">
           {profile?.role !== 'OPERATOR' && (
-            <button 
+            <button
+              onClick={() => setIsCatalogModalOpen(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+              title="Cadastrar/editar as atividades que este escritório executa, ligadas à Taxonomia"
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              Gerenciar Catálogo
+            </button>
+          )}
+
+          {profile?.role !== 'OPERATOR' && (
+            <button
+              onClick={() => setIsBulkGenerateModalOpen(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+              title="Gera entregas em lote a partir do Catálogo de Atividades da Frente"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Gerar do Catálogo
+            </button>
+          )}
+
+          {profile?.role !== 'OPERATOR' && (
+            <button
               onClick={handleGenerateMonthly}
               disabled={generatingMonthly}
               className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
+              title="Gera obrigações recorrentes genéricas por regime tributário (templates padrão)"
             >
               {generatingMonthly ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               Gerar Automático
@@ -483,7 +511,7 @@ export default function CycleDeliveriesPage({
           )}
 
           {profile?.role !== 'OPERATOR' && (
-            <button 
+            <button
               onClick={handleOpenCreateModal}
               className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 text-white px-5 py-2 text-xs font-bold shadow-sm shadow-teal-600/20 hover:bg-teal-700 transition-all"
             >
@@ -493,6 +521,22 @@ export default function CycleDeliveriesPage({
           )}
         </div>
       </motion.div>
+
+      <ActivityCatalogModal
+        isOpen={isCatalogModalOpen}
+        onClose={() => setIsCatalogModalOpen(false)}
+        tenantId={id}
+        isAdmin={profile?.role === 'ADMIN'}
+        onChanged={fetchDeliveries}
+      />
+
+      <BulkGenerateFromCatalogModal
+        isOpen={isBulkGenerateModalOpen}
+        onClose={() => setIsBulkGenerateModalOpen(false)}
+        tenantId={id}
+        defaultCompetence={cycleComp}
+        onGenerated={fetchDeliveries}
+      />
 
       {/* Tabs Navigation (Pill Design) */}
       <div className="flex items-center gap-2 p-1.5 bg-slate-100/50 dark:bg-slate-800/30 rounded-2xl w-max max-w-full overflow-x-auto custom-scrollbar">

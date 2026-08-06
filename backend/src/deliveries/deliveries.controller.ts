@@ -48,6 +48,11 @@ export class DeliveriesController {
     return this.deliveriesService.create(createDto.tenantId, createDto);
   }
 
+  @Post('bulk-from-catalog')
+  bulkGenerateFromCatalog(@Body() body: Record<string, any>) {
+    return this.deliveriesService.bulkGenerateFromCatalog(body.tenantId, body);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateDto: any) {
     return this.deliveriesService.update(updateDto.tenantId, id, updateDto);

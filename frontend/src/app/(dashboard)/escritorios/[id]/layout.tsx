@@ -13,7 +13,6 @@ const menuGroups = [
       { id: 'cadastro', label: 'Dados', icon: '1.1' },
       { id: 'frentes', label: 'Frentes', icon: '1.2' },
       { id: 'estruturas', label: 'Células', icon: '1.3' },
-      { id: 'atividades', label: 'Atividades', icon: '1.4' },
     ]
   },
   {
@@ -96,7 +95,6 @@ export default function EscritorioLayout({
         { id: 'cadastro', label: 'Dados' },
         { id: 'frentes', label: 'Frentes' },
         { id: 'estruturas', label: 'Células' },
-        { id: 'atividades', label: 'Atividades' },
       ]
     },
     {
