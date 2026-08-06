@@ -480,6 +480,16 @@ model ActivityCatalog {
   defaultEstimatedTimeMinutes Int?
   status                      String @default("ACTIVE")
 
+  // Regra de prazos desta atividade: usada para computar automaticamente as
+  // 3 datas agora obrigatórias de toda Delivery criada a partir dela (fluxo
+  // manual via Catálogo e fluxo em lote) — ver delivery-dates.rules.ts.
+  // Mesmo padrão de DeliveryTemplate.baseLegalDeadlineDays. Todas opcionais
+  // (aditivo): enquanto ausentes, criar uma Delivery a partir desta
+  // atividade é bloqueado com erro de validação (deliveries.service.ts).
+  legalDeadlineDay            Int? // Dia do mês seguinte à competência em que vence a obrigação legal (ex: 20)
+  internalDeadlineOffsetDays  Int? // Quantos dias ANTES do Vencimento Legal fica o Prazo Interno (envio ao cliente)
+  executionDeadlineOffsetDays Int? // Quantos dias ANTES do Prazo Interno fica a Data Prevista (agenda do colaborador)
+
   checklistTemplates ActivityCatalogChecklistItem[]
   deliveries         Delivery[]
 
