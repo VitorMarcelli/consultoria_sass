@@ -49,6 +49,7 @@ export class EmployeesService {
     };
 
     let authUserId: string | null = null;
+    let supabaseAdminForCleanup: any = null;
     if (data.createAccount && data.email) {
       // Mesma regra da criação de Consultor (users.service.ts createConsultant):
       // senha é escolhida por quem cadastra, com um fallback só por
@@ -60,33 +61,46 @@ export class EmployeesService {
       }
 
       const supabaseUrl = process.env.SUPABASE_URL;
-      const serviceRoleKey =
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+      // Precisa ser a service_role key (Configurações do projeto > API, no
+      // Supabase) — a anon key não tem permissão pra criar usuário via Admin
+      // API e faz essa chamada falhar com um erro que não é um simples
+      // {error} de volta, e sim uma exceção não tratada (500 genérico).
       if (!supabaseUrl || !serviceRoleKey) {
         throw new BadRequestException(
-          'Configuração do Supabase ausente no servidor.',
+          'SUPABASE_SERVICE_ROLE_KEY não está configurada no servidor — sem ela não é possível criar login para colaboradores. Configure a service_role key do Supabase (Configurações do projeto > API) nas variáveis de ambiente do backend.',
         );
       }
 
       const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false },
       });
+      supabaseAdminForCleanup = supabaseAdmin;
 
-      const { data: authData, error: authError } =
-        await supabaseAdmin.auth.admin.createUser({
-          email: data.email,
-          password: data.password || 'Sevilha123!',
-          email_confirm: true,
-          user_metadata: { name: data.name },
-        });
+      try {
+        const { data: authData, error: authError } =
+          await supabaseAdmin.auth.admin.createUser({
+            email: data.email,
+            password: data.password || 'Sevilha123!',
+            email_confirm: true,
+            user_metadata: { name: data.name },
+          });
 
-      if (authError) {
+        if (authError) {
+          throw new BadRequestException(
+            `Erro ao criar conta no Supabase: ${authError.message}`,
+          );
+        }
+        authUserId = authData.user.id;
+      } catch (err: any) {
+        if (err instanceof BadRequestException) throw err;
+        // Qualquer outra falha (rede, credencial inválida, etc.) — nunca
+        // deixar virar um 500 genérico sem explicação.
         throw new BadRequestException(
-          `Erro ao criar conta no Supabase: ${authError.message}`,
+          `Erro inesperado ao criar conta no Supabase: ${err?.message || err}`,
         );
       }
-      authUserId = authData.user.id;
     }
 
     // Inicia uma transação para garantir que a criação do funcionário e sua alocação no ciclo (se houver) aconteçam de forma segura.
@@ -133,16 +147,31 @@ export class EmployeesService {
       // aqui seria uma escalação de privilégio via um endpoint sem guard de
       // role dedicado.
       const userRole = data.userRole === 'LEADER' ? 'LEADER' : 'OPERATOR';
-      await this.globalPrisma.user.create({
-        data: {
-          id: authUserId,
-          email: data.email,
-          name: data.name,
-          role: userRole,
-          tenantId: tenantId,
-          employeeId: result.id,
-        },
-      });
+      try {
+        await this.globalPrisma.user.create({
+          data: {
+            id: authUserId,
+            email: data.email,
+            name: data.name,
+            role: userRole,
+            tenantId: tenantId,
+            employeeId: result.id,
+          },
+        });
+      } catch (err: any) {
+        // Desfaz a conta órfã no Supabase (o Employee já foi criado e fica
+        // valendo) — sem isso, uma nova tentativa com o mesmo e-mail trava
+        // pra sempre em "usuário já cadastrado" sem nunca ter um login de
+        // fato vinculado.
+        if (supabaseAdminForCleanup) {
+          await supabaseAdminForCleanup.auth.admin
+            .deleteUser(authUserId)
+            .catch(() => {});
+        }
+        throw new BadRequestException(
+          `Colaborador criado, mas não foi possível vincular o login (${err?.message || err}). Tente criar o acesso novamente editando o colaborador, ou avise o suporte se persistir.`,
+        );
+      }
     }
 
     return result;
