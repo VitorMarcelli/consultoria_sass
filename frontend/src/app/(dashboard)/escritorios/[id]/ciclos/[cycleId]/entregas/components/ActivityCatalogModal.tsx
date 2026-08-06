@@ -33,7 +33,19 @@ const emptyForm = {
   taxonomyNodeId: '',
   defaultEstimatedTimeMinutes: '',
   compositionMode: 'SIMPLE',
-  status: 'ACTIVE'
+  status: 'ACTIVE',
+  legalDeadlineDay: '',
+  internalDeadlineOffsetDays: '',
+  executionDeadlineOffsetDays: ''
+};
+
+const emptySubActivity = {
+  name: '',
+  taxonomyNodeId: '',
+  defaultEstimatedTimeMinutes: '',
+  legalDeadlineDay: '',
+  internalDeadlineOffsetDays: '',
+  executionDeadlineOffsetDays: ''
 };
 
 interface ActivityCatalogModalProps {
@@ -61,9 +73,9 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [checklistItems, setChecklistItems] = useState<string[]>(['']);
-  const [subActivities, setSubActivities] = useState<
-    { name: string; taxonomyNodeId: string; defaultEstimatedTimeMinutes: string }[]
-  >([{ name: '', taxonomyNodeId: '', defaultEstimatedTimeMinutes: '' }]);
+  const [subActivities, setSubActivities] = useState<(typeof emptySubActivity)[]>([
+    { ...emptySubActivity }
+  ]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -116,7 +128,7 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
     setSelectedActivity(null);
     setForm(emptyForm);
     setChecklistItems(['']);
-    setSubActivities([{ name: '', taxonomyNodeId: '', defaultEstimatedTimeMinutes: '' }]);
+    setSubActivities([{ ...emptySubActivity }]);
     setIsFormOpen(true);
   };
 
@@ -130,7 +142,14 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
         ? String(activity.defaultEstimatedTimeMinutes)
         : '',
       compositionMode: activity.compositionMode,
-      status: activity.status
+      status: activity.status,
+      legalDeadlineDay: activity.legalDeadlineDay ? String(activity.legalDeadlineDay) : '',
+      internalDeadlineOffsetDays: activity.internalDeadlineOffsetDays
+        ? String(activity.internalDeadlineOffsetDays)
+        : '',
+      executionDeadlineOffsetDays: activity.executionDeadlineOffsetDays
+        ? String(activity.executionDeadlineOffsetDays)
+        : ''
     });
     setIsFormOpen(true);
   };
@@ -149,7 +168,10 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
             frontId: form.frontId,
             taxonomyNodeId: form.taxonomyNodeId || null,
             defaultEstimatedTimeMinutes: form.defaultEstimatedTimeMinutes || null,
-            status: form.status
+            status: form.status,
+            legalDeadlineDay: form.legalDeadlineDay || null,
+            internalDeadlineOffsetDays: form.internalDeadlineOffsetDays || null,
+            executionDeadlineOffsetDays: form.executionDeadlineOffsetDays || null
           })
         });
       } else {
@@ -159,7 +181,10 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
           name: form.name,
           taxonomyNodeId: form.taxonomyNodeId || null,
           compositionMode: form.compositionMode,
-          defaultEstimatedTimeMinutes: form.defaultEstimatedTimeMinutes || null
+          defaultEstimatedTimeMinutes: form.defaultEstimatedTimeMinutes || null,
+          legalDeadlineDay: form.legalDeadlineDay || null,
+          internalDeadlineOffsetDays: form.internalDeadlineOffsetDays || null,
+          executionDeadlineOffsetDays: form.executionDeadlineOffsetDays || null
         };
         if (form.compositionMode === 'CHECKLIST') {
           body.checklistTemplates = checklistItems
@@ -173,6 +198,9 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
               name: s.name,
               taxonomyNodeId: s.taxonomyNodeId || undefined,
               defaultEstimatedTimeMinutes: s.defaultEstimatedTimeMinutes || undefined,
+              legalDeadlineDay: s.legalDeadlineDay || undefined,
+              internalDeadlineOffsetDays: s.internalDeadlineOffsetDays || undefined,
+              executionDeadlineOffsetDays: s.executionDeadlineOffsetDays || undefined,
               order
             }));
         }
@@ -420,6 +448,49 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
                     </div>
                   </div>
 
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Regra de Prazos</label>
+                    <p className="text-[10px] text-slate-400 font-semibold mb-3">
+                      Obrigatória: sem ela não é possível criar entregas (manual ou em lote) a partir desta atividade.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Vencimento (dia do mês seguinte)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={form.legalDeadlineDay}
+                          onChange={(e) => setForm({ ...form, legalDeadlineDay: e.target.value })}
+                          placeholder="Ex: 20"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Prazo Interno (dias antes)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.internalDeadlineOffsetDays}
+                          onChange={(e) => setForm({ ...form, internalDeadlineOffsetDays: e.target.value })}
+                          placeholder="Ex: 5"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Data Prevista (dias antes do Interno)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.executionDeadlineOffsetDays}
+                          onChange={(e) => setForm({ ...form, executionDeadlineOffsetDays: e.target.value })}
+                          placeholder="Ex: 3"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   {selectedActivity ? (
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
@@ -545,19 +616,56 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
                                   className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                                 />
                               </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="31"
+                                  value={sub.legalDeadlineDay}
+                                  onChange={(e) => {
+                                    const next = [...subActivities];
+                                    next[idx] = { ...next[idx], legalDeadlineDay: e.target.value };
+                                    setSubActivities(next);
+                                  }}
+                                  placeholder="Vencimento (dia)"
+                                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                                />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={sub.internalDeadlineOffsetDays}
+                                  onChange={(e) => {
+                                    const next = [...subActivities];
+                                    next[idx] = { ...next[idx], internalDeadlineOffsetDays: e.target.value };
+                                    setSubActivities(next);
+                                  }}
+                                  placeholder="Interno (dias antes)"
+                                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                                />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={sub.executionDeadlineOffsetDays}
+                                  onChange={(e) => {
+                                    const next = [...subActivities];
+                                    next[idx] = { ...next[idx], executionDeadlineOffsetDays: e.target.value };
+                                    setSubActivities(next);
+                                  }}
+                                  placeholder="Prevista (dias antes)"
+                                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                                />
+                              </div>
                             </div>
                           ))}
                           <button
                             type="button"
-                            onClick={() =>
-                              setSubActivities([...subActivities, { name: '', taxonomyNodeId: '', defaultEstimatedTimeMinutes: '' }])
-                            }
+                            onClick={() => setSubActivities([...subActivities, { ...emptySubActivity }])}
                             className="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1"
                           >
                             <Plus className="w-3.5 h-3.5" /> Adicionar sub-atividade
                           </button>
                           <p className="text-[10px] text-slate-400 font-semibold">
-                            Cada sub-atividade vira sua própria Entrega (com prazo/responsável próprios) quando esta atividade for usada na Nova Entrega.
+                            Cada sub-atividade vira sua própria Entrega quando esta atividade for usada na Nova Entrega — por isso cada uma precisa da sua própria Regra de Prazos (não herda do pai).
                           </p>
                         </div>
                       )}

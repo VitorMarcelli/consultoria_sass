@@ -139,6 +139,9 @@ export default function BulkGenerateFromCatalogModal({
       if (res.skippedNoResponsibleClients?.length) {
         parts.push(`${res.skippedNoResponsibleClients.length} cliente(s) sem responsável configurado foram pulados (${res.skippedNoResponsibleClients.join(', ')})`);
       }
+      if (res.skippedNoDeadlineRuleActivities?.length) {
+        parts.push(`${res.skippedNoDeadlineRuleActivities.length} atividade(s) sem Regra de Prazos completa foram puladas (${res.skippedNoDeadlineRuleActivities.join(', ')}) — configure em "Gerenciar Catálogo"`);
+      }
       alert(parts.join('. ') + '.');
       onGenerated();
       onClose();

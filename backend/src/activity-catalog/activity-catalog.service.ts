@@ -79,6 +79,14 @@ export class ActivityCatalogService {
     return withLabels;
   }
 
+  // Undefined/null/'' → null (regra ausente); qualquer outro valor → inteiro.
+  // Mesma tolerância de input do defaultEstimatedTimeMinutes já existente.
+  private parseIntOrNull(value: any): number | null {
+    return value !== undefined && value !== null && value !== ''
+      ? parseInt(value, 10)
+      : null;
+  }
+
   async create(tenantId: string, data: any) {
     const tenantPrisma = this.getTenantPrisma(tenantId);
     const compositionMode = data.compositionMode || 'SIMPLE';
@@ -94,6 +102,13 @@ export class ActivityCatalogService {
             ? parseInt(data.defaultEstimatedTimeMinutes, 10)
             : null,
           status: data.status || 'ACTIVE',
+          legalDeadlineDay: this.parseIntOrNull(data.legalDeadlineDay),
+          internalDeadlineOffsetDays: this.parseIntOrNull(
+            data.internalDeadlineOffsetDays,
+          ),
+          executionDeadlineOffsetDays: this.parseIntOrNull(
+            data.executionDeadlineOffsetDays,
+          ),
         },
       });
 
@@ -127,6 +142,17 @@ export class ActivityCatalogService {
               parentActivityId: activity.id,
               order: sub.order ?? index,
               status: 'ACTIVE',
+              // Sub-atividade vira sua própria Delivery quando usada — exige
+              // sua própria regra de prazos, sem herdar do pai (diferente da
+              // classificação/taxonomia): herdar prazo silenciosamente seria
+              // mais arriscado que herdar uma classificação.
+              legalDeadlineDay: this.parseIntOrNull(sub.legalDeadlineDay),
+              internalDeadlineOffsetDays: this.parseIntOrNull(
+                sub.internalDeadlineOffsetDays,
+              ),
+              executionDeadlineOffsetDays: this.parseIntOrNull(
+                sub.executionDeadlineOffsetDays,
+              ),
             },
           });
         }
@@ -157,6 +183,18 @@ export class ActivityCatalogService {
               : null
             : undefined,
         status: data.status,
+        legalDeadlineDay:
+          data.legalDeadlineDay !== undefined
+            ? this.parseIntOrNull(data.legalDeadlineDay)
+            : undefined,
+        internalDeadlineOffsetDays:
+          data.internalDeadlineOffsetDays !== undefined
+            ? this.parseIntOrNull(data.internalDeadlineOffsetDays)
+            : undefined,
+        executionDeadlineOffsetDays:
+          data.executionDeadlineOffsetDays !== undefined
+            ? this.parseIntOrNull(data.executionDeadlineOffsetDays)
+            : undefined,
       },
     });
   }

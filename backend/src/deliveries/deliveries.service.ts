@@ -9,6 +9,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
 import { TaxonomyService } from '../taxonomy/taxonomy.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import {
+  computeActivityDeadlines,
+  hasCompleteDeadlineRule,
+} from './delivery-dates.rules';
 
 @Injectable()
 export class DeliveriesService {
@@ -91,13 +95,28 @@ export class DeliveriesService {
       realTimeMinutes: data.realTimeMinutes
         ? parseInt(data.realTimeMinutes, 10)
         : null,
-      legalDeadline: data.legalDeadline ? new Date(data.legalDeadline) : null,
-      internalDeadline: data.internalDeadline
-        ? new Date(data.internalDeadline)
-        : null,
-      executionDeadline: data.executionDeadline
-        ? new Date(data.executionDeadline)
-        : null,
+      // As 3 datas seguem o mesmo padrão de precedência de overrides que
+      // originalName/standardizedName acima: quando vêm calculadas pela
+      // regra da atividade do Catálogo (createFromActivityCatalog), essas
+      // prevalecem sobre qualquer coisa "crua" no body da requisição.
+      legalDeadline:
+        overrides.legalDeadline !== undefined
+          ? overrides.legalDeadline
+          : data.legalDeadline
+            ? new Date(data.legalDeadline)
+            : null,
+      internalDeadline:
+        overrides.internalDeadline !== undefined
+          ? overrides.internalDeadline
+          : data.internalDeadline
+            ? new Date(data.internalDeadline)
+            : null,
+      executionDeadline:
+        overrides.executionDeadline !== undefined
+          ? overrides.executionDeadline
+          : data.executionDeadline
+            ? new Date(data.executionDeadline)
+            : null,
       completedAt: data.completedAt ? new Date(data.completedAt) : null,
     };
   }
@@ -142,6 +161,37 @@ export class DeliveriesService {
     };
   }
 
+  // Resolve as 3 datas obrigatórias a partir da regra de prazos da
+  // atividade (ver delivery-dates.rules.ts). Nunca deixa passar uma data
+  // faltando — é exatamente essa lacuna que gerava entregas sem prazo antes
+  // desta leva. `activity` pode ser a atividade top-level ou uma
+  // sub-atividade (mesmo shape ActivityCatalog nos dois casos).
+  private resolveActivityDeadlines(
+    activity: {
+      name: string;
+      legalDeadlineDay: number | null;
+      internalDeadlineOffsetDays: number | null;
+      executionDeadlineOffsetDays: number | null;
+    },
+    competence: string,
+  ): { legalDeadline: Date; internalDeadline: Date; executionDeadline: Date } {
+    const deadlines = computeActivityDeadlines(activity, competence);
+    if (
+      !deadlines.legalDeadline ||
+      !deadlines.internalDeadline ||
+      !deadlines.executionDeadline
+    ) {
+      throw new BadRequestException(
+        `A atividade "${activity.name}" não tem uma regra de prazos completa (Vencimento, Prazo Interno e Data Prevista). Configure em "Gerenciar Catálogo" antes de criar entregas a partir dela.`,
+      );
+    }
+    return deadlines as {
+      legalDeadline: Date;
+      internalDeadline: Date;
+      executionDeadline: Date;
+    };
+  }
+
   private async createFromActivityCatalog(tenantPrisma: any, data: any) {
     const activity = await tenantPrisma.activityCatalog.findUnique({
       where: { id: data.activityCatalogId },
@@ -170,11 +220,13 @@ export class DeliveriesService {
           sub.defaultEstimatedTimeMinutes,
           undefined,
         );
+        const deadlines = this.resolveActivityDeadlines(sub, data.competence);
         created.push(
           await tenantPrisma.delivery.create({
             data: this.buildDeliveryCreateData(data, {
               frontId: sub.frontId,
               ...overrides,
+              ...deadlines,
               activityCatalogId: sub.id,
               deliveryGroupKey,
             }),
@@ -190,10 +242,12 @@ export class DeliveriesService {
       activity.defaultEstimatedTimeMinutes,
       data.estimatedTimeMinutes,
     );
+    const deadlines = this.resolveActivityDeadlines(activity, data.competence);
     const delivery = await tenantPrisma.delivery.create({
       data: this.buildDeliveryCreateData(data, {
         frontId: activity.frontId,
         ...overrides,
+        ...deadlines,
         activityCatalogId: activity.id,
       }),
     });
@@ -251,6 +305,32 @@ export class DeliveriesService {
       );
     }
 
+    // Nunca cria uma entrega sem prazo: separa quem tem a regra completa de
+    // quem não tem ANTES do loop, em vez de deixar resolveActivityDeadlines
+    // lançar no meio do lote e interromper clientes/atividades já
+    // resolvidos — mesmo padrão tolerante que já existe para
+    // skippedNoResponsibleClients.
+    const activityHasCompleteRule = (a: any): boolean =>
+      a.compositionMode === 'SUBTASKS'
+        ? a.subActivities.length > 0 &&
+          a.subActivities.every((s: any) => hasCompleteDeadlineRule(s))
+        : hasCompleteDeadlineRule(a);
+
+    const activitiesWithRule = activities.filter(activityHasCompleteRule);
+    const skippedNoDeadlineRuleActivities = [
+      ...new Set(
+        activities
+          .filter((a: any) => !activityHasCompleteRule(a))
+          .map((a: any) => a.name),
+      ),
+    ];
+
+    if (!activitiesWithRule.length) {
+      throw new BadRequestException(
+        'Nenhuma das atividades selecionadas tem a regra de prazos completa (Vencimento, Prazo Interno, Data Prevista). Configure em "Gerenciar Catálogo" antes de gerar em lote.',
+      );
+    }
+
     const classificationWhere: any = {
       frontId: data.frontId,
       actsInFront: 'YES',
@@ -266,7 +346,7 @@ export class DeliveriesService {
 
     // Um único delivery.findMany cobrindo todos os pares cliente/atividade —
     // evita N+1 consultas de "já existe?" dentro do loop abaixo.
-    const allCatalogIds = activities.flatMap((a: any) =>
+    const allCatalogIds = activitiesWithRule.flatMap((a: any) =>
       a.compositionMode === 'SUBTASKS'
         ? a.subActivities.map((s: any) => s.id)
         : [a.id],
@@ -299,7 +379,7 @@ export class DeliveriesService {
         continue;
       }
 
-      for (const activity of activities) {
+      for (const activity of activitiesWithRule) {
         const relevantIds =
           activity.compositionMode === 'SUBTASKS'
             ? activity.subActivities.map((s: any) => s.id)
@@ -335,6 +415,7 @@ export class DeliveriesService {
       createdCount,
       skippedExistingCount: skippedExisting.length,
       skippedNoResponsibleClients: [...new Set(skippedNoResponsibleClients)],
+      skippedNoDeadlineRuleActivities,
     };
   }
 
