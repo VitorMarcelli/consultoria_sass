@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { computeStatusObrigacao } from '../deliveries/delivery-status.rules';
 
 @Injectable()
 export class OpportunitiesService {
@@ -129,13 +130,24 @@ export class OpportunitiesService {
       const monthlyFee = client.monthlyFee || 0;
       const profitMargin = monthlyFee - totalCost;
 
-      const lateDeliveries = client.deliveries.filter(
-        (d) =>
-          d.status === 'ATRASADA' ||
-          (d.legalDeadline &&
-            new Date() > new Date(d.legalDeadline) &&
-            d.status !== 'ENTREGUE'),
-      ).length;
+      // Antes comparava d.status contra 'ATRASADA'/'ENTREGUE' — o segundo
+      // nunca foi um valor real de status, então aquele branch do OR era
+      // sempre verdadeiro assim que o Vencimento passava, com ou sem status
+      // "certo". Agora usa a mesma classificação por data que substituiu o
+      // status manual em todo o resto do sistema (delivery-status.rules.ts):
+      // "atrasada" = passou do Vencimento sem concluir, ou concluiu depois dele.
+      const lateDeliveries = client.deliveries.filter((d) => {
+        const statusObrigacao = computeStatusObrigacao({
+          legalDeadline: d.legalDeadline,
+          internalDeadline: d.internalDeadline,
+          executionDeadline: d.executionDeadline,
+          completedAt: d.completedAt,
+        });
+        return (
+          statusObrigacao === 'ATR_VENCIMENTO' ||
+          statusObrigacao === 'OK_ATRASADO'
+        );
+      }).length;
 
       let hrVolume = 0;
       let taxVolume = 0;

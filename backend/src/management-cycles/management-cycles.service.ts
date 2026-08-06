@@ -497,13 +497,14 @@ export class ManagementCyclesService {
 
     const allTasks = await tenantPrisma.delivery.findMany({
       where: deliveriesWhere,
-      select: { status: true, estimatedTimeMinutes: true },
+      select: { completedAt: true, estimatedTimeMinutes: true },
     });
 
     const totalTasks = allTasks.length;
-    const completedTasks = allTasks.filter(
-      (t) => t.status === 'CONCLUIDA',
-    ).length;
+    // "Concluída" deixou de ser um valor de status pra virar completedAt !=
+    // null — o próprio sinal que STATUS OBRIGAÇÃO/AGENDA usam pra decidir
+    // "Realizada" (ver delivery-status.rules.ts).
+    const completedTasks = allTasks.filter((t) => t.completedAt != null).length;
 
     let totalEstimatedMinutes = 0;
     let completedEstimatedMinutes = 0;
@@ -511,7 +512,7 @@ export class ManagementCyclesService {
     for (const t of allTasks) {
       const mins = t.estimatedTimeMinutes || 30; // fallback to 30 mins
       totalEstimatedMinutes += mins;
-      if (t.status === 'CONCLUIDA') {
+      if (t.completedAt != null) {
         completedEstimatedMinutes += mins;
       }
     }
