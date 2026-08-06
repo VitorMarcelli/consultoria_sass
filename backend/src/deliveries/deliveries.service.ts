@@ -318,6 +318,11 @@ export class DeliveriesService {
           clientId: classification.clientId,
           responsibleId,
           competence: data.competence,
+          // originalName é obrigatório no schema e não tem um "texto livre"
+          // razoável em geração em lote (não tem um usuário digitando por
+          // cliente) — usa o próprio nome da atividade do catálogo, igual ao
+          // standardizedName resolvido por resolveActivityFields.
+          originalName: activity.name,
           activityCatalogId: activity.id,
           status: 'PREVISTA',
           priority: 'MEDIUM',
