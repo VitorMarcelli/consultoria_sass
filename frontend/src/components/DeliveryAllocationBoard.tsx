@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Clock, CheckCircle2, AlertCircle, Building2, User, Zap, AlertTriangle, Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { computeStatusAgenda } from '@/utils/deliveryStatus';
 
 interface DeliveryAllocationBoardProps {
   deliveries: any[];
@@ -62,7 +63,7 @@ export default function DeliveryAllocationBoard({
         for (let i = 0; i < firstDay; i++) {
           grid.push({ day: null, dateStr: null });
         }
-        for (let day of daysArray) {
+        for (const day of daysArray) {
           const mm = String(month).padStart(2, '0');
           const dd = String(day).padStart(2, '0');
           grid.push({ day, dateStr: `${year}-${mm}-${dd}` });
@@ -214,10 +215,14 @@ export default function DeliveryAllocationBoard({
               const totalTasks = allTasks.length;
               const totalMinutes = calculateUsedMinutes(allTasks);
               const totalHoursStr = formatMinutesToHours(totalMinutes);
-              const delayedTasks = allTasks.filter(t => t.status === 'ATRASADA').length;
-              const completedTasks = allTasks.filter(t => t.status === 'CONCLUIDA').length;
-              const inProgressTasks = allTasks.filter(t => t.status === 'ANDAMENTO').length;
-              const plannedTasks = allTasks.filter(t => t.status === 'PREVISTA' || !t.status).length;
+              // Este board é sobre a agenda de execução do colaborador
+              // (drag-and-drop por executionDeadline), então usa STATUS
+              // AGENDA — não Obrigação — pra colorir/contar os cards.
+              // "Em Andamento" não existe mais como estado manual; some do
+              // contador em vez de virar "planejada" ou "atrasada" por engano.
+              const completedTasks = allTasks.filter(t => !!t.completedAt).length;
+              const delayedTasks = allTasks.filter(t => !t.completedAt && computeStatusAgenda(t) === 'ATR').length;
+              const plannedTasks = allTasks.filter(t => !t.completedAt && computeStatusAgenda(t) !== 'ATR').length;
 
               return (
                 <div key={empId} className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
@@ -251,18 +256,12 @@ export default function DeliveryAllocationBoard({
                           <span className="text-sm font-black text-slate-700 dark:text-slate-300">{totalHoursStr || '0h'}</span>
                         </div>
 
-                        {(delayedTasks > 0 || completedTasks > 0 || inProgressTasks > 0 || plannedTasks > 0) && (
+                        {(delayedTasks > 0 || completedTasks > 0 || plannedTasks > 0) && (
                           <div className="flex items-center gap-1.5 ml-2">
                             {completedTasks > 0 && (
                               <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-lg text-xs font-bold border border-emerald-100 dark:border-emerald-500/20" title="Concluídas">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 {completedTasks}
-                              </div>
-                            )}
-                            {inProgressTasks > 0 && (
-                              <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-lg text-xs font-bold border border-amber-100 dark:border-amber-500/20" title="Em Andamento">
-                                <Clock className="w-3.5 h-3.5" />
-                                {inProgressTasks}
                               </div>
                             )}
                             {plannedTasks > 0 && (
@@ -390,16 +389,16 @@ export default function DeliveryAllocationBoard({
 }
 
 function DraggableTask({ task, index, onClick, userRole }: { task: any, index: number, onClick: () => void, userRole?: string }) {
+  // Cor pela agenda de execução (STATUS AGENDA), não pela Obrigação — este
+  // board é sobre "o colaborador vai dar conta do que tem no dia", não sobre
+  // compliance legal com o cliente.
   let bgClass = 'bg-white dark:bg-slate-900 border-l-4 border-l-slate-300 dark:border-l-slate-600';
   let borderClass = 'border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-700';
-  
-  if (task.status === 'CONCLUIDA') {
+
+  if (task.completedAt) {
     bgClass = 'bg-emerald-50 dark:bg-emerald-900/30 border-l-4 border-l-emerald-500';
     borderClass = 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600';
-  } else if (task.status === 'ANDAMENTO') {
-    bgClass = 'bg-amber-50 dark:bg-amber-900/30 border-l-4 border-l-amber-500';
-    borderClass = 'border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600';
-  } else if (task.status === 'ATRASADA') {
+  } else if (computeStatusAgenda(task) === 'ATR') {
     bgClass = 'bg-rose-50 dark:bg-rose-900/30 border-l-4 border-l-rose-500';
     borderClass = 'border-rose-200 dark:border-rose-800 hover:border-rose-400 dark:hover:border-rose-600';
   }

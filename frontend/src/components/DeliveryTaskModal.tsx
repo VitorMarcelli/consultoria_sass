@@ -7,9 +7,8 @@ import {
   Clock, 
   Play,
   Square,
-  Paperclip, 
+  Paperclip,
   MessageSquare,
-  AlertCircle,
   Calendar,
   UserCircle2,
   Trash2,
@@ -20,6 +19,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { apiRequest } from '@/utils/api';
+import DeliveryStatusBadges from './DeliveryStatusBadges';
 
 interface DeliveryTaskModalProps {
   isOpen: boolean;
@@ -248,6 +248,7 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
                 >
                   Prioridade {delivery?.priority === 'HIGH' ? 'Alta' : delivery?.priority === 'LOW' ? 'Baixa' : 'Média'}
                 </span>
+                <DeliveryStatusBadges delivery={delivery || {}} />
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight">
                 {delivery?.standardizedName || delivery?.originalName}
@@ -259,42 +260,26 @@ export default function DeliveryTaskModal({ isOpen, onClose, delivery, tenantId,
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Substitui os antigos 3 estados (Prevista/Andamento/Atrasada/Concluída)
+                  por um toggle binário — a classificação de prazo (atrasado ou não)
+                  já é derivada e mostrada nos selos de DeliveryStatusBadges acima,
+                  não é mais algo que se escolhe manualmente aqui. */}
               <div className="flex p-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl overflow-x-auto w-full sm:w-auto border border-slate-200/50 dark:border-slate-700/50 shadow-inner">
-                <button 
+                <button
                   onClick={() => handleStatusChange('PREVISTA')}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${currentStatus === 'PREVISTA' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${currentStatus !== 'CONCLUIDA' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}
                 >
-                  <Calendar className={`w-3.5 h-3.5 ${currentStatus === 'PREVISTA' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400'}`} />
-                  Prevista
+                  <Calendar className={`w-3.5 h-3.5 ${currentStatus !== 'CONCLUIDA' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400'}`} />
+                  Não Realizada
                 </button>
 
-                <button 
-                  onClick={() => handleStatusChange(currentStatus === 'ATRASADA' ? 'ATRASADA' : 'ANDAMENTO')}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap 
-                    ${currentStatus === 'ANDAMENTO' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 ring-1 ring-amber-600' : 
-                      currentStatus === 'ATRASADA' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 ring-1 ring-rose-600' : 
-                      'text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}
-                >
-                  {currentStatus === 'ATRASADA' ? (
-                    <>
-                      <AlertCircle className={`w-3.5 h-3.5 ${currentStatus === 'ATRASADA' ? 'text-white' : 'text-rose-400'}`} />
-                      Atrasada
-                    </>
-                  ) : (
-                    <>
-                      <Clock className={`w-3.5 h-3.5 ${currentStatus === 'ANDAMENTO' ? 'text-white' : 'text-amber-400'}`} />
-                      Em Andamento
-                    </>
-                  )}
-                </button>
-
-                <button 
+                <button
                   onClick={() => handleStatusChange('CONCLUIDA')}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap 
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap
                     ${currentStatus === 'CONCLUIDA' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20 ring-1 ring-emerald-600' : 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}
                 >
                   <CheckCircle2 className={`w-3.5 h-3.5 ${currentStatus === 'CONCLUIDA' ? 'text-white' : 'text-emerald-400'}`} />
-                  Concluída
+                  Realizada
                 </button>
               </div>
               <button onClick={onClose} className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-xl transition-colors shrink-0 ml-2">

@@ -3,14 +3,12 @@
 import React, { useState, useEffect, use } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, 
-  FileCheck, 
-  Plus, 
-  Filter, 
-  DownloadCloud, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle,
+  Search,
+  FileCheck,
+  Plus,
+  Filter,
+  DownloadCloud,
+  CheckCircle2,
   Sparkles,
   Loader2,
   CheckSquare,
@@ -28,6 +26,8 @@ import DeliveryAllocationBoard from '@/components/DeliveryAllocationBoard';
 import DashboardTimesheetTab from './components/DashboardTimesheetTab';
 import ActivityCatalogModal from './components/ActivityCatalogModal';
 import BulkGenerateFromCatalogModal from './components/BulkGenerateFromCatalogModal';
+import DeliveryStatusBadges from '@/components/DeliveryStatusBadges';
+import { computeStatusObrigacao } from '@/utils/deliveryStatus';
 
 interface Delivery {
   id: string;
@@ -326,7 +326,9 @@ export default function CycleDeliveriesPage({
                        (d.client?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     if (statusFilter === 'ALL') return matchQuery;
-    return matchQuery && d.status === statusFilter;
+    if (statusFilter === 'REALIZADA') return matchQuery && !!d.completedAt;
+    if (statusFilter === 'NAO_REALIZADA') return matchQuery && !d.completedAt && d.status !== 'INATIVA';
+    return matchQuery;
   });
 
   // Grouping by Responsible (Team) - Monday Style
@@ -436,8 +438,8 @@ export default function CycleDeliveriesPage({
 
   // Estatisticas para o painel de conformidade
   const totalCount = deliveries.length;
-  const completedCount = deliveries.filter(d => d.status === 'CONCLUIDA').length;
-  const pendingCount = deliveries.filter(d => d.status === 'PREVISTA' || d.status === 'ANDAMENTO' || d.status === 'ATRASADA').length;
+  const completedCount = deliveries.filter(d => !!d.completedAt).length;
+  const pendingCount = deliveries.filter(d => !d.completedAt && d.status !== 'INATIVA').length;
   const complianceRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
 
   // Estatisticas para o painel de Ociosidade Global
@@ -742,10 +744,8 @@ export default function CycleDeliveriesPage({
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
           {[
             { id: 'ALL', label: 'Todas' },
-            { id: 'PREVISTA', label: 'Previstas' },
-            { id: 'ANDAMENTO', label: 'Em Andamento' },
-            { id: 'ATRASADA', label: 'Atrasadas' },
-            { id: 'CONCLUIDA', label: 'Concluídas' },
+            { id: 'NAO_REALIZADA', label: 'Não Realizadas' },
+            { id: 'REALIZADA', label: 'Realizadas' },
           ].map(filter => (
             <button
               key={filter.id}
@@ -888,21 +888,9 @@ export default function CycleDeliveriesPage({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Padronizado (Macro)</label>
-                    <input required type="text" value={formData.standardizedName} onChange={e => setFormData({...formData, standardizedName: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Apuração PIS/COFINS" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
-                    <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-                      <option value="PREVISTA">Prevista</option>
-                      <option value="ANDAMENTO">Em Andamento</option>
-                      <option value="ATRASADA">Atrasada</option>
-                      <option value="CONCLUIDA">Concluída</option>
-                      <option value="INATIVA">Inativa</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Padronizado (Macro)</label>
+                  <input required type="text" value={formData.standardizedName} onChange={e => setFormData({...formData, standardizedName: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Apuração PIS/COFINS" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1019,25 +1007,12 @@ export default function CycleDeliveriesPage({
                       {delivery.competence}
                     </span>
                     <div>
-                      {delivery.status === 'CONCLUIDA' && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle2 className="w-3 h-3" /> Concluída
-                        </span>
-                      )}
-                      {delivery.status === 'ANDAMENTO' && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                          <Clock className="w-3 h-3" /> Em Andamento
-                        </span>
-                      )}
-                      {delivery.status === 'PREVISTA' && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                          <Clock className="w-3 h-3" /> Prevista
-                        </span>
-                      )}
-                      {delivery.status === 'INATIVA' && (
+                      {delivery.status === 'INATIVA' ? (
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                           Inativa
                         </span>
+                      ) : (
+                        <DeliveryStatusBadges delivery={delivery} size="xs" />
                       )}
                     </div>
                   </div>
@@ -1063,7 +1038,7 @@ export default function CycleDeliveriesPage({
                     <div>
                       <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vencimento</span>
                       <span className={`font-bold truncate block mt-0.5 ${
-                        delivery.legalDeadline && new Date(delivery.legalDeadline) < new Date() && !['CONCLUIDA', 'INATIVA'].includes(delivery.status)
+                        computeStatusObrigacao(delivery) === 'ATR_VENCIMENTO'
                           ? 'text-rose-600 dark:text-rose-400'
                           : 'text-slate-700 dark:text-slate-300'
                       }`}>
@@ -1169,9 +1144,6 @@ export default function CycleDeliveriesPage({
                             {delivery.status === 'INATIVA' && (
                               <span className="ml-2 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">Inativa</span>
                             )}
-                            {delivery.status === 'ATRASADA' && (
-                              <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold border border-rose-200 dark:border-rose-500/20 text-[10px]">Atrasada</span>
-                            )}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center text-xs font-bold text-slate-600 dark:text-slate-400 border-r border-slate-100 dark:border-slate-800/40 truncate">
@@ -1188,7 +1160,7 @@ export default function CycleDeliveriesPage({
                           <td className="px-4 py-3 text-center border-r border-slate-100 dark:border-slate-800/40">
                             {delivery.legalDeadline ? (
                               <span className={`text-xs font-bold ${
-                                new Date(delivery.legalDeadline) < new Date() && !['CONCLUIDA', 'INATIVA'].includes(delivery.status)
+                                computeStatusObrigacao(delivery) === 'ATR_VENCIMENTO'
                                   ? 'text-rose-600 dark:text-rose-400'
                                   : 'text-slate-600 dark:text-slate-400'
                               }`}>
@@ -1198,16 +1170,15 @@ export default function CycleDeliveriesPage({
                               <span className="text-xs text-slate-300 dark:text-slate-700">-</span>
                             )}
                           </td>
-                          {/* Status Cell - Full Color Monday Style */}
-                          <td className="px-0 py-0 border-r border-slate-100 dark:border-slate-800/40 p-0 m-0 align-middle">
-                            <div className={`w-full h-full min-h-[48px] flex items-center justify-center text-[11px] font-black uppercase tracking-wider text-white transition-colors
-                              ${delivery.status === 'CONCLUIDA' ? 'bg-emerald-500 hover:bg-emerald-600' : 
-                                delivery.status === 'ANDAMENTO' ? 'bg-amber-500 hover:bg-amber-600' : 
-                                delivery.status === 'ATRASADA' ? 'bg-rose-500 hover:bg-rose-600' : 
-                                delivery.status === 'PREVISTA' ? 'bg-slate-400 hover:bg-slate-500 dark:bg-slate-600' : 'bg-slate-200 text-slate-500'}
-                            `}>
-                              {delivery.status === 'CONCLUIDA' ? 'Concluída' : delivery.status === 'ATRASADA' ? 'Atrasada' : delivery.status === 'ANDAMENTO' ? 'Em Andamento' : delivery.status === 'PREVISTA' ? 'Prevista' : 'Inativa'}
-                            </div>
+                          {/* Status Cell — selos de STATUS OBRIGAÇÃO/AGENDA no lugar da antiga faixa colorida por status único */}
+                          <td className="px-2 py-2 border-r border-slate-100 dark:border-slate-800/40 align-middle">
+                            {delivery.status === 'INATIVA' ? (
+                              <div className="flex items-center justify-center text-[11px] font-black uppercase tracking-wider text-slate-500">Inativa</div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <DeliveryStatusBadges delivery={delivery} size="xs" />
+                              </div>
+                            )}
                           </td>
                           {profile?.role !== 'OPERATOR' && (
                             <td className="px-4 py-2 text-right">
@@ -1219,7 +1190,7 @@ export default function CycleDeliveriesPage({
                                   </div>
                                 ) : (
                                   <>
-                                    {delivery.status !== 'CONCLUIDA' && (
+                                    {!delivery.completedAt && (
                                       <button onClick={(e) => handleQuickStatusChange(delivery.id, 'CONCLUIDA', e)} className="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Marcar como Concluída">
                                         <CheckCircle2 className="w-4 h-4" />
                                       </button>

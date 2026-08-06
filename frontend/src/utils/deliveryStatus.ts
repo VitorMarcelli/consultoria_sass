@@ -16,10 +16,10 @@ export type StatusObrigacao =
 export type StatusAgenda = 'PEND' | 'OK_DENTRO_AGENDA' | 'OK_FORA_AGENDA' | 'ATR';
 
 export interface DeliveryLifecycleDates {
-  legalDeadline: Date | string | null | undefined;
-  internalDeadline: Date | string | null | undefined;
-  executionDeadline: Date | string | null | undefined;
-  completedAt: Date | string | null | undefined;
+  legalDeadline?: Date | string | null;
+  internalDeadline?: Date | string | null;
+  executionDeadline?: Date | string | null;
+  completedAt?: Date | string | null;
   now?: Date; // injetável nos testes; default new Date()
 }
 

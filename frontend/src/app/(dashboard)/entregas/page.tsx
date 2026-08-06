@@ -3,13 +3,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  CheckSquare, 
-  Plus, 
-  Search, 
+  CheckSquare,
+  Plus,
+  Search,
   Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
   Building2,
   Sparkles,
   Filter,
@@ -18,8 +15,9 @@ import {
   List
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
-import DeliverySlideOver from '@/components/DeliverySlideOver';
+import DeliveryTaskModal from '@/components/DeliveryTaskModal';
 import DeliveryKanbanBoard from '@/components/DeliveryKanbanBoard';
+import DeliveryStatusBadges from '@/components/DeliveryStatusBadges';
 
 interface Delivery {
   id: string;
@@ -33,6 +31,10 @@ interface Delivery {
   clientId?: string;
   frontId?: string;
   responsibleId?: string;
+  legalDeadline?: string | null;
+  internalDeadline?: string | null;
+  executionDeadline?: string | null;
+  completedAt?: string | null;
 }
 
 export default function EntregasPage() {
@@ -42,10 +44,11 @@ export default function EntregasPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [viewMode, setViewMode] = useState<'LIST' | 'KANBAN'>('LIST');
+  const [tenantId, setTenantId] = useState('');
 
-  // SlideOver 360º
-  const [slideOverDelivery, setSlideOverDelivery] = useState<any | null>(null);
-  const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+  // Modal de detalhe (mesmo componente da tela de Entregas Mensais)
+  const [taskModalDelivery, setTaskModalDelivery] = useState<any | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
   // Modal CRUD
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,6 +80,7 @@ export default function EntregasPage() {
   };
 
   useEffect(() => {
+    setTenantId(localStorage.getItem('sevilha_active_tenant_id') || '');
     const init = async () => {
       try {
         const user = await apiRequest('/users/me').catch(() => null);
@@ -197,32 +201,22 @@ export default function EntregasPage() {
     }
   };
 
-  const openSlideOver360 = (delivery: Delivery) => {
-    // Mapeamento para o formato do DeliverySlideOver
-    let statusMapped = 'PENDING';
-    if (delivery.status === 'CONCLUIDA') statusMapped = 'COMPLETED';
-    if (delivery.status === 'INATIVA' || delivery.status === 'LATE') statusMapped = 'LATE';
-
-    setSlideOverDelivery({
-      id: delivery.id,
-      name: delivery.standardizedName || delivery.originalName,
-      client: delivery.client?.name || 'Cliente Não Informado',
-      deadline: `Competência ${delivery.competence}`,
-      responsible: delivery.responsible?.name || 'Não atribuído',
-      status: statusMapped,
-      raw: delivery
-    });
-    setIsSlideOverOpen(true);
+  const openTaskModal = (delivery: Delivery) => {
+    setTaskModalDelivery(delivery);
+    setIsTaskModalOpen(true);
   };
 
-  // Filtragem
+  // Filtragem — "Realizada"/"Não Realizada" no lugar dos antigos 4 valores de
+  // status, seguindo completedAt (o mesmo sinal que STATUS OBRIGAÇÃO/AGENDA usam).
   const filteredDeliveries = deliveries.filter(d => {
-    const matchQuery = (d.standardizedName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                       (d.originalName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchQuery = (d.standardizedName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       (d.originalName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                        (d.client?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     if (statusFilter === 'ALL') return matchQuery;
-    return matchQuery && d.status === statusFilter;
+    if (statusFilter === 'REALIZADA') return matchQuery && !!d.completedAt;
+    if (statusFilter === 'NAO_REALIZADA') return matchQuery && !d.completedAt && d.status !== 'INATIVA';
+    return matchQuery;
   });
 
   const handleKanbanStatusChange = async (deliveryId: string, newStatus: string) => {
@@ -232,7 +226,7 @@ export default function EntregasPage() {
     try {
       await apiRequest(`/deliveries/${deliveryId}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ tenantId, status: newStatus, authorName: 'Usuário Web' })
       });
     } catch (err) {
       console.error(err);
@@ -243,8 +237,8 @@ export default function EntregasPage() {
 
   // Estatisticas para o painel de conformidade
   const totalCount = deliveries.length;
-  const completedCount = deliveries.filter(d => d.status === 'CONCLUIDA').length;
-  const pendingCount = deliveries.filter(d => d.status === 'PREVISTA' || d.status === 'ANDAMENTO' || d.status === 'ATRASADA').length;
+  const completedCount = deliveries.filter(d => !!d.completedAt).length;
+  const pendingCount = deliveries.filter(d => !d.completedAt && d.status !== 'INATIVA').length;
   const complianceRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
 
   return (
@@ -320,7 +314,7 @@ export default function EntregasPage() {
             </div>
             <div className="flex-1 sm:flex-none p-5 bg-amber-500/10 backdrop-blur-xl border border-amber-500/20 rounded-3xl flex flex-col items-center text-center min-w-[140px]">
               <span className="text-3xl font-black text-amber-400 tracking-tight">{pendingCount}</span>
-              <span className="text-xs font-bold text-amber-500 uppercase tracking-wider mt-1">Em Andamento</span>
+              <span className="text-xs font-bold text-amber-500 uppercase tracking-wider mt-1">Não Realizadas</span>
             </div>
           </div>
         </div>
@@ -369,10 +363,8 @@ export default function EntregasPage() {
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
           {[
             { id: 'ALL', label: 'Todas' },
-            { id: 'PREVISTA', label: 'Previstas' },
-            { id: 'ANDAMENTO', label: 'Em Andamento' },
-            { id: 'ATRASADA', label: 'Atrasadas' },
-            { id: 'CONCLUIDA', label: 'Concluídas' },
+            { id: 'NAO_REALIZADA', label: 'Não Realizadas' },
+            { id: 'REALIZADA', label: 'Realizadas' },
           ].map(filter => (
             <button
               key={filter.id}
@@ -390,12 +382,15 @@ export default function EntregasPage() {
       </div>
       </div>
 
-      {/* SlideOver 360º Wrapper */}
-      <DeliverySlideOver 
-        isOpen={isSlideOverOpen} 
-        onClose={() => setIsSlideOverOpen(false)} 
-        delivery={slideOverDelivery} 
-        onStatusChanged={fetchDeliveries}
+      {/* Modal de Detalhe (mesmo componente usado em Entregas Mensais) */}
+      <DeliveryTaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          fetchDeliveries();
+        }}
+        delivery={taskModalDelivery}
+        tenantId={tenantId}
         userRole={profile?.role}
       />
 
@@ -444,21 +439,9 @@ export default function EntregasPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Padronizado (Macro)</label>
-                    <input required type="text" value={formData.standardizedName} onChange={e => setFormData({...formData, standardizedName: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Apuração PIS/COFINS" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
-                    <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-semibold outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-                      <option value="PREVISTA">Prevista</option>
-                      <option value="ANDAMENTO">Em Andamento</option>
-                      <option value="ATRASADA">Atrasada</option>
-                      <option value="CONCLUIDA">Concluída</option>
-                      <option value="INATIVA">Inativa</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Padronizado (Macro)</label>
+                  <input required type="text" value={formData.standardizedName} onChange={e => setFormData({...formData, standardizedName: e.target.value})} className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" placeholder="Ex: Apuração PIS/COFINS" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Original (Detalhado)</label>
@@ -496,10 +479,11 @@ export default function EntregasPage() {
         </div>
       ) : viewMode === 'KANBAN' ? (
         <div className="w-full mt-6 h-[calc(100vh-280px)]">
-          <DeliveryKanbanBoard 
-            deliveries={filteredDeliveries} 
-            onDeliveryClick={(d) => openSlideOver360(d)} 
-            onStatusChange={handleKanbanStatusChange} 
+          <DeliveryKanbanBoard
+            deliveries={filteredDeliveries}
+            onDeliveryClick={(d) => openTaskModal(d)}
+            onStatusChange={handleKanbanStatusChange}
+            userRole={profile?.role}
           />
         </div>
       ) : (
@@ -520,9 +504,9 @@ export default function EntregasPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredDeliveries.map((delivery) => (
-                <tr 
-                  key={delivery.id} 
-                  onClick={() => openSlideOver360(delivery)}
+                <tr
+                  key={delivery.id}
+                  onClick={() => openTaskModal(delivery)}
                   className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
                 >
                   <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">
@@ -542,29 +526,10 @@ export default function EntregasPage() {
                     {delivery.responsible?.name || '-'}
                   </td>
                   <td className="px-6 py-4">
-                    {delivery.status === 'CONCLUIDA' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Concluída
-                      </span>
-                    )}
-                    {delivery.status === 'ANDAMENTO' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                        <Clock className="w-3.5 h-3.5" />
-                        Em Andamento
-                      </span>
-                    )}
-                    {delivery.status === 'PREVISTA' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                        <Clock className="w-3.5 h-3.5" />
-                        Prevista
-                      </span>
-                    )}
-                    {delivery.status === 'INATIVA' && (
+                    {delivery.status === 'INATIVA' ? (
                       <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">Inativa</span>
-                    )}
-                    {delivery.status === 'ATRASADA' && (
-                      <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold border border-rose-200 dark:border-rose-500/20">Atrasada</span>
+                    ) : (
+                      <DeliveryStatusBadges delivery={delivery} size="xs" />
                     )}
                   </td>
                   {profile?.role !== 'OPERATOR' && (
