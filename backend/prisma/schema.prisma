@@ -73,9 +73,14 @@ model User {
   tenantId String
   tenant   Tenant @relation("UserTenant", fields: [tenantId], references: [id], onDelete: Cascade)
 
-  // Link to Employee if role is OPERATOR
-  employeeId String?  @unique
-  employee   Employee? @relation("UserEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  // Link to Employee if role is OPERATOR — id solto, sem @relation: User vive
+  // só no schema public, Employee é replicado por tenant, então uma FK real
+  // aqui aponta pro Employee "fantasma" do schema public (sempre vazio) e
+  // quebra com "Foreign key constraint violated" ao gravar o id de verdade,
+  // que só existe no schema do tenant. Mesmo padrão de
+  // ActivityCatalog.taxonomyNodeId -> TaxonomyNode: resolvido manualmente
+  // (aqui, via PrismaClientManager.getClient no service que precisar).
+  employeeId String? @unique
 
   // Tenants managed by this Consultant
   managedTenants Tenant[] @relation("TenantConsultant")
@@ -197,8 +202,6 @@ model Employee {
   level       String? // Júnior, Pleno, Sênior, etc.
   grossSalary Float?
   status      String  @default("ACTIVE")
-  
-  user        User?   @relation("UserEmployee")
 
   ledSubdivisions Subdivision[] @relation("SubdivisionLeader")
 
