@@ -142,13 +142,14 @@ export default function CycleTeamPage({
                 <th className="px-8 py-5 font-bold">Colaborador</th>
                 <th className="px-8 py-5 font-bold">Cargo</th>
                 <th className="px-8 py-5 font-bold">Horas Alocadas</th>
+                <th className="px-8 py-5 font-bold" title="Clientes onde é líder ou operador em alguma frente">Clientes</th>
                 <th className="px-8 py-5 text-right font-bold w-32">Ações</th>
               </tr>
             </thead>
             {isLoading ? (
               <tbody>
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-20 text-center text-slate-500">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-teal-500" />
                     <p className="font-bold text-sm">Carregando equipe alocada...</p>
                   </td>
@@ -157,7 +158,7 @@ export default function CycleTeamPage({
             ) : uniqueTeam.length === 0 ? (
               <tbody>
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-20 text-center text-slate-500">
                     <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-inner">
                       <Users className="w-10 h-10 text-slate-300" />
                     </div>
@@ -194,6 +195,15 @@ export default function CycleTeamPage({
                       </td>
                       <td className="px-8 py-5 text-slate-600 font-semibold">{member.employee?.role || '-'}</td>
                       <td className="px-8 py-5 text-slate-600 font-semibold">{member.allocatedHours}h</td>
+                      <td className="px-8 py-5">
+                        {member.employee?.linkedClientsCount > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Remover ou desativar este colaborador afeta estes clientes">
+                            {member.employee.linkedClientsCount} cliente{member.employee.linkedClientsCount > 1 ? 's' : ''}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-slate-400">Nenhum</span>
+                        )}
+                      </td>
                       <td className="px-8 py-5 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                           <button 
@@ -270,6 +280,11 @@ export default function CycleTeamPage({
                       {member.employee?.role || '-'}
                     </span>
                   </div>
+                  {member.employee?.linkedClientsCount > 0 && (
+                    <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0" title="Remover ou desativar este colaborador afeta estes clientes">
+                      {member.employee.linkedClientsCount} cliente{member.employee.linkedClientsCount > 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100">

@@ -362,6 +362,42 @@ export class ManagementCyclesService {
       include: { employee: true, front: true },
     });
 
+    // Quantos clientes distintos dependem de cada colaborador como líder ou
+    // operador em alguma frente — usado pra avisar antes de desativar/
+    // excluir alguém que ainda está segurando carteira (mesmas 3 colunas
+    // checadas em employees.service.ts remove()).
+    const employeeIds = [...new Set(allocations.map((a) => a.employeeId))];
+    const classifications = employeeIds.length
+      ? await tenantPrisma.clientFrontClassification.findMany({
+          where: {
+            OR: [
+              { leaderId: { in: employeeIds } },
+              { operator1Id: { in: employeeIds } },
+              { operator2Id: { in: employeeIds } },
+            ],
+          },
+          select: {
+            clientId: true,
+            leaderId: true,
+            operator1Id: true,
+            operator2Id: true,
+          },
+        })
+      : [];
+
+    const clientsByEmployee = new Map<string, Set<string>>();
+    const link = (empId: string | null, clientId: string) => {
+      if (!empId) return;
+      if (!clientsByEmployee.has(empId))
+        clientsByEmployee.set(empId, new Set());
+      clientsByEmployee.get(empId)!.add(clientId);
+    };
+    classifications.forEach((c) => {
+      link(c.leaderId, c.clientId);
+      link(c.operator1Id, c.clientId);
+      link(c.operator2Id, c.clientId);
+    });
+
     return allocations.map((alloc: any) => ({
       id: alloc.id,
       employeeId: alloc.employeeId,
@@ -370,7 +406,13 @@ export class ManagementCyclesService {
       leaderId: alloc.leaderId,
       allocatedHours: alloc.dailyAvailableTime || 0,
       status: alloc.status,
-      employee: alloc.employee,
+      employee: alloc.employee
+        ? {
+            ...alloc.employee,
+            linkedClientsCount:
+              clientsByEmployee.get(alloc.employeeId)?.size || 0,
+          }
+        : alloc.employee,
       frontName: alloc.front?.name,
     }));
   }

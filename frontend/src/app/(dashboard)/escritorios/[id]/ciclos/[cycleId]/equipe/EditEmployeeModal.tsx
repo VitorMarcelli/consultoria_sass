@@ -44,6 +44,15 @@ export default function EditEmployeeModal({ isOpen, onClose, tenantId, employeeD
       return;
     }
 
+    const linkedClientsCount = employeeData?.linkedClientsCount || 0;
+    const isDeactivating = employeeData?.status !== 'INACTIVE' && status === 'INACTIVE';
+    if (isDeactivating && linkedClientsCount > 0) {
+      const proceed = confirm(
+        `${name} ainda é líder ou operador em ${linkedClientsCount} cliente${linkedClientsCount > 1 ? 's' : ''}. Desativar mesmo assim? Isso não remove o vínculo com esses clientes — só marca o colaborador como inativo.`
+      );
+      if (!proceed) return;
+    }
+
     setIsLoading(true);
     try {
       await apiRequest(`/employees/${employeeData.id}`, {
@@ -170,6 +179,11 @@ export default function EditEmployeeModal({ isOpen, onClose, tenantId, employeeD
                           <option value="ACTIVE">Ativo</option>
                           <option value="INACTIVE">Inativo</option>
                         </select>
+                        {employeeData?.linkedClientsCount > 0 && (
+                          <p className="text-xs font-semibold text-amber-600 mt-1.5">
+                            Líder ou operador em {employeeData.linkedClientsCount} cliente{employeeData.linkedClientsCount > 1 ? 's' : ''} — desativar não remove esses vínculos.
+                          </p>
+                        )}
                       </div>
                     </div>
 
