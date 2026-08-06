@@ -50,6 +50,15 @@ export class EmployeesService {
 
     let authUserId: string | null = null;
     if (data.createAccount && data.email) {
+      // Mesma regra da criação de Consultor (users.service.ts createConsultant):
+      // senha é escolhida por quem cadastra, com um fallback só por
+      // compatibilidade com chamadores antigos que não mandam password.
+      if (data.password && String(data.password).length < 6) {
+        throw new BadRequestException(
+          'A senha deve ter no mínimo 6 caracteres.',
+        );
+      }
+
       const supabaseUrl = process.env.SUPABASE_URL;
       const serviceRoleKey =
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -67,7 +76,7 @@ export class EmployeesService {
       const { data: authData, error: authError } =
         await supabaseAdmin.auth.admin.createUser({
           email: data.email,
-          password: 'Sevilha123!', // Senha inicial padrão
+          password: data.password || 'Sevilha123!',
           email_confirm: true,
           user_metadata: { name: data.name },
         });
@@ -119,12 +128,17 @@ export class EmployeesService {
     });
 
     if (authUserId) {
+      // Só OPERATOR/LEADER são permitidos por este fluxo — ADMIN/CONSULTANT
+      // são papéis da Sevilha, não do quadro do escritório, e concedê-los
+      // aqui seria uma escalação de privilégio via um endpoint sem guard de
+      // role dedicado.
+      const userRole = data.userRole === 'LEADER' ? 'LEADER' : 'OPERATOR';
       await this.globalPrisma.user.create({
         data: {
           id: authUserId,
           email: data.email,
           name: data.name,
-          role: 'OPERATOR',
+          role: userRole,
           tenantId: tenantId,
           employeeId: result.id,
         },

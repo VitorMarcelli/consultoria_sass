@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, KeyRound } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,7 +25,13 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
   const [grossSalary, setGrossSalary] = useState('');
   const [status, setStatus] = useState('ACTIVE');
   const [observations, setObservations] = useState('');
-  
+
+  // Acesso ao sistema (login)
+  const [createAccount, setCreateAccount] = useState(false);
+  const [userRole, setUserRole] = useState<'OPERATOR' | 'LEADER'>('OPERATOR');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   // Allocation Data
   const [selectedFront, setSelectedFront] = useState('');
   const [selectedSubdivision, setSelectedSubdivision] = useState('');
@@ -76,6 +82,10 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
     setGrossSalary('');
     setStatus('ACTIVE');
     setObservations('');
+    setCreateAccount(false);
+    setUserRole('OPERATOR');
+    setPassword('');
+    setConfirmPassword('');
     setSelectedFront('');
     setSelectedSubdivision('');
     setAllocatedHours('6');
@@ -110,6 +120,21 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
       return;
     }
 
+    if (createAccount) {
+      if (!email) {
+        alert('Informe o e-mail profissional para criar o acesso ao sistema.');
+        return;
+      }
+      if (password.length < 6) {
+        alert('A senha de acesso deve ter no mínimo 6 caracteres.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        alert('As senhas não coincidem.');
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       await apiRequest(`/employees`, {
@@ -129,7 +154,10 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
           allocatedHours: parseFloat(allocatedHours),
           predictableRecurrentTimePercentage: prevPercent,
           unpredictableRecurrentTimePercentage: unprevPercent,
-          allocationStartDate: allocationStartDate
+          allocationStartDate: allocationStartDate,
+          createAccount,
+          userRole: createAccount ? userRole : undefined,
+          password: createAccount ? password : undefined
         })
       });
       onSuccess();
@@ -254,14 +282,72 @@ export default function EmployeeCycleModal({ isOpen, onClose, tenantId, cycleId,
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">E-mail Profissional</label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">E-mail Profissional{createAccount ? ' *' : ''}</label>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        required={createAccount}
                         placeholder="email@escritorio.com.br"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
                       />
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={createAccount}
+                          onChange={(e) => setCreateAccount(e.target.checked)}
+                          className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/30"
+                        />
+                        <span>
+                          <span className="block text-sm font-bold text-slate-700 flex items-center gap-1.5"><KeyRound className="w-3.5 h-3.5 text-teal-600" /> Criar acesso ao sistema (login)</span>
+                          <span className="block text-xs text-slate-500 mt-0.5">Cria uma conta pra esse colaborador entrar no Sevilha Performance, vinculada a este cadastro.</span>
+                        </span>
+                      </label>
+
+                      {createAccount && (
+                        <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Nível de Acesso</label>
+                            <select
+                              value={userRole}
+                              onChange={(e) => setUserRole(e.target.value as 'OPERATOR' | 'LEADER')}
+                              className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                            >
+                              <option value="OPERATOR">Operador (executa entregas)</option>
+                              <option value="LEADER">Líder (lidera uma equipe/célula)</option>
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Senha de Acesso *</label>
+                              <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required={createAccount}
+                                minLength={6}
+                                placeholder="Mínimo 6 caracteres"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Confirmar Senha *</label>
+                              <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required={createAccount}
+                                minLength={6}
+                                placeholder="Repita a senha"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
