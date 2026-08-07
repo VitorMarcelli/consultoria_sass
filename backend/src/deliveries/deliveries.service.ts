@@ -192,6 +192,30 @@ export class DeliveriesService {
     };
   }
 
+  // Override manual vindo da prévia editável de "Gerar do Catálogo" (o
+  // usuário viu a data calculada pela regra e ajustou pra este lote
+  // específico, sem mexer na regra reutilizável da atividade). Só usa o
+  // override se as 3 datas vierem completas — parcial demais pra confiar,
+  // cai de volta pra regra calculada.
+  private parseDateOverride(entry: any): {
+    legalDeadline: Date;
+    internalDeadline: Date;
+    executionDeadline: Date;
+  } | null {
+    if (
+      !entry?.legalDeadline ||
+      !entry?.internalDeadline ||
+      !entry?.executionDeadline
+    ) {
+      return null;
+    }
+    return {
+      legalDeadline: new Date(entry.legalDeadline),
+      internalDeadline: new Date(entry.internalDeadline),
+      executionDeadline: new Date(entry.executionDeadline),
+    };
+  }
+
   private async createFromActivityCatalog(tenantPrisma: any, data: any) {
     const activity = await tenantPrisma.activityCatalog.findUnique({
       where: { id: data.activityCatalogId },
@@ -220,7 +244,9 @@ export class DeliveriesService {
           sub.defaultEstimatedTimeMinutes,
           undefined,
         );
-        const deadlines = this.resolveActivityDeadlines(sub, data.competence);
+        const deadlines =
+          this.parseDateOverride(data.dateOverrides?.[sub.id]) ||
+          this.resolveActivityDeadlines(sub, data.competence);
         created.push(
           await tenantPrisma.delivery.create({
             data: this.buildDeliveryCreateData(data, {
@@ -242,7 +268,9 @@ export class DeliveriesService {
       activity.defaultEstimatedTimeMinutes,
       data.estimatedTimeMinutes,
     );
-    const deadlines = this.resolveActivityDeadlines(activity, data.competence);
+    const deadlines =
+      this.parseDateOverride(data.dateOverrides?.[activity.id]) ||
+      this.resolveActivityDeadlines(activity, data.competence);
     const delivery = await tenantPrisma.delivery.create({
       data: this.buildDeliveryCreateData(data, {
         frontId: activity.frontId,
@@ -406,6 +434,9 @@ export class DeliveriesService {
           activityCatalogId: activity.id,
           status: 'PREVISTA',
           priority: 'MEDIUM',
+          // Datas ajustadas na prévia editável do frontend (opcional) — sem
+          // isso, cada uma cai de volta pra regra calculada da atividade.
+          dateOverrides: data.dateOverrides,
         });
         createdCount += Array.isArray(result) ? result.length : 1;
       }

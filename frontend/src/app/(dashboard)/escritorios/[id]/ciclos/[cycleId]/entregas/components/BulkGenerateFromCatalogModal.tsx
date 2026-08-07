@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+import { X, Loader2, Sparkles, AlertTriangle, ChevronLeft, CalendarClock } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
+import { computeActivityDeadlines, hasCompleteDeadlineRule, toDateInputValue } from '@/utils/deliveryDates';
 
 interface BulkGenerateFromCatalogModalProps {
   isOpen: boolean;
@@ -11,6 +12,15 @@ interface BulkGenerateFromCatalogModalProps {
   tenantId: string;
   defaultCompetence: string;
   onGenerated: () => void;
+}
+
+interface PreviewRow {
+  key: string; // id da atividade (SIMPLE/CHECKLIST) ou da sub-atividade (SUBTASKS)
+  label: string;
+  hasRule: boolean;
+  legalDeadline: string; // "YYYY-MM-DD", pro <input type="date">
+  internalDeadline: string;
+  executionDeadline: string;
 }
 
 // "Automático" pra Nova Entrega: em vez de criar uma entrega de cada vez,
@@ -24,6 +34,7 @@ export default function BulkGenerateFromCatalogModal({
   defaultCompetence,
   onGenerated
 }: BulkGenerateFromCatalogModalProps) {
+  const [step, setStep] = useState<'SELECT' | 'PREVIEW'>('SELECT');
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -37,8 +48,11 @@ export default function BulkGenerateFromCatalogModal({
   const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
 
+  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
+
   useEffect(() => {
     if (!isOpen) return;
+    setStep('SELECT');
     setCompetence(defaultCompetence || '');
     setFrontId('');
     setActivities([]);
@@ -109,7 +123,43 @@ export default function BulkGenerateFromCatalogModal({
     });
   };
 
-  const handleSubmit = async () => {
+  // Uma linha por atividade (ou por sub-atividade, em modo Sub-atividades) —
+  // não por cliente x atividade: a regra + competência são as mesmas pra
+  // todo mundo selecionado, então a única variação real é por atividade. Se
+  // um cliente específico precisar de data diferente dos demais, isso já dá
+  // pra ajustar depois, editando aquela entrega pontual.
+  const buildPreviewRows = (): PreviewRow[] => {
+    const rows: PreviewRow[] = [];
+    const selected = activities.filter((a) => selectedActivityIds.has(a.id));
+
+    const pushRow = (key: string, label: string, rule: any) => {
+      const complete = hasCompleteDeadlineRule(rule);
+      const computed = complete
+        ? computeActivityDeadlines(rule, competence)
+        : { legalDeadline: null, internalDeadline: null, executionDeadline: null };
+      rows.push({
+        key,
+        label,
+        hasRule: complete,
+        legalDeadline: toDateInputValue(computed.legalDeadline),
+        internalDeadline: toDateInputValue(computed.internalDeadline),
+        executionDeadline: toDateInputValue(computed.executionDeadline)
+      });
+    };
+
+    for (const activity of selected) {
+      if (activity.compositionMode === 'SUBTASKS' && activity.subActivities?.length) {
+        for (const sub of activity.subActivities) {
+          pushRow(sub.id, `${activity.name} > ${sub.name}`, sub);
+        }
+      } else {
+        pushRow(activity.id, activity.name, activity);
+      }
+    }
+    return rows;
+  };
+
+  const handleGoToPreview = () => {
     if (!frontId || !competence.trim()) {
       alert('Selecione a Frente e informe a Competência.');
       return;
@@ -122,8 +172,34 @@ export default function BulkGenerateFromCatalogModal({
       alert('Selecione ao menos um cliente.');
       return;
     }
+    setPreviewRows(buildPreviewRows());
+    setStep('PREVIEW');
+  };
+
+  const updatePreviewDate = (
+    key: string,
+    field: 'legalDeadline' | 'internalDeadline' | 'executionDeadline',
+    value: string
+  ) => {
+    setPreviewRows((prev) => prev.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
+  };
+
+  const handleConfirm = async () => {
     setSubmitting(true);
     try {
+      // Só manda override pra linhas com regra completa E com as 3 datas
+      // preenchidas (se a pessoa apagar um campo, cai de volta pro cálculo
+      // padrão da atividade no backend, em vez de mandar uma data quebrada).
+      const dateOverrides: Record<string, { legalDeadline: string; internalDeadline: string; executionDeadline: string }> = {};
+      for (const row of previewRows) {
+        if (!row.hasRule || !row.legalDeadline || !row.internalDeadline || !row.executionDeadline) continue;
+        dateOverrides[row.key] = {
+          legalDeadline: `${row.legalDeadline}T12:00:00Z`,
+          internalDeadline: `${row.internalDeadline}T12:00:00Z`,
+          executionDeadline: `${row.executionDeadline}T12:00:00Z`
+        };
+      }
+
       const res = await apiRequest('/deliveries/bulk-from-catalog', {
         method: 'POST',
         body: JSON.stringify({
@@ -131,7 +207,8 @@ export default function BulkGenerateFromCatalogModal({
           frontId,
           competence,
           activityCatalogIds: Array.from(selectedActivityIds),
-          clientIds: Array.from(selectedClientIds)
+          clientIds: Array.from(selectedClientIds),
+          dateOverrides
         })
       });
       const parts = [`${res.createdCount} entrega(s) criada(s)`];
@@ -167,10 +244,12 @@ export default function BulkGenerateFromCatalogModal({
             <div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-teal-500" />
-                Gerar Entregas pelo Catálogo
+                {step === 'SELECT' ? 'Gerar Entregas pelo Catálogo' : 'Revisar Datas Antes de Gerar'}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 max-w-xl">
-                Cria de uma vez uma Entrega para cada cliente ativo desta Frente x cada atividade do Catálogo escolhida.
+                {step === 'SELECT'
+                  ? 'Cria de uma vez uma Entrega para cada cliente ativo desta Frente x cada atividade do Catálogo escolhida.'
+                  : 'As datas abaixo vêm da Regra de Prazos de cada atividade. Ajuste aqui se este mês for diferente do padrão — vale pra todos os clientes selecionados.'}
               </p>
             </div>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0">
@@ -183,7 +262,7 @@ export default function BulkGenerateFromCatalogModal({
               <div className="flex justify-center py-10">
                 <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
               </div>
-            ) : (
+            ) : step === 'SELECT' ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -272,21 +351,83 @@ export default function BulkGenerateFromCatalogModal({
                   </div>
                 )}
               </>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  {selectedClientIds.size} cliente(s) selecionado(s) vão receber estas datas pra cada atividade abaixo:
+                </p>
+                {previewRows.map((row) => (
+                  <div
+                    key={row.key}
+                    className={`p-4 rounded-2xl border ${row.hasRule ? 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950' : 'border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-500/10'}`}
+                  >
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-2">
+                      <CalendarClock className="w-4 h-4 text-teal-500 shrink-0" />
+                      {row.label}
+                    </p>
+                    {!row.hasRule ? (
+                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                        Sem Regra de Prazos configurada — esta atividade será pulada na geração.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Vencimento</label>
+                          <input
+                            type="date"
+                            value={row.legalDeadline}
+                            onChange={(e) => updatePreviewDate(row.key, 'legalDeadline', e.target.value)}
+                            className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Prazo Interno</label>
+                          <input
+                            type="date"
+                            value={row.internalDeadline}
+                            onChange={(e) => updatePreviewDate(row.key, 'internalDeadline', e.target.value)}
+                            className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Data Prevista</label>
+                          <input
+                            type="date"
+                            value={row.executionDeadline}
+                            onChange={(e) => updatePreviewDate(row.key, 'executionDeadline', e.target.value)}
+                            className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
-            <button type="button" onClick={onClose} className="px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">
-              Cancelar
-            </button>
+          <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+            {step === 'PREVIEW' ? (
+              <button
+                type="button"
+                onClick={() => setStep('SELECT')}
+                className="px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors flex items-center gap-1.5"
+              >
+                <ChevronLeft className="w-4 h-4" /> Voltar
+              </button>
+            ) : (
+              <button type="button" onClick={onClose} className="px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">
+                Cancelar
+              </button>
+            )}
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={step === 'SELECT' ? handleGoToPreview : handleConfirm}
               disabled={submitting || loadingOptions}
               className="px-6 py-3 text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-2xl transition-colors flex items-center gap-2 shadow-lg shadow-teal-600/20 disabled:opacity-60"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              Gerar Entregas
+              {step === 'SELECT' ? 'Ver Prévia' : 'Confirmar e Gerar'}
             </button>
           </div>
         </motion.div>

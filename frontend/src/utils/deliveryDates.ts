@@ -62,6 +62,24 @@ function formatShort(date: Date | null): string {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
+// Regra completa = as 3 datas resolveriam sem nenhum null.
+export function hasCompleteDeadlineRule(rule: ActivityDeadlineRule): boolean {
+  return (
+    rule.legalDeadlineDay != null &&
+    rule.internalDeadlineOffsetDays != null &&
+    rule.executionDeadlineOffsetDays != null
+  );
+}
+
+// "YYYY-MM-DD" pra <input type="date"> — null vira string vazia.
+export function toDateInputValue(date: Date | null): string {
+  if (!date) return '';
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function formatDeadlinePreview(
   rule: ActivityDeadlineRule,
   competence: string = currentCompetence()
