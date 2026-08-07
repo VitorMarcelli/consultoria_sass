@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -12,7 +12,8 @@ import {
   ListChecks,
   Layers,
   Workflow,
-  CalendarClock
+  CalendarClock,
+  Minus
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { formatDeadlinePreview, currentCompetence } from '@/utils/deliveryDates';
@@ -56,6 +57,103 @@ interface ActivityCatalogModalProps {
   tenantId: string;
   isAdmin: boolean;
   onChanged?: () => void;
+}
+
+// Grid de dias (1-31) pra escolher o Vencimento — "dia do mês seguinte" é
+// literalmente "clicar num dia", diferente dos outros dois campos da Regra
+// de Prazos, que são durações ("N dias antes"), não datas marcáveis num
+// calendário. Se não funcionar bem na prática, é só reverter este arquivo —
+// nada fora daqui depende do jeito como esse campo é editado.
+function DayOfMonthPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selected = value ? parseInt(value, 10) : null;
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 flex items-center justify-between"
+      >
+        <span className={selected ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-400'}>
+          {selected ? `Dia ${selected}` : 'Selecionar dia...'}
+        </span>
+        <CalendarClock className="w-4 h-4 text-slate-400 shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1.5 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl w-[15.5rem]">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dia do mês seguinte à competência</p>
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((day) => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => {
+                  onChange(String(day));
+                  setOpen(false);
+                }}
+                className={`h-7 w-7 rounded-lg text-xs font-bold transition-colors ${
+                  selected === day
+                    ? 'bg-teal-600 text-white'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-teal-500/10'
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Stepper pra campos de duração ("N dias antes") — diferente do Vencimento,
+// não são datas, então um calendário não se aplica aqui; mesma linguagem
+// visual do stepper já usado em Configurações > Controle de Acessos.
+function DaysOffsetStepper({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const numeric = value ? parseInt(value, 10) : 0;
+
+  const change = (delta: number) => {
+    onChange(String(Math.max(0, numeric + delta)));
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-1 h-10 px-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <button
+        type="button"
+        onClick={() => change(-1)}
+        disabled={numeric <= 0}
+        className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-teal-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <Minus className="w-3.5 h-3.5" />
+      </button>
+      <span className="text-sm font-black text-slate-800 dark:text-slate-100 text-center truncate">
+        {numeric} {numeric === 1 ? 'dia' : 'dias'}
+      </span>
+      <button
+        type="button"
+        onClick={() => change(1)}
+        className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-teal-600 transition-colors"
+      >
+        <Plus className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
 }
 
 // Cadastro de Atividades do escritório (aponta pra Taxonomia global) — vivia
@@ -459,36 +557,23 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">1. Vencimento — dia do mês seguinte</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
+                        <DayOfMonthPicker
                           value={form.legalDeadlineDay}
-                          onChange={(e) => setForm({ ...form, legalDeadlineDay: e.target.value })}
-                          placeholder="Ex: 20 (vence dia 20)"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                          onChange={(v) => setForm({ ...form, legalDeadlineDay: v })}
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">2. Prazo Interno — dias antes do Vencimento</label>
-                        <input
-                          type="number"
-                          min="0"
+                        <DaysOffsetStepper
                           value={form.internalDeadlineOffsetDays}
-                          onChange={(e) => setForm({ ...form, internalDeadlineOffsetDays: e.target.value })}
-                          placeholder="Ex: 5 (5 dias antes)"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                          onChange={(v) => setForm({ ...form, internalDeadlineOffsetDays: v })}
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">3. Data Prevista — dias antes do Interno</label>
-                        <input
-                          type="number"
-                          min="0"
+                        <DaysOffsetStepper
                           value={form.executionDeadlineOffsetDays}
-                          onChange={(e) => setForm({ ...form, executionDeadlineOffsetDays: e.target.value })}
-                          placeholder="Ex: 3 (3 dias antes)"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                          onChange={(v) => setForm({ ...form, executionDeadlineOffsetDays: v })}
                         />
                       </div>
                     </div>
@@ -638,42 +723,29 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
                                 />
                               </div>
                               <div className="grid grid-cols-3 gap-2">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="31"
+                                <DayOfMonthPicker
                                   value={sub.legalDeadlineDay}
-                                  onChange={(e) => {
+                                  onChange={(v) => {
                                     const next = [...subActivities];
-                                    next[idx] = { ...next[idx], legalDeadlineDay: e.target.value };
+                                    next[idx] = { ...next[idx], legalDeadlineDay: v };
                                     setSubActivities(next);
                                   }}
-                                  placeholder="Vencimento (dia)"
-                                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                                 />
-                                <input
-                                  type="number"
-                                  min="0"
+                                <DaysOffsetStepper
                                   value={sub.internalDeadlineOffsetDays}
-                                  onChange={(e) => {
+                                  onChange={(v) => {
                                     const next = [...subActivities];
-                                    next[idx] = { ...next[idx], internalDeadlineOffsetDays: e.target.value };
+                                    next[idx] = { ...next[idx], internalDeadlineOffsetDays: v };
                                     setSubActivities(next);
                                   }}
-                                  placeholder="Interno (dias antes)"
-                                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                                 />
-                                <input
-                                  type="number"
-                                  min="0"
+                                <DaysOffsetStepper
                                   value={sub.executionDeadlineOffsetDays}
-                                  onChange={(e) => {
+                                  onChange={(v) => {
                                     const next = [...subActivities];
-                                    next[idx] = { ...next[idx], executionDeadlineOffsetDays: e.target.value };
+                                    next[idx] = { ...next[idx], executionDeadlineOffsetDays: v };
                                     setSubActivities(next);
                                   }}
-                                  placeholder="Prevista (dias antes)"
-                                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                                 />
                               </div>
                               {sub.legalDeadlineDay && sub.internalDeadlineOffsetDays && sub.executionDeadlineOffsetDays && (
