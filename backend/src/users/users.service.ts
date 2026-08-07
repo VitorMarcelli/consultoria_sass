@@ -109,6 +109,23 @@ export class UsersService {
     });
   }
 
+  // Sem restrição de mesmo tenant de propósito: ADMIN é papel
+  // global/cross-tenant neste sistema (mesmo motivo de findAll() acima
+  // devolver todo mundo sem filtro pra quem é ADMIN) — a checagem de "só
+  // ADMIN chama isso" já é feita pelo RolesGuard no controller.
+  async updateAccessLimit(targetId: string, maxConcurrentSessions: number) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetId },
+    });
+    if (!target) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+    return this.prisma.user.update({
+      where: { id: targetId },
+      data: { maxConcurrentSessions },
+    });
+  }
+
   async updateRole(
     requesterId: string,
     targetId: string,

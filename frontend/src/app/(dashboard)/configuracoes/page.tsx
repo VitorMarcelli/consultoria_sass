@@ -1,18 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Bell, Shield, Palette, Globe, Database, Construction } from 'lucide-react';
+import { Settings, Bell, Shield, Palette, Globe, Database, Construction, KeyRound } from 'lucide-react';
 import ProfileForm from './ProfileForm';
 import NotificationPreferencesForm from './NotificationPreferencesForm';
 import SecurityForm from './SecurityForm';
 import AppearanceForm from './AppearanceForm';
+import AccessControlForm from './AccessControlForm';
+import { apiRequest } from '@/utils/api';
 
 
 export default function ConfiguracoesPage() {
   const [activeTab, setActiveTab] = useState('Perfil & Conta');
+  const [role, setRole] = useState<string | null>(null);
 
-  const tabs = [
+  useEffect(() => {
+    apiRequest('/users/me')
+      .then((me) => setRole(me?.role || null))
+      .catch(() => setRole(null));
+  }, []);
+
+  const baseTabs = [
     { name: 'Perfil & Conta', desc: 'Gerencie suas informações', icon: Settings },
 
     { name: 'Notificações', desc: 'Configure seus alertas', icon: Bell },
@@ -20,6 +29,11 @@ export default function ConfiguracoesPage() {
     { name: 'Aparência', desc: 'Tema e interface', icon: Palette },
     { name: 'Integrações', desc: 'Conecte ferramentas', icon: Globe },
   ];
+
+  // Aba admin-only — só entra na lista quando o usuário logado é ADMIN.
+  const tabs = role === 'ADMIN'
+    ? [...baseTabs, { name: 'Controle de Acessos', desc: 'Somente administradores', icon: KeyRound }]
+    : baseTabs;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -77,6 +91,8 @@ export default function ConfiguracoesPage() {
                 <SecurityForm />
               ) : activeTab === 'Aparência' ? (
                 <AppearanceForm />
+              ) : activeTab === 'Controle de Acessos' ? (
+                <AccessControlForm />
               ) : (
                 <div className="relative overflow-hidden rounded-container bg-gradient-to-br from-teal-600 to-teal-900 p-10 shadow-lg shadow-teal-900/10 border border-teal-500/20">
                   <div className="absolute right-0 top-0 -mt-16 -mr-16 h-56 w-56 rounded-full bg-white/10 blur-[80px] mix-blend-screen pointer-events-none"></div>

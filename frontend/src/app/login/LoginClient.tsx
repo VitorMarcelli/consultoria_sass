@@ -180,8 +180,17 @@ export default function LoginClient({ error, revoked }: { error?: string; revoke
           )}
 
           {/* Error Alert */}
-          {error && (
-            <motion.div 
+          {error && error === 'session_limit' ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 shadow-sm"
+            >
+              <Shield className="h-5 w-5 flex-shrink-0 text-amber-600" />
+              <span className="text-sm font-semibold">Limite de acessos simultâneos atingido para esta conta. Desconecte um dispositivo em Configurações ou peça a um administrador para aumentar o limite.</span>
+            </motion.div>
+          ) : error ? (
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="mb-8 flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-teal-700 shadow-sm"
@@ -189,7 +198,7 @@ export default function LoginClient({ error, revoked }: { error?: string; revoke
               <Shield className="h-5 w-5 flex-shrink-0 text-teal-500" />
               <span className="text-sm font-semibold">Credenciais inválidas. Verifique seu e-mail e senha.</span>
             </motion.div>
-          )}
+          ) : null}
 
           <form action={login} className="space-y-6">
             <motion.div variants={fadeUp} className="space-y-1.5">

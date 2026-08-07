@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CreateConsultantDto } from './dto/create-consultant.dto';
+import { UpdateAccessLimitDto } from './dto/update-access-limit.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -40,6 +43,18 @@ export class UsersController {
 
     // Caso contrário, vê apenas os do mesmo tenant
     return this.usersService.findAllByTenant(dbUser.tenantId);
+  }
+
+  // Só ADMIN (papel global/cross-tenant) edita o limite de qualquer conta do
+  // sistema — ver plano "Limite de Acessos Simultâneos por Conta".
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Patch(':id/access-limit')
+  async updateAccessLimit(
+    @Param('id') id: string,
+    @Body() body: UpdateAccessLimitDto,
+  ) {
+    return this.usersService.updateAccessLimit(id, body.maxConcurrentSessions);
   }
 
   @Patch(':id/role')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import UAParser from 'ua-parser-js';
 
@@ -70,16 +70,36 @@ export class AuthService {
       // Silencioso em caso de timeout para não travar o login
     }
 
-    // Regra de concorrência única: desativar as sessões anteriores deste usuário
-    await this.prisma.userSession.updateMany({
-      where: { userId, isActive: true },
-      data: { isActive: false, status: 'SUPERSEDED' },
+    // Limite de sessões simultâneas: em vez de sempre derrubar as sessões
+    // anteriores (regra antiga, fixa em 1 pra todo mundo), agora só bloqueia
+    // o login NOVO quando a conta já está no teto configurado — as sessões
+    // existentes não são tocadas.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { maxConcurrentSessions: true },
     });
+    const limit = user?.maxConcurrentSessions ?? 1;
 
-    // Upsert da sessão atual
     const existing = await this.prisma.userSession.findFirst({
       where: { refreshToken: sessionId, userId },
     });
+    // Um dispositivo que já está ATIVO (ex: refresh de token no mesmo
+    // navegador) nunca conta como slot novo. Um dispositivo que existe mas
+    // está INATIVO (foi revogado/superado antes) reativar ELE consome um
+    // slot novo de verdade — por isso a checagem é isActive, não só "existe".
+    const isSameActiveDevice = existing?.isActive === true;
+
+    const otherActiveCount = await this.prisma.userSession.count({
+      where: {
+        userId,
+        isActive: true,
+        ...(existing ? { NOT: { id: existing.id } } : {}),
+      },
+    });
+
+    if (!isSameActiveDevice && otherActiveCount >= limit) {
+      throw new ForbiddenException('SESSION_LIMIT_REACHED');
+    }
 
     if (existing) {
       return this.prisma.userSession.update({

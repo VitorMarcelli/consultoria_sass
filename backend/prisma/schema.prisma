@@ -89,6 +89,12 @@ model User {
   startDate    DateTime?
   observations String?
 
+  // Quantos dispositivos/sessões esta conta pode manter logados ao mesmo
+  // tempo — hoje era sempre 1 (fixo), agora editável só por ADMIN. Ver
+  // auth.service.ts createSession(). Default 1 preserva o comportamento
+  // atual pra todo mundo até um admin decidir aumentar.
+  maxConcurrentSessions Int @default(1)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
