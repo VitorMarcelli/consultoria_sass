@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Recurse -Filter \"*.prisma\")",
+      "Bash(Get-Content backend/src/deliveries/deliveries.service.ts -TotalCount 40)",
+      "Bash(npx prisma *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(npm run *)",
+      "Bash(echo \"BUILD_EXIT=$?\")"
+    ]
+  }
+}

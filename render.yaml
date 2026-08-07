@@ -3,6 +3,7 @@ services:
     name: consultoria-backend
     env: node
     plan: standard
+    region: ohio
     rootDir: backend
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm run start:prod
