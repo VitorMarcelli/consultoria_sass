@@ -33,10 +33,20 @@ export async function login(formData: FormData) {
     const token = authData?.session?.access_token
 
     if (token) {
-      // Gerar e gravar device_session_id exclusivo em cookie para evitar divergência de session_id do Supabase
-      const deviceSessionId = crypto.randomUUID()
+      // Reaproveita o device_session_id já salvo neste navegador, se existir
+      // — só gera um novo na primeira vez. Antes deste recurso de limite de
+      // acessos, regerar a cada login era inofensivo (o backend só olhava
+      // "existe uma sessão mais nova?"); agora a identidade do dispositivo
+      // precisa ser estável entre logins pra createSession() reconhecer "é o
+      // mesmo aparelho relogando" em vez de contar como um slot novo a cada
+      // vez — sem isso, relogar repetidas vezes no mesmo navegador ia
+      // acumulando sessões "ativas" pra sempre até estourar qualquer limite.
       const cookieStore = await cookies()
-      cookieStore.set('device_session_id', deviceSessionId, { path: '/', maxAge: 60 * 60 * 24 * 30, httpOnly: false })
+      let deviceSessionId = cookieStore.get('device_session_id')?.value
+      if (!deviceSessionId) {
+        deviceSessionId = crypto.randomUUID()
+        cookieStore.set('device_session_id', deviceSessionId, { path: '/', maxAge: 60 * 60 * 24 * 30, httpOnly: false })
+      }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
       const res = await fetch(`${apiUrl}/auth/sessions`, {
