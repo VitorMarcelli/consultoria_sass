@@ -11,9 +11,11 @@ import {
   Loader2,
   ListChecks,
   Layers,
-  Workflow
+  Workflow,
+  CalendarClock
 } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
+import { formatDeadlinePreview, currentCompetence } from '@/utils/deliveryDates';
 
 const MODE_LABELS: Record<string, string> = {
   SIMPLE: 'Simples',
@@ -452,42 +454,61 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Regra de Prazos</label>
                     <p className="text-[10px] text-slate-400 font-semibold mb-3">
                       Obrigatória: sem ela não é possível criar entregas (manual ou em lote) a partir desta atividade.
+                      As 3 datas se encadeiam: a Data Prevista vem antes do Prazo Interno, que vem antes do Vencimento.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Vencimento (dia do mês seguinte)</label>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">1. Vencimento — dia do mês seguinte</label>
                         <input
                           type="number"
                           min="1"
                           max="31"
                           value={form.legalDeadlineDay}
                           onChange={(e) => setForm({ ...form, legalDeadlineDay: e.target.value })}
-                          placeholder="Ex: 20"
+                          placeholder="Ex: 20 (vence dia 20)"
                           className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Prazo Interno (dias antes)</label>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">2. Prazo Interno — dias antes do Vencimento</label>
                         <input
                           type="number"
                           min="0"
                           value={form.internalDeadlineOffsetDays}
                           onChange={(e) => setForm({ ...form, internalDeadlineOffsetDays: e.target.value })}
-                          placeholder="Ex: 5"
+                          placeholder="Ex: 5 (5 dias antes)"
                           className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Data Prevista (dias antes do Interno)</label>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">3. Data Prevista — dias antes do Interno</label>
                         <input
                           type="number"
                           min="0"
                           value={form.executionDeadlineOffsetDays}
                           onChange={(e) => setForm({ ...form, executionDeadlineOffsetDays: e.target.value })}
-                          placeholder="Ex: 3"
+                          placeholder="Ex: 3 (3 dias antes)"
                           className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 px-3 text-sm font-medium outline-none focus:border-teal-500 transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                         />
                       </div>
+                    </div>
+
+                    {/* Preview ao vivo: transforma os 3 números abstratos num exemplo concreto */}
+                    <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-teal-50/60 dark:bg-teal-500/10 border border-teal-200/60 dark:border-teal-900/40">
+                      <CalendarClock className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                      {form.legalDeadlineDay && form.internalDeadlineOffsetDays && form.executionDeadlineOffsetDays ? (
+                        <p className="text-xs font-bold text-teal-800 dark:text-teal-300">
+                          Exemplo pra uma entrega de {currentCompetence()}: {formatDeadlinePreview({
+                            legalDeadlineDay: parseInt(form.legalDeadlineDay, 10),
+                            internalDeadlineOffsetDays: parseInt(form.internalDeadlineOffsetDays, 10),
+                            executionDeadlineOffsetDays: parseInt(form.executionDeadlineOffsetDays, 10)
+                          })}
+                        </p>
+                      ) : (
+                        <p className="text-xs font-semibold text-teal-700/70 dark:text-teal-400/70">
+                          Preencha os 3 campos acima para ver um exemplo de como as datas ficam na prática.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -655,6 +676,16 @@ export default function ActivityCatalogModal({ isOpen, onClose, tenantId, isAdmi
                                   className="h-9 rounded-lg border border-slate-200 dark:border-slate-800 px-3 text-xs font-medium outline-none focus:border-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                                 />
                               </div>
+                              {sub.legalDeadlineDay && sub.internalDeadlineOffsetDays && sub.executionDeadlineOffsetDays && (
+                                <p className="text-[10px] font-bold text-teal-700 dark:text-teal-400 flex items-center gap-1">
+                                  <CalendarClock className="w-3 h-3 shrink-0" />
+                                  {formatDeadlinePreview({
+                                    legalDeadlineDay: parseInt(sub.legalDeadlineDay, 10),
+                                    internalDeadlineOffsetDays: parseInt(sub.internalDeadlineOffsetDays, 10),
+                                    executionDeadlineOffsetDays: parseInt(sub.executionDeadlineOffsetDays, 10)
+                                  })}
+                                </p>
+                              )}
                             </div>
                           ))}
                           <button
