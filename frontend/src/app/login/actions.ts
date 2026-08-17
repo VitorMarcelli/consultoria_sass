@@ -76,6 +76,35 @@ export async function login(formData: FormData) {
   }
 
   if (sessionRejected) {
+    // Caso específico de limite de acessos: em vez de jogar a pessoa de
+    // volta pro login com um beco sem saída ("peça pra um admin"), guardamos
+    // os tokens da sessão Supabase que JÁ tinha logado com sucesso (server
+    // actions não expõem isso ao client) num cookie httpOnly de vida curta,
+    // e mandamos pra uma tela de autoatendimento onde ela mesma escolhe
+    // qual dispositivo desconectar. scope:'local' limpa só os cookies desta
+    // aba (fechando o desvio de simplesmente navegar pra "/" sem nunca
+    // completar o registro de sessão) sem revogar o refresh token no
+    // Supabase, que ainda vai ser reaproveitado se ela liberar uma vaga.
+    if (rejectionReason === 'session_limit' && authData?.session?.refresh_token) {
+      await supabase.auth.signOut({ scope: 'local' })
+
+      const cookieStore = await cookies()
+      const payload = Buffer.from(
+        JSON.stringify({
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
+        })
+      ).toString('base64')
+      cookieStore.set('pending_login', payload, {
+        path: '/login',
+        httpOnly: true,
+        maxAge: 60 * 5,
+        secure: process.env.NODE_ENV === 'production',
+      })
+
+      redirect('/login/limite-atingido')
+    }
+
     // O login no Supabase já tinha sido concluído (é independente do nosso
     // backend) — sem desfazer com signOut aqui, a pessoa continuaria
     // conseguindo entrar no app mesmo com o limite de acessos estourado.
