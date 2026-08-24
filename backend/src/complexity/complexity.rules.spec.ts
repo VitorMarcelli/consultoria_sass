@@ -16,6 +16,7 @@ describe('evaluateComplexity', () => {
         scoreService: 1,
         scoreTax: 1,
         scoreOrganization: 1,
+        scoreTurnover: null,
       },
     });
     expect(result).toEqual({
@@ -36,6 +37,7 @@ describe('evaluateComplexity', () => {
         scoreService: 3,
         scoreTax: 3,
         scoreOrganization: 3,
+        scoreTurnover: null,
       },
     });
     expect(result).toEqual({
@@ -56,6 +58,7 @@ describe('evaluateComplexity', () => {
         scoreService: 2,
         scoreTax: 2,
         scoreOrganization: 2,
+        scoreTurnover: null,
       },
     });
     expect(result).toEqual({
@@ -76,6 +79,7 @@ describe('evaluateComplexity', () => {
         scoreService: 2,
         scoreTax: null,
         scoreOrganization: 2,
+        scoreTurnover: null,
       },
     });
     expect(result.complexityClass).toBeNull();
@@ -83,7 +87,7 @@ describe('evaluateComplexity', () => {
     expect(result.assessmentState).not.toBe('NOT_APPLICABLE');
   });
 
-  it('CT-005: Pessoal, ativo, notas 1,1,1 → rawSum 3, score 0, C1', () => {
+  it('CT-005: Pessoal, ativo, notas 1,1,1,1 (Rotatividade no lugar de Tributação) → rawSum 4, score 0, C1', () => {
     const result = evaluateComplexity({
       front: 'PESSOAL',
       actsInFront: 'YES',
@@ -93,15 +97,16 @@ describe('evaluateComplexity', () => {
         scoreService: 1,
         scoreTax: null, // não se aplica em Pessoal
         scoreOrganization: 1,
+        scoreTurnover: 1,
       },
     });
-    expect(result.rawSum).toBe(3);
+    expect(result.rawSum).toBe(4);
     expect(result.normalizedScore).toBe(0);
     expect(result.complexityClass).toBe('C1');
     expect(result.assessmentState).toBe('ASSESSED');
   });
 
-  it('CT-006: Pessoal, ativo, notas 3,3,3 → rawSum 9, score 100, C5', () => {
+  it('CT-006: Pessoal, ativo, notas 3,3,3,3 → rawSum 12, score 100, C5', () => {
     const result = evaluateComplexity({
       front: 'PESSOAL',
       actsInFront: 'YES',
@@ -111,11 +116,29 @@ describe('evaluateComplexity', () => {
         scoreService: 3,
         scoreTax: null,
         scoreOrganization: 3,
+        scoreTurnover: 3,
       },
     });
-    expect(result.rawSum).toBe(9);
+    expect(result.rawSum).toBe(12);
     expect(result.normalizedScore).toBe(100);
     expect(result.complexityClass).toBe('C5');
+  });
+
+  it('CT-005b: Pessoal, ativo, Rotatividade ausente → class null, PARTIAL — nunca C0', () => {
+    const result = evaluateComplexity({
+      front: 'PESSOAL',
+      actsInFront: 'YES',
+      clientStatus: 'ACTIVE',
+      scores: {
+        scoreVolume: 2,
+        scoreService: 2,
+        scoreTax: null,
+        scoreOrganization: 2,
+        scoreTurnover: null,
+      },
+    });
+    expect(result.complexityClass).toBeNull();
+    expect(result.assessmentState).toBe('PARTIAL');
   });
 
   it('CT-011: Fiscal somas 4..12 reproduzem a tabela da seção B2 integralmente', () => {
@@ -140,13 +163,14 @@ describe('evaluateComplexity', () => {
           scoreService: service,
           scoreTax: tax,
           scoreOrganization: organization,
+          scoreTurnover: null,
         },
       });
       expect(result.complexityClass).toBe(expectedClass);
     }
   });
 
-  it('CT-012: Fiscal 2,2,2,2 e Pessoal 2,2,2 produzem o mesmo normalizedScore (50)', () => {
+  it('CT-012: Fiscal e Pessoal com os mesmos 4 valores produzem o mesmo normalizedScore (50)', () => {
     const fiscal = evaluateComplexity({
       front: 'FISCAL',
       actsInFront: 'YES',
@@ -156,6 +180,7 @@ describe('evaluateComplexity', () => {
         scoreService: 2,
         scoreTax: 2,
         scoreOrganization: 2,
+        scoreTurnover: null,
       },
     });
     const pessoal = evaluateComplexity({
@@ -167,6 +192,7 @@ describe('evaluateComplexity', () => {
         scoreService: 2,
         scoreTax: null,
         scoreOrganization: 2,
+        scoreTurnover: 2,
       },
     });
     expect(fiscal.normalizedScore).toBe(50);

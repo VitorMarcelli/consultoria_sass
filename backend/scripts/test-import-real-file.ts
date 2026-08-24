@@ -208,6 +208,7 @@ async function main() {
         scoreService: s[1],
         scoreTax: s[2],
         scoreOrganization: s[3],
+        scoreTurnover: null,
       },
     });
     (fakePrisma as any).clientFrontClassification.create({

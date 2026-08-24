@@ -17,14 +17,23 @@ export type AssessmentState =
 export interface CriteriaScores {
   scoreVolume: number | null;
   scoreService: number | null;
-  scoreTax: number | null; // null é normal na frente Pessoal (não se aplica)
+  scoreTax: number | null; // null na frente Pessoal — não se aplica, ver scoreTurnover
   scoreOrganization: number | null;
+  scoreTurnover: number | null; // Rotatividade — só se aplica na frente Pessoal, substitui Tributação
 }
 
+// Template MVP REV03 (07_Regras_Complexidade): as 3 frentes usam 4 critérios
+// e a MESMA tabela de faixas (soma 4-5→C1 ... 12→C5). Pessoal não tem
+// Tributação (não se aplica à folha) — no lugar entra Rotatividade.
 const CRITERIA_BY_FRONT: Record<FrontType, (keyof CriteriaScores)[]> = {
   FISCAL: ['scoreVolume', 'scoreService', 'scoreTax', 'scoreOrganization'],
   CONTABIL: ['scoreVolume', 'scoreService', 'scoreTax', 'scoreOrganization'],
-  PESSOAL: ['scoreVolume', 'scoreService', 'scoreOrganization'],
+  PESSOAL: [
+    'scoreVolume',
+    'scoreService',
+    'scoreOrganization',
+    'scoreTurnover',
+  ],
 };
 
 function round2(value: number): number {

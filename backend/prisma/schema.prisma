@@ -242,6 +242,12 @@ model Client {
   hasEconomicGroup  Boolean @default(false)
   economicGroupName String?
 
+  // PJ ou PF/Doméstica — template MVP REV03 (01_Clientes). CPF de PF/Doméstica
+  // é gravado no próprio campo `cnpj` (mesma chave de unidade no template).
+  personType String?
+  entryDate  DateTime? // Data entrada (template MVP REV03)
+  exitDate   DateTime? // Data saída (template MVP REV03)
+
   // Contato
   email       String?
   phone       String?
@@ -307,6 +313,7 @@ model ClientFrontClassification {
   scoreService      Int? // Atendimento
   scoreTax          Int? // Tributação — null na frente Pessoal (não se aplica)
   scoreOrganization Int? // Organização
+  scoreTurnover     Int? // Rotatividade — só na frente Pessoal, substitui Tributação (template MVP REV03)
 
   // --- Derivados (nunca editáveis pelo usuário) ---
   rawSum          Int? // soma dos critérios aplicáveis
@@ -349,6 +356,11 @@ model ClientTaxInfo {
   notesPlatform   String?
   meetsDeadlines  String?
   particulars     String?
+
+  // --- Categorias canônicas do template MVP REV03 (aba 05_Cadastros) ---
+  documentReceiptMethod String? // Forma recebimento documentos
+  documentSendMethod    String? // Forma envio documentos
+  integrationMethod     String? // Forma integração
 }
 
 model ClientHrInfo {
@@ -366,6 +378,10 @@ model ClientHrInfo {
   sheetSendingMethod    String?
   frequentAdmissions    Boolean @default(false)
   particulars           String?
+
+  // Recebimento de documentos em geral — distinto de pointReceiptMethod
+  // (ponto) e variablesLaunchMethod (variáveis de folha). Template MVP REV03.
+  documentReceiptMethod String?
 }
 
 model ClientAccountingInfo {
@@ -383,6 +399,13 @@ model ClientAccountingInfo {
   launchesVolume       String? // mantido, legado
   launchesCount        Int? // NOVO — driver numérico de volume
   particulars          String?
+
+  // --- Categorias canônicas do template MVP REV03 (aba 05_Cadastros) ---
+  documentReceiptMethod   String? // Forma recebimento documentos
+  documentSendMethod      String? // Forma envio documentos
+  integrationMethod       String? // Forma integração
+  launchMethod            String? // Forma de lançamento
+  lastReconciliationMonth String? // Último Mês de Conciliação (AAAA-MM) — distinto de lastClosingMonth (lançamento)
 }
 
 model Delivery {
@@ -425,7 +448,7 @@ model Delivery {
 
   status String @default("PREVISTA")
 
-  priority             String   @default("MEDIUM") // HIGH, MEDIUM, LOW
+  priority             String @default("MEDIUM") // HIGH, MEDIUM, LOW
   estimatedTimeMinutes Int?
   realTimeMinutes      Int?
 
@@ -479,9 +502,9 @@ model ActivityCatalog {
   compositionMode CompositionMode @default(SIMPLE)
 
   parentActivityId String?
-  parentActivity    ActivityCatalog?  @relation("ActivitySteps", fields: [parentActivityId], references: [id], onDelete: Cascade)
-  subActivities     ActivityCatalog[] @relation("ActivitySteps")
-  order             Int? // ordem entre sub-atividades irmãs
+  parentActivity   ActivityCatalog?  @relation("ActivitySteps", fields: [parentActivityId], references: [id], onDelete: Cascade)
+  subActivities    ActivityCatalog[] @relation("ActivitySteps")
+  order            Int? // ordem entre sub-atividades irmãs
 
   defaultEstimatedTimeMinutes Int?
   status                      String @default("ACTIVE")
@@ -518,7 +541,7 @@ model DeliveryChecklistItem {
   id         String   @id @default(uuid())
   deliveryId String
   delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  
+
   description String
   isCompleted Boolean @default(false)
   order       Int     @default(0)
@@ -531,25 +554,25 @@ model DeliveryProof {
   id         String   @id @default(uuid())
   deliveryId String
   delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  
-  title      String
-  url        String   // Link (Google Drive, OneDrive, S3, etc)
-  addedBy    String?
-  size       String?  // Ex: "145 KB" ou apenas visual
-  
-  createdAt  DateTime @default(now())
+
+  title   String
+  url     String // Link (Google Drive, OneDrive, S3, etc)
+  addedBy String?
+  size    String? // Ex: "145 KB" ou apenas visual
+
+  createdAt DateTime @default(now())
 }
 
 model DeliveryHistory {
   id         String   @id @default(uuid())
   deliveryId String
   delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  
-  action     String   // "STATUS_CHANGED", "PROOF_ADDED", "COMMENT"
+
+  action      String // "STATUS_CHANGED", "PROOF_ADDED", "COMMENT"
   description String
   authorName  String? // Quem fez a ação
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model TimeReview {
@@ -597,7 +620,7 @@ model ManagementCycle {
 
   month  Int
   year   Int
-  status String @default("OPEN") // OPEN, CLOSED
+  status String  @default("OPEN") // OPEN, CLOSED
   goal   String? @db.Text
 
   createdAt DateTime @default(now())
@@ -636,6 +659,7 @@ model ClientCycleSnapshot {
   scoreService      Int?
   scoreTax          Int?
   scoreOrganization Int?
+  scoreTurnover     Int? // Rotatividade — só Pessoal (template MVP REV03)
   rawSum            Int?
   normalizedScore   Float?
   complexityClass   String?
@@ -688,37 +712,37 @@ model EmployeeCycleAllocation {
 // ==========================================
 
 model DeliveryTemplate {
-  id                    String   @id @default(uuid())
-  taxRegime             String?  // Simples Nacional, Lucro Presumido, Lucro Real...
+  id                    String  @id @default(uuid())
+  taxRegime             String? // Simples Nacional, Lucro Presumido, Lucro Real...
   segment               String?
   size                  String?
   standardizedName      String
-  deliveryClass         String?  // ARP, ARNP...
-  deliveryGroup         String?  // Imposto, Folha...
-  deliveryType          String?  // ICMS, DAS...
-  periodicity           String?  // Mensal, Anual...
-  baseLegalDeadlineDays Int?     // Dia do mês seguinte para vencimento legal (ex: 20)
-  defaultComplexity     Int?     // 0, 1, 2, 3
+  deliveryClass         String? // ARP, ARNP...
+  deliveryGroup         String? // Imposto, Folha...
+  deliveryType          String? // ICMS, DAS...
+  periodicity           String? // Mensal, Anual...
+  baseLegalDeadlineDays Int? // Dia do mês seguinte para vencimento legal (ex: 20)
+  defaultComplexity     Int? // 0, 1, 2, 3
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TimeLog {
-  id                  String    @id @default(uuid())
-  deliveryId          String?
-  delivery            Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  
-  clientId            String
-  client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  deliveryId String?
+  delivery   Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
 
-  employeeId          String
-  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   startTime           DateTime
   endTime             DateTime?
   durationMinutes     Int?
-  costAmount          Float?    // Calculado a partir de grossSalary / horas mensais
+  costAmount          Float? // Calculado a partir de grossSalary / horas mensais
   activityDescription String?
   status              String    @default("RUNNING") // RUNNING, PAUSED, FINISHED
   type                String    @default("RECURRENT") // RECURRENT, EXTRA, REWORK
@@ -728,18 +752,18 @@ model TimeLog {
 }
 
 model Opportunity {
-  id                                    String   @id @default(uuid())
-  clientId                              String
-  client                                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  title                                 String
-  category                              String   // UPSELL, CROSSSELL, RETENTION
-  triggerType                           String   // EXCESS_HOURS, NFE_VOLUME_SPIKE, FREQUENT_ADMISSIONS, MANUAL
-  potentialValue                        Float?
-  status                                String   @default("IDENTIFIED") // IDENTIFIED, PROPOSAL_SENT, WON, LOST, DISCARDED
-  observations                          String?
+  title          String
+  category       String // UPSELL, CROSSSELL, RETENTION
+  triggerType    String // EXCESS_HOURS, NFE_VOLUME_SPIKE, FREQUENT_ADMISSIONS, MANUAL
+  potentialValue Float?
+  status         String  @default("IDENTIFIED") // IDENTIFIED, PROPOSAL_SENT, WON, LOST, DISCARDED
+  observations   String?
 
-  hasStructuralReadinessForClientPortal Boolean  @default(true)
+  hasStructuralReadinessForClientPortal Boolean @default(true)
   clientPortalSummary                   String?
 
   createdAt DateTime @default(now())
