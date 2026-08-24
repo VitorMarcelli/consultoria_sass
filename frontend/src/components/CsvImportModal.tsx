@@ -16,7 +16,7 @@ interface CsvImportModalProps {
   progressText?: string;
 }
 
-export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, title = "Importar Clientes", description = "Faça upload de um arquivo CSV ou XLSX.", templateUrl = "/modelo_importacao_completo.xlsx", templateName = "Baixar Planilha Modelo (.XLSX)", progressValue, progressText }: CsvImportModalProps) {
+export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, title = "Importar Clientes", description = "Faça upload do Dicionário e Template Único de Carteira (MVP).", templateUrl = "/02_Dicionario_e_Template_Unico_Carteira_MVP_REV03.xlsx", templateName = "Baixar Template de Carteira (.XLSX)", progressValue, progressText }: CsvImportModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState('');
 
@@ -88,8 +88,8 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, t
                   <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 mb-4 border border-slate-200">
                     <p className="font-medium text-slate-800 mb-2">Instruções para o arquivo:</p>
                     <ul className="list-disc pl-5 space-y-1 mb-3">
-                      <li>O arquivo deve estar no formato <strong>.XLSX</strong> ou <strong>.CSV</strong></li>
-                      <li>Para líderes e operadores, informe o nome exato.</li>
+                      <li>Use as abas <strong>01_Clientes</strong>, <strong>02_Fiscal</strong>, <strong>03_Contabil</strong> e <strong>04_Pessoal</strong> do template — cada aba de frente é casada com o cliente pelo CNPJ/CPF.</li>
+                      <li>Para Responsável principal/secundário, informe o nome exato do colaborador.</li>
                     </ul>
                     <a 
                       href={templateUrl} 

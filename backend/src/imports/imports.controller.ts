@@ -36,6 +36,13 @@ export class ImportsController {
     @Body('data') data: any[],
     @Body('fileName') fileName: string | undefined,
     @Body('startRow') startRow: number | undefined,
+    // Template MVP REV03: abas 02_Fiscal/03_Contabil/04_Pessoal, casadas com
+    // `data` (01_Clientes) por CNPJ/CPF dentro do service. Cada lote de
+    // `data` já manda só as linhas de frente referentes aos CNPJs daquele
+    // lote (ver clientes/page.tsx), não a aba inteira a cada chunk.
+    @Body('fiscal') fiscal: any[] | undefined,
+    @Body('contabil') contabil: any[] | undefined,
+    @Body('pessoal') pessoal: any[] | undefined,
   ) {
     if (!tenantId) throw new BadRequestException('tenantId é obrigatório.');
     if (!data || !Array.isArray(data))
@@ -46,6 +53,9 @@ export class ImportsController {
       cycleId,
       fileName,
       startRow,
+      fiscal,
+      contabil,
+      pessoal,
     );
   }
 }

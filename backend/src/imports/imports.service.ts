@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
-import { parse } from 'csv-parse';
 import { ComplexityService } from '../complexity/complexity.service';
 import {
   FrontType,
@@ -9,16 +8,20 @@ import {
   EvaluateComplexityResult,
 } from '../complexity/complexity.rules';
 
-// Mapeia o "prefixo" de coluna usado na planilha de importação (Fiscal /
-// Contábil / DP — ver processFront abaixo) para o FrontType fixo que o motor
-// de complexidade entende. Não é o mesmo conceito de OperationalFront.name
-// (livre, customizável por tenant) — só essas 3 frentes têm tabela de
-// critério definida (ver docs/ORDEM-01-motor-complexidade.md, Bloco B).
-const FRONT_TYPE_BY_PREFIX: Record<string, FrontType> = {
-  Fiscal: 'FISCAL',
-  Contábil: 'CONTABIL',
-  DP: 'PESSOAL',
+// Frentes fixas que o motor de complexidade entende (não é o mesmo conceito
+// de OperationalFront.name, livre por tenant — ver complexity.rules.ts).
+const FRONT_TYPE: Record<'fiscal' | 'contabil' | 'pessoal', FrontType> = {
+  fiscal: 'FISCAL',
+  contabil: 'CONTABIL',
+  pessoal: 'PESSOAL',
 };
+const FRONT_DISPLAY_NAME: Record<'fiscal' | 'contabil' | 'pessoal', string> = {
+  fiscal: 'Fiscal',
+  contabil: 'Contábil',
+  pessoal: 'Pessoal',
+};
+
+type RawRow = Record<string, any>;
 
 @Injectable()
 export class ImportsService {
@@ -39,12 +42,91 @@ export class ImportsService {
     return { success: false, message: 'Use importClientsJson' };
   }
 
+  private normalizeDoc(raw: any): string | null {
+    if (raw === null || raw === undefined) return null;
+    const digits = String(raw).replace(/\D/g, '');
+    return digits || null;
+  }
+
+  private getVal(row: RawRow, keys: string[]) {
+    const foundKey = Object.keys(row).find((k) =>
+      keys.some(
+        (expected) => k.toLowerCase().trim() === expected.toLowerCase().trim(),
+      ),
+    );
+    return foundKey ? row[foundKey] : null;
+  }
+
+  // Distingue "coluna ausente na planilha" de "coluna presente e vazia nesta
+  // linha" — necessário pra nunca converter ausência de critério em erro ou
+  // em C0 (motor de complexidade trata isso como PARTIAL/NOT_ASSESSED).
+  private hasCol(row: RawRow, keys: string[]) {
+    return Object.keys(row).some((k) =>
+      keys.some(
+        (expected) => k.toLowerCase().trim() === expected.toLowerCase().trim(),
+      ),
+    );
+  }
+
+  // Template MVP REV03 (01_Clientes / Áreas): Ativo, Sem movimento, Inativo,
+  // Encerrado — normaliza pra maiúsculas; convenção ACTIVE/INACTIVE do resto
+  // do app é preservada para os dois casos que ela já reconhece, os demais
+  // ficam com o valor em maiúsculas (o motor de complexidade só compara
+  // "=== 'ACTIVE'", então "SEM MOVIMENTO"/"ENCERRADO" já bloqueiam certo).
+  private normalizeStatus(raw: any): string {
+    if (!raw) return 'ACTIVE';
+    const normalized = String(raw).trim().toUpperCase();
+    if (['ACTIVE', 'ATIVO', 'ATIVA'].includes(normalized)) return 'ACTIVE';
+    if (['INACTIVE', 'INATIVO', 'INATIVA'].includes(normalized))
+      return 'INACTIVE';
+    return normalized;
+  }
+
+  // Status da frente (por área/ciclo) vira actsInFront pro motor de
+  // complexidade: Ativo→YES, Sem movimento→NO_MOVEMENT, Inativo/Encerrado→NO.
+  private statusFrenteToActsInFront(raw: any): string {
+    if (!raw) return 'YES';
+    const normalized = String(raw).trim().toUpperCase();
+    if (normalized === 'SEM MOVIMENTO') return 'NO_MOVEMENT';
+    if (['INATIVO', 'INATIVA', 'ENCERRADO', 'ENCERRADA'].includes(normalized))
+      return 'NO';
+    return 'YES';
+  }
+
+  private parseMoney(raw: any): number | null {
+    if (raw === null || raw === undefined || String(raw).trim() === '')
+      return null;
+    const parsed = parseFloat(
+      String(raw).replace('R$', '').replace(/\./g, '').replace(',', '.').trim(),
+    );
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  private parseIntOrNull(raw: any): number | null {
+    if (raw === null || raw === undefined || String(raw).trim() === '')
+      return null;
+    const digits = String(raw).replace(/\D/g, '');
+    if (!digits) return null;
+    const parsed = parseInt(digits, 10);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  private parseDate(raw: any): Date | null {
+    if (!raw) return null;
+    if (raw instanceof Date) return raw;
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   async importClientsJson(
     tenantId: string,
     records: any[],
     cycleId?: string,
     fileName?: string,
     startRow?: number,
+    fiscalRows?: RawRow[],
+    contabilRows?: RawRow[],
+    pessoalRows?: RawRow[],
   ) {
     const prisma = this.getTenantPrisma(tenantId);
     let count = 0;
@@ -52,133 +134,122 @@ export class ImportsService {
     const warnings: string[] = [];
     const fileLabel = fileName || 'arquivo importado';
     // Linha 1 da planilha é o cabeçalho; startRow é a linha real da 1ª
-    // entrada deste lote (o frontend manda em lotes de 500 — sem isso, a
-    // linha reportada em erro bateria só com a posição dentro do lote).
+    // entrada deste lote (o frontend manda em lotes — sem isso, a linha
+    // reportada em erro bateria só com a posição dentro do lote).
     const baseRow = startRow ?? 2;
 
-    const fronts = await prisma.operationalFront.findMany({
-      where: { status: 'ACTIVE' },
-    });
     const employees = await prisma.employee.findMany({
       where: { status: 'ACTIVE' },
     });
-
-    const getFront = (name: string) =>
-      fronts.find(
-        (f) => f.name.toLowerCase().trim() === name.toLowerCase().trim(),
-      );
     const getEmployeeId = (name: string) => {
-      if (!name || name.trim() === '') return null;
+      if (!name || String(name).trim() === '') return null;
       const e = employees.find((emp) =>
-        emp.name.toLowerCase().includes(name.toLowerCase().trim()),
+        emp.name.toLowerCase().includes(String(name).toLowerCase().trim()),
       );
       return e ? e.id : null;
     };
 
+    const fronts = await prisma.operationalFront.findMany({
+      where: { status: 'ACTIVE' },
+    });
+    const getFront = (displayName: string) =>
+      fronts.find(
+        (f) => f.name.toLowerCase().trim() === displayName.toLowerCase().trim(),
+      );
+
+    // Aba única por CNPJ/CPF — indexa as 3 abas de frente pelo documento
+    // normalizado (só dígitos) pra casar com 01_Clientes independente de
+    // pontuação (12.345.678/0001-90 vs 12345678000190).
+    const indexByDoc = (rows: RawRow[] | undefined) => {
+      const map = new Map<string, RawRow>();
+      for (const row of rows || []) {
+        const doc = this.normalizeDoc(this.getVal(row, ['CNPJ/CPF', 'CNPJ', 'CPF']));
+        if (doc) map.set(doc, row);
+      }
+      return map;
+    };
+    const fiscalByDoc = indexByDoc(fiscalRows);
+    const contabilByDoc = indexByDoc(contabilRows);
+    const pessoalByDoc = indexByDoc(pessoalRows);
+
     for (let rowIndex = 0; rowIndex < records.length; rowIndex++) {
       const row = records[rowIndex];
       const rowNumber = baseRow + rowIndex;
+      const getVal = (keys: string[]) => this.getVal(row, keys);
 
-      const getVal = (keys: string[]) => {
-        const foundKey = Object.keys(row).find((k) =>
-          keys.some(
-            (expected) =>
-              k.toLowerCase().trim() === expected.toLowerCase().trim(),
-          ),
-        );
-        return foundKey ? row[foundKey] : null;
-      };
-      // Distingue "coluna ausente na planilha" de "coluna presente e vazia
-      // nesta linha" — necessário pro C2 (colunas ausentes não são erro).
-      const hasCol = (keys: string[]) =>
-        Object.keys(row).some((k) =>
-          keys.some(
-            (expected) =>
-              k.toLowerCase().trim() === expected.toLowerCase().trim(),
-          ),
-        );
-
-      const name = getVal([
-        'Razão Social',
-        'Razao Social',
-        'razaoSocial',
-        'name',
-        'Nome',
-      ]);
+      const name = getVal(['Razão social/Nome', 'Razão Social', 'Razao Social', 'name', 'Nome']);
       if (!name) continue;
 
-      const cnpj = getVal(['CNPJ', 'cnpj']);
-      const tradeName = getVal([
-        'Nome Fantasia',
-        'nomeFantasia',
-        'tradeName',
-        'Fantasia',
-      ]);
-      // Normaliza pra 'ACTIVE'/'INACTIVE' (convenção usada em todo o resto do
-      // app, ex: dashboard.service.ts, deliveries.service.ts) — a planilha
-      // real de exemplo (docs_cliente) traz "Ativo"/"Inativo" em português, e
-      // sem normalizar isso quebra tanto os filtros existentes de cliente
-      // ativo quanto a checagem de "frente inativa" do motor de complexidade
-      // (C1-C4 abaixo dependem de clientStatus === 'ACTIVE').
-      const rawStatus = getVal(['Status', 'status']);
-      const statusVal = (() => {
-        if (!rawStatus) return 'ACTIVE';
-        const normalized = String(rawStatus).trim().toUpperCase();
-        if (['ACTIVE', 'ATIVO', 'ATIVA'].includes(normalized)) return 'ACTIVE';
-        if (['INACTIVE', 'INATIVO', 'INATIVA'].includes(normalized))
-          return 'INACTIVE';
-        return normalized; // valor não reconhecido: preserva em vez de adivinhar
+      const docRaw = getVal(['CNPJ/CPF', 'CNPJ', 'CPF', 'cnpj']);
+      const doc = this.normalizeDoc(docRaw);
+      const personType = (() => {
+        const raw = getVal(['Tipo pessoa']);
+        if (!raw) return null;
+        const normalized = String(raw).trim().toUpperCase();
+        if (normalized === 'PJ') return 'PJ';
+        if (normalized.includes('DOM') || normalized === 'PF') return 'PF_DOMESTICA';
+        return normalized;
       })();
+
+      const tradeName = getVal(['Nome fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
+      const statusVal = this.normalizeStatus(getVal(['Status contrato', 'Status', 'status']));
+      const revenueBracket = getVal(['Faixa faturamento anual', 'Faixa de Faturamento']) || null;
+      const monthlyFee = this.parseMoney(getVal(['Honorário faturado', 'Honorários']));
+      const classification = getVal(['Classificação A-D', 'Classificação', 'classificacao']) || null;
+      const entryDate = this.parseDate(getVal(['Data entrada']));
+      const exitDate = this.parseDate(getVal(['Data saída']));
+
+      // O template MVP REV03 não tem mais Regime Tributário no 01_Clientes —
+      // ele agora é preenchido por frente (02_Fiscal / 03_Contabil). Mantém
+      // Client.taxRegime populado (usado na listagem da carteira) puxando da
+      // frente Fiscal, com fallback pra Contábil quando só ela existir.
+      const fiscalRowForRegime = doc ? fiscalByDoc.get(doc) : undefined;
+      const contabilRowForRegime = doc ? contabilByDoc.get(doc) : undefined;
       const taxRegime =
-        getVal(['Regime Tributário', 'regimeTributario']) || null;
-      const segment = getVal(['Segmento', 'segmento']) || null;
-      const revenueBracket =
-        getVal(['Faixa de Faturamento', 'faixaFaturamento']) || null;
-      const feesStr = getVal(['Honorários', 'honorarios']);
-      const monthlyFee = feesStr
-        ? parseFloat(
-            String(feesStr)
-              .replace('R$', '')
-              .replace(/\./g, '')
-              .replace(',', '.')
-              .trim(),
-          )
-        : null;
-      const classification = getVal(['Classificação', 'classificacao']) || null;
+        (fiscalRowForRegime && this.getVal(fiscalRowForRegime, ['Regime tributário'])) ||
+        (contabilRowForRegime && this.getVal(contabilRowForRegime, ['Regime tributário'])) ||
+        null;
 
-      let client = cnpj
-        ? await prisma.client.findUnique({ where: { cnpj } })
-        : null;
-
-      const clientData = {
+      const clientData: any = {
         name,
         tradeName: tradeName || null,
         status: statusVal,
-        taxRegime,
-        segment,
         revenueBracket,
-        monthlyFee:
-          monthlyFee === null || isNaN(monthlyFee) ? null : monthlyFee,
+        monthlyFee,
         classification,
       };
+      if (taxRegime) clientData.taxRegime = taxRegime;
+      if (personType) clientData.personType = personType;
+      if (entryDate) clientData.entryDate = entryDate;
+      if (exitDate) clientData.exitDate = exitDate;
+
+      let client = docRaw
+        ? await prisma.client.findUnique({ where: { cnpj: String(docRaw) } })
+        : null;
 
       if (client) {
-        client = await prisma.client.update({
-          where: { id: client.id },
-          data: clientData,
-        });
+        client = await prisma.client.update({ where: { id: client.id }, data: clientData });
       } else {
         client = await prisma.client.create({
-          data: { ...clientData, cnpj },
+          data: { ...clientData, cnpj: docRaw ? String(docRaw) : null },
         });
       }
 
-      const processFront = async (frontName: string, prefix: string) => {
-        const possui = getVal([`Possui Frente ${frontName}?`]);
-        if (!possui || String(possui).toUpperCase().trim() !== 'SIM') return;
-
-        const front = getFront(frontName);
+      const processFront = async (
+        key: 'fiscal' | 'contabil' | 'pessoal',
+        areaRow: RawRow | undefined,
+      ) => {
+        if (!areaRow) return; // sem linha nesta aba nesta competência: frente não avaliada
+        const displayName = FRONT_DISPLAY_NAME[key];
+        const front = getFront(displayName);
         if (!front) return;
+
+        const getArea = (keys: string[]) => this.getVal(areaRow, keys);
+        const hasAreaCol = (keys: string[]) => this.hasCol(areaRow, keys);
+
+        const actsInFront = this.statusFrenteToActsInFront(
+          getArea(['Status da frente']),
+        );
 
         let classificationRecord =
           await prisma.clientFrontClassification.findUnique({
@@ -187,69 +258,19 @@ export class ImportsService {
             },
           });
 
-        const leaderId = getEmployeeId(
-          getVal([`${prefix} - Líder responsável`]),
-        );
-        const operator1Id = getEmployeeId(getVal([`${prefix} - Operador 1`]));
-        const operator2Id = getEmployeeId(getVal([`${prefix} - Operador 2`]));
-
-        // C1: legado — nunca usado pra derivar classe/score, só preservado.
-        const complexityStr = getVal([`${prefix} - Complexidade`]);
-        const parsedComplexity = complexityStr
-          ? parseInt(String(complexityStr), 10)
-          : null;
-        const complexity =
-          parsedComplexity === null || isNaN(parsedComplexity)
-            ? null
-            : parsedComplexity;
-
-        // C2: notas por critério, só se a coluna existir na planilha.
-        const noteColumnsByField: Record<
-          'scoreVolume' | 'scoreService' | 'scoreTax' | 'scoreOrganization',
-          { keys: string[]; label: string }
-        > = {
-          scoreVolume: {
-            keys: [`${prefix} - Nota Volume`],
-            label: 'Nota Volume',
-          },
-          scoreService: {
-            keys: [`${prefix} - Nota Atendimento`],
-            label: 'Nota Atendimento',
-          },
-          scoreTax: {
-            keys: [`${prefix} - Nota Tributação`],
-            label: 'Nota Tributação',
-          },
-          scoreOrganization: {
-            keys: [`${prefix} - Nota Organização`],
-            label: 'Nota Organização',
-          },
-        };
-
-        const hasAnyNoteColumn = Object.values(noteColumnsByField).some((c) =>
-          hasCol(c.keys),
-        );
+        const operator1Id = getEmployeeId(getArea(['Responsável principal']));
+        const operator2Id = getEmployeeId(getArea(['Responsável secundário']));
 
         let rowHasInvalidNote = false;
-        const parseNote = (
-          field: keyof typeof noteColumnsByField,
-        ): number | null => {
-          // Tributação não se aplica em DP — nunca lida, mesmo se a coluna
-          // existir por engano na planilha.
-          if (field === 'scoreTax' && prefix === 'DP') return null;
-
-          const { keys, label } = noteColumnsByField[field];
-          if (!hasCol(keys)) return null; // coluna ausente: não é erro (C2)
-
-          const raw = getVal(keys);
-          if (raw === null || raw === undefined || String(raw).trim() === '') {
-            return null; // coluna existe, célula vazia: critério ausente (não erro de validação)
-          }
-
+        const parseNote = (label: string, keys: string[]): number | null => {
+          if (!hasAreaCol(keys)) return null; // coluna ausente: não é erro
+          const raw = getArea(keys);
+          if (raw === null || raw === undefined || String(raw).trim() === '')
+            return null; // coluna existe, célula vazia: critério ausente
           const parsed = parseInt(String(raw).trim(), 10);
           if (isNaN(parsed) || parsed < 1 || parsed > 3) {
             errors.push(
-              `${fileLabel}, linha ${rowNumber}, campo "${prefix} - ${label}": valor "${raw}" inválido — a nota deve ser 1, 2 ou 3.`,
+              `${fileLabel}, linha ${rowNumber}, campo "${displayName} - ${label}": valor "${raw}" inválido — a nota deve ser 1, 2 ou 3.`,
             );
             rowHasInvalidNote = true;
             return null;
@@ -257,76 +278,55 @@ export class ImportsService {
           return parsed;
         };
 
-        const scores: CriteriaScores = {
-          scoreVolume: parseNote('scoreVolume'),
-          scoreService: parseNote('scoreService'),
-          scoreTax: parseNote('scoreTax'),
-          scoreOrganization: parseNote('scoreOrganization'),
-        };
+        // Pessoal: Nota Volume nunca é lida da planilha — é sempre calculada
+        // a partir do Total de Vínculos (template MVP REV03, 07_Regras:
+        // "Regra versionada", nunca editável diretamente).
+        let scoreVolume: number | null;
+        let totalVinculos: number | null = null;
+        if (key === 'pessoal') {
+          const funcionarios = this.parseIntOrNull(getArea(['Qtd. Funcionários']));
+          const prolabores = this.parseIntOrNull(getArea(['Qtd. Pró-labores']));
+          const domesticas = this.parseIntOrNull(getArea(['Qtd. Domésticas']));
+          if (funcionarios !== null || prolabores !== null || domesticas !== null) {
+            totalVinculos = (funcionarios || 0) + (prolabores || 0) + (domesticas || 0);
+          }
+          scoreVolume =
+            totalVinculos === null
+              ? null
+              : this.complexityService.calculateVolumeScore({
+                  front: 'PESSOAL',
+                  driverValue: totalVinculos,
+                }).scoreVolume;
+        } else {
+          scoreVolume = parseNote('Nota Volume', ['Nota Volume']);
+        }
 
-        // Nota fora de 1-3 rejeita a classificação desta frente nesta linha
-        // (o Client e as demais frentes da mesma linha seguem normalmente).
+        const scoreService = parseNote('Nota Atendimento', ['Nota Atendimento']);
+        const scoreOrganization = parseNote('Nota Organização', ['Nota Organização']);
+        const scoreTax = key === 'pessoal' ? null : parseNote('Nota Tributação', ['Nota Tributação']);
+        const scoreTurnover = key === 'pessoal' ? parseNote('Nota Rotatividade', ['Nota Rotatividade']) : null;
+
         if (rowHasInvalidNote) return;
 
-        // C3: volume numérico ao lado do texto legado — nunca bloqueia,
-        // só gera aviso quando não numérico.
-        let monthlyNotesCount: number | null = null;
-        let launchesCount: number | null = null;
-        if (prefix === 'Fiscal') {
-          const raw = getVal([`${prefix} - Volume de notas/mês`]);
-          if (raw !== null && String(raw).trim() !== '') {
-            const digits = String(raw).replace(/\D/g, '');
-            const parsed = digits ? parseInt(digits, 10) : NaN;
-            if (isNaN(parsed)) {
-              warnings.push(
-                `${fileLabel}, linha ${rowNumber}: "${prefix} - Volume de notas/mês" não numérico ("${raw}") — driver de volume não calculado para esta linha.`,
-              );
-            } else {
-              monthlyNotesCount = parsed;
-            }
-          }
-        }
-        if (prefix === 'Contábil') {
-          const raw = getVal([`${prefix} - Total de lançamentos`]);
-          if (raw !== null && String(raw).trim() !== '') {
-            const digits = String(raw).replace(/\D/g, '');
-            const parsed = digits ? parseInt(digits, 10) : NaN;
-            if (isNaN(parsed)) {
-              warnings.push(
-                `${fileLabel}, linha ${rowNumber}: "${prefix} - Total de lançamentos" não numérico ("${raw}") — driver de volume não calculado para esta linha.`,
-              );
-            } else {
-              launchesCount = parsed;
-            }
-          }
-        }
+        const scores: CriteriaScores = {
+          scoreVolume,
+          scoreService,
+          scoreTax,
+          scoreOrganization,
+          scoreTurnover,
+        };
 
-        // C4: o motor sempre decide o resultado final — a importação nunca
-        // grava classe sem passar pelo cálculo.
-        let assessment: EvaluateComplexityResult;
-        if (!hasAnyNoteColumn && complexity !== null) {
-          // C1: só a coluna legada veio preenchida — nunca inferir classe dela.
-          assessment = {
-            rawSum: null,
-            normalizedScore: null,
-            complexityClass: null,
-            assessmentState: 'IMPORTED',
-          };
-        } else {
-          assessment = this.complexityService.evaluate({
-            front: FRONT_TYPE_BY_PREFIX[prefix],
-            actsInFront: 'YES',
-            clientStatus: clientData.status,
-            scores,
-          });
-        }
+        const assessment: EvaluateComplexityResult = this.complexityService.evaluate({
+          front: FRONT_TYPE[key],
+          actsInFront,
+          clientStatus: clientData.status,
+          scores,
+        });
 
-        const data = {
-          actsInFront: 'YES',
-          leaderId,
+        const data: any = {
+          actsInFront,
           operator1Id,
           operator2Id,
-          complexity,
           ...scores,
           ...assessment,
         };
@@ -342,78 +342,103 @@ export class ImportsService {
           });
         }
 
-        // Grava os drivers numéricos (C3) no TaxInfo/AccountingInfo da
-        // classificação, ao lado dos campos String legados (que esta rotina
-        // de import não escreve — só os numéricos novos, ver Bloco A).
-        if (prefix === 'Fiscal' && monthlyNotesCount !== null) {
+        // Perfil operacional descritivo (categorias canônicas do template) —
+        // gravado à parte, nunca influencia o cálculo de complexidade.
+        if (key === 'fiscal') {
           await prisma.clientTaxInfo.upsert({
             where: { classificationId: classificationRecord.id },
-            update: { monthlyNotesCount },
+            update: {
+              documentReceiptMethod: getArea(['Forma recebimento documentos']) || undefined,
+              documentSendMethod: getArea(['Forma envio documentos']) || undefined,
+              integrationMethod: getArea(['Forma integração']) || undefined,
+            },
             create: {
               classificationId: classificationRecord.id,
-              monthlyNotesCount,
+              documentReceiptMethod: getArea(['Forma recebimento documentos']) || null,
+              documentSendMethod: getArea(['Forma envio documentos']) || null,
+              integrationMethod: getArea(['Forma integração']) || null,
             },
           });
         }
-        if (prefix === 'Contábil' && launchesCount !== null) {
+        if (key === 'contabil') {
           await prisma.clientAccountingInfo.upsert({
             where: { classificationId: classificationRecord.id },
-            update: { launchesCount },
+            update: {
+              documentReceiptMethod: getArea(['Forma recebimento documentos']) || undefined,
+              documentSendMethod: getArea(['Forma envio documentos']) || undefined,
+              integrationMethod: getArea(['Forma integração']) || undefined,
+              launchMethod: getArea(['Forma de lançamento']) || undefined,
+              closingPeriod: getArea(['Periodicidade de Fechamento']) || undefined,
+              lastReconciliationMonth: getArea(['Último Mês de Conciliação']) || undefined,
+            },
             create: {
               classificationId: classificationRecord.id,
-              launchesCount,
+              documentReceiptMethod: getArea(['Forma recebimento documentos']) || null,
+              documentSendMethod: getArea(['Forma envio documentos']) || null,
+              integrationMethod: getArea(['Forma integração']) || null,
+              launchMethod: getArea(['Forma de lançamento']) || null,
+              closingPeriod: getArea(['Periodicidade de Fechamento']) || null,
+              lastReconciliationMonth: getArea(['Último Mês de Conciliação']) || null,
+            },
+          });
+        }
+        if (key === 'pessoal') {
+          await prisma.clientHrInfo.upsert({
+            where: { classificationId: classificationRecord.id },
+            update: {
+              employeesCount: this.parseIntOrNull(getArea(['Qtd. Funcionários'])) ?? undefined,
+              prolaboreCount: this.parseIntOrNull(getArea(['Qtd. Pró-labores'])) ?? undefined,
+              domesticsCount: this.parseIntOrNull(getArea(['Qtd. Domésticas'])) ?? undefined,
+              documentReceiptMethod: getArea(['Recebimento documentos']) || undefined,
+              variablesLaunchMethod: getArea(['Recebimento variáveis']) || undefined,
+              pointReceiptMethod: getArea(['Recebimento ponto']) || undefined,
+              sheetSendingMethod: getArea(['Envio documentos']) || undefined,
+            },
+            create: {
+              classificationId: classificationRecord.id,
+              employeesCount: this.parseIntOrNull(getArea(['Qtd. Funcionários'])),
+              prolaboreCount: this.parseIntOrNull(getArea(['Qtd. Pró-labores'])),
+              domesticsCount: this.parseIntOrNull(getArea(['Qtd. Domésticas'])),
+              documentReceiptMethod: getArea(['Recebimento documentos']) || null,
+              variablesLaunchMethod: getArea(['Recebimento variáveis']) || null,
+              pointReceiptMethod: getArea(['Recebimento ponto']) || null,
+              sheetSendingMethod: getArea(['Envio documentos']) || null,
             },
           });
         }
 
         if (cycleId) {
           const existingSnapshot = await prisma.clientCycleSnapshot.findFirst({
-            where: {
-              clientId: client.id,
-              cycleId: cycleId,
-              frontId: front.id,
-            },
+            where: { clientId: client.id, cycleId, frontId: front.id },
           });
-          // Espelha a avaliação recém-calculada no snapshot congelado do
-          // ciclo (campos adicionados no Bloco A) — sem isso, os campos
-          // novos do snapshot ficariam sempre nulos vindos de importação.
-          // primaryOwnerId/secondaryOwnerId também são congelados aqui: sem
-          // eles, o agrupamento por responsável do Diagnóstico (Bloco D)
-          // fica vazio toda vez que o snapshot existir (que é o caso
-          // prioritário segundo o D1 daquele bloco).
-          const snapshotAssessmentFields = {
-            scoreVolume: scores.scoreVolume,
-            scoreService: scores.scoreService,
-            scoreTax: scores.scoreTax,
-            scoreOrganization: scores.scoreOrganization,
-            rawSum: assessment.rawSum,
-            normalizedScore: assessment.normalizedScore,
-            complexityClass: assessment.complexityClass,
-            assessmentState: assessment.assessmentState,
-            primaryOwnerId: operator1Id,
-            secondaryOwnerId: operator2Id,
-          };
           if (!existingSnapshot) {
             await prisma.clientCycleSnapshot.create({
               data: {
                 clientId: client.id,
-                cycleId: cycleId,
+                cycleId,
                 frontId: front.id,
-                taxRegime: clientData.taxRegime,
-                segment: clientData.segment,
                 monthlyFee: clientData.monthlyFee,
                 classification: clientData.classification,
-                complexity: complexity,
-                ...snapshotAssessmentFields,
+                scoreVolume: scores.scoreVolume,
+                scoreService: scores.scoreService,
+                scoreTax: scores.scoreTax,
+                scoreOrganization: scores.scoreOrganization,
+                scoreTurnover: scores.scoreTurnover,
+                rawSum: assessment.rawSum,
+                normalizedScore: assessment.normalizedScore,
+                complexityClass: assessment.complexityClass,
+                assessmentState: assessment.assessmentState,
+                primaryOwnerId: operator1Id,
+                secondaryOwnerId: operator2Id,
               },
             });
           }
         }
       };
 
-      await processFront('Fiscal', 'Fiscal');
-      await processFront('Contábil', 'Contábil');
-      await processFront('DP', 'DP');
+      await processFront('fiscal', doc ? fiscalByDoc.get(doc) : undefined);
+      await processFront('contabil', doc ? contabilByDoc.get(doc) : undefined);
+      await processFront('pessoal', doc ? pessoalByDoc.get(doc) : undefined);
 
       count++;
     }

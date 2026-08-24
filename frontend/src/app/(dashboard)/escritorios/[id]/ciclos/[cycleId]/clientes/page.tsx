@@ -92,21 +92,82 @@ export default function CycleClientsPage({
   const handleImportCsv = async (file: File) => {
     setIsSaving(true);
     try {
-      let lines: any[] = [];
-      
+      // Template MVP REV03 (02_Dicionario_e_Template_Unico_Carteira): 4 abas
+      // normalizadas — 01_Clientes é a base, 02_Fiscal/03_Contabil/04_Pessoal
+      // trazem uma linha por CNPJ/CPF ativo naquela frente, casadas pelo
+      // documento (não mais um flag "Possui Frente X?" na mesma linha).
+      //
+      // Cada aba do arquivo real tem um título + subtítulo decorativos ANTES
+      // do cabeçalho de verdade (linha 4, não linha 1) — sheet_to_json direto
+      // pegaria o título como cabeçalho e leria tudo com chaves erradas
+      // ("__EMPTY_1" etc). Em vez de assumir uma linha fixa (o que quebraria
+      // se alguém inserir uma linha de nota acima), procura a linha que
+      // contém "CNPJ/CPF" — presente literalmente com esse texto em TODAS as
+      // 4 abas — e usa ela como cabeçalho.
+      const sheetToJson = (workbook: XLSX.WorkBook, sheetName: string): any[] => {
+        const sheet = workbook.Sheets[sheetName];
+        if (!sheet) return [];
+
+        const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as any[][];
+        const headerRowIndex = rawRows.findIndex((row) =>
+          row.some((cell) => typeof cell === 'string' && cell.toLowerCase().trim() === 'cnpj/cpf'),
+        );
+        // Não achou o cabeçalho esperado: aba fora do padrão do template —
+        // trata como vazia em vez de devolver lixo com chaves "__EMPTY_N".
+        if (headerRowIndex === -1) return [];
+
+        const headers = rawRows[headerRowIndex];
+        const docColIndex = headers.findIndex(
+          (h) => typeof h === 'string' && h.toLowerCase().trim() === 'cnpj/cpf',
+        );
+        return rawRows
+          .slice(headerRowIndex + 1)
+          // Linhas "reservadas" da tabela do Excel (formatadas mas nunca
+          // preenchidas) não têm CNPJ/CPF — descarta em vez de mandar
+          // centenas de linhas vazias pro backend.
+          .filter((row) => row[docColIndex] !== undefined && row[docColIndex] !== null && String(row[docColIndex]).trim() !== '')
+          .map((row) => {
+            const obj: Record<string, any> = {};
+            headers.forEach((h, i) => {
+              if (h !== undefined && h !== null && String(h).trim() !== '') {
+                obj[String(h).trim()] = row[i] ?? null;
+              }
+            });
+            return obj;
+          });
+      };
+
+      let workbook: XLSX.WorkBook;
       if (file.name.endsWith('.xlsx')) {
         const buffer = await file.arrayBuffer();
-        const workbook = XLSX.read(buffer, { type: 'array' });
-        lines = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as any[];
+        workbook = XLSX.read(buffer, { type: 'array' });
       } else {
         const text = await file.text();
-        const workbook = XLSX.read(text, { type: 'string' });
-        lines = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as any[];
+        workbook = XLSX.read(text, { type: 'string' });
       }
-      
+
+      // CSV (uma tabela só) cai no fallback da primeira aba; XLSX do template
+      // usa as abas nomeadas.
+      const clientesSheetName = workbook.SheetNames.includes('01_Clientes')
+        ? '01_Clientes'
+        : workbook.SheetNames[0];
+      const lines = sheetToJson(workbook, clientesSheetName);
+      const fiscalLines = sheetToJson(workbook, '02_Fiscal');
+      const contabilLines = sheetToJson(workbook, '03_Contabil');
+      const pessoalLines = sheetToJson(workbook, '04_Pessoal');
+
       if (lines.length === 0) {
         throw new Error('Arquivo vazio ou sem registros válidos');
       }
+
+      const getDoc = (row: any): string | null => {
+        const key = Object.keys(row).find((k) => ['cnpj/cpf', 'cnpj', 'cpf'].includes(k.toLowerCase().trim()));
+        if (!key) return null;
+        const raw = row[key];
+        if (raw === null || raw === undefined) return null;
+        const digits = String(raw).replace(/\D/g, '');
+        return digits || null;
+      };
 
       setImportProgress({ current: 0, total: lines.length });
 
@@ -117,6 +178,10 @@ export default function CycleClientsPage({
 
       for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
         const chunk = lines.slice(i, i + CHUNK_SIZE);
+        // Só manda as linhas de frente cujo CNPJ/CPF está neste lote —
+        // evita reenviar as abas inteiras a cada chunk de 500 clientes.
+        const chunkDocs = new Set(chunk.map(getDoc).filter(Boolean));
+        const filterByDoc = (rows: any[]) => rows.filter((r) => chunkDocs.has(getDoc(r)));
 
         const response = await apiRequest('/imports/clients-json', {
           method: 'POST',
@@ -124,6 +189,9 @@ export default function CycleClientsPage({
             tenantId: id,
             cycleId: cycleId,
             data: chunk,
+            fiscal: filterByDoc(fiscalLines),
+            contabil: filterByDoc(contabilLines),
+            pessoal: filterByDoc(pessoalLines),
             fileName: file.name,
             // +2: planilha é 1-based e a linha 1 é o cabeçalho, então a
             // primeira linha de dados (índice 0) é a linha 2 da planilha.
