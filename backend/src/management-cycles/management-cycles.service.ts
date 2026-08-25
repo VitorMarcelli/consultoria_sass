@@ -108,21 +108,25 @@ export class ManagementCyclesService {
         where: { id: snapshotId },
       });
 
-      // 2. Desativa a frente globalmente
-      const classification = await tx.clientFrontClassification.findUnique({
-        where: {
-          clientId_frontId: {
-            clientId: snapshot.clientId,
-            frontId: snapshot.frontId,
+      // 2. Desativa a frente globalmente — snapshot "sem frente" (cliente
+      // importado sem nenhuma linha de frente correspondente) não tem
+      // classificação nenhuma pra desativar aqui.
+      if (snapshot.frontId) {
+        const classification = await tx.clientFrontClassification.findUnique({
+          where: {
+            clientId_frontId: {
+              clientId: snapshot.clientId,
+              frontId: snapshot.frontId,
+            },
           },
-        },
-      });
-
-      if (classification) {
-        await tx.clientFrontClassification.update({
-          where: { id: classification.id },
-          data: { actsInFront: 'NO' },
         });
+
+        if (classification) {
+          await tx.clientFrontClassification.update({
+            where: { id: classification.id },
+            data: { actsInFront: 'NO' },
+          });
+        }
       }
 
       return { success: true };
