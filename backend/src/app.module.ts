@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -24,6 +25,9 @@ import { TaxonomyModule } from './taxonomy/taxonomy.module';
 import { ActivityCatalogModule } from './activity-catalog/activity-catalog.module';
 import { ComplexityAiModule } from './complexity-ai/complexity-ai.module';
 import { AssistantModule } from './assistant/assistant.module';
+import { LoggingModule } from './logging/logging.module';
+import { SystemLogExceptionFilter } from './logging/system-log-exception.filter';
+import { SystemLogActivityInterceptor } from './logging/system-log-activity.interceptor';
 
 @Module({
   imports: [
@@ -50,8 +54,13 @@ import { AssistantModule } from './assistant/assistant.module';
     ActivityCatalogModule,
     ComplexityAiModule,
     AssistantModule,
+    LoggingModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_FILTER, useClass: SystemLogExceptionFilter },
+    { provide: APP_INTERCEPTOR, useClass: SystemLogActivityInterceptor },
+  ],
 })
 export class AppModule {}

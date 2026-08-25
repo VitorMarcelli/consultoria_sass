@@ -622,6 +622,47 @@ model NotificationPreference {
   dailyDigest Boolean @default(false)
 }
 
+enum LogLevel {
+  INFO
+  ERROR
+}
+
+// Auditoria global (Configurações > Auditoria, ADMIN-only) — captura erros
+// 5xx e atividades (POST/PUT/PATCH/DELETE) de QUALQUER tenant. Sem relations
+// pra User/Tenant de propósito: userName/userEmail/tenantName são snapshots
+// no momento do log (mesmo padrão de DeliveryHistory.authorName), pra um
+// registro continuar legível mesmo se o usuário/tenant for apagado depois, e
+// pra nunca arriscar apagar histórico de auditoria em cascata.
+model SystemLog {
+  id    String   @id @default(uuid())
+  level LogLevel
+
+  userId     String?
+  userName   String?
+  userEmail  String?
+  tenantId   String?
+  tenantName String?
+
+  method String
+  path   String
+  action String? // label humano pro INFO (ex: "Criou cliente"); null -> frontend mostra method+path
+
+  statusCode   Int?
+  errorMessage String?
+  stackTrace   String? @db.Text
+
+  resolved   Boolean   @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([level, resolved])
+}
+
 model ManagementCycle {
   id String @id @default(uuid())
 

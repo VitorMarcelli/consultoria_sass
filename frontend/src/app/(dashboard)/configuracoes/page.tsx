@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Bell, Shield, Palette, Globe, Database, Construction, KeyRound } from 'lucide-react';
+import { Settings, Bell, Shield, Palette, Globe, Database, Construction, KeyRound, ShieldAlert } from 'lucide-react';
 import ProfileForm from './ProfileForm';
 import NotificationPreferencesForm from './NotificationPreferencesForm';
 import SecurityForm from './SecurityForm';
 import AppearanceForm from './AppearanceForm';
 import AccessControlForm from './AccessControlForm';
+import AuditForm from './AuditForm';
 import { apiRequest } from '@/utils/api';
 
 
@@ -32,7 +33,11 @@ export default function ConfiguracoesPage() {
 
   // Aba admin-only — só entra na lista quando o usuário logado é ADMIN.
   const tabs = role === 'ADMIN'
-    ? [...baseTabs, { name: 'Controle de Acessos', desc: 'Somente administradores', icon: KeyRound }]
+    ? [
+        ...baseTabs,
+        { name: 'Controle de Acessos', desc: 'Somente administradores', icon: KeyRound },
+        { name: 'Auditoria', desc: 'Somente administradores', icon: ShieldAlert },
+      ]
     : baseTabs;
 
   return (
@@ -93,6 +98,8 @@ export default function ConfiguracoesPage() {
                 <AppearanceForm />
               ) : activeTab === 'Controle de Acessos' ? (
                 <AccessControlForm />
+              ) : activeTab === 'Auditoria' ? (
+                <AuditForm />
               ) : (
                 <div className="relative overflow-hidden rounded-container bg-gradient-to-br from-teal-600 to-teal-900 p-10 shadow-lg shadow-teal-900/10 border border-teal-500/20">
                   <div className="absolute right-0 top-0 -mt-16 -mr-16 h-56 w-56 rounded-full bg-white/10 blur-[80px] mix-blend-screen pointer-events-none"></div>

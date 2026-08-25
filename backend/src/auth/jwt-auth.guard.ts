@@ -66,7 +66,7 @@ export class JwtAuthGuard implements CanActivate {
       const dbUser = await this.prisma.user
         .findUnique({
           where: { id: userId },
-          select: { role: true, tenantId: true },
+          select: { role: true, tenantId: true, name: true },
         })
         .catch(() => null);
 
@@ -78,6 +78,9 @@ export class JwtAuthGuard implements CanActivate {
         // (fluxo de auto-provisionamento em GET /users/me).
         role: dbUser?.role ?? null,
         tenantId: dbUser?.tenantId ?? null,
+        // Nome já resolvido aqui evita uma query extra por linha de log de
+        // auditoria (SystemLogService) pra cada requisição mutável.
+        name: dbUser?.name ?? null,
       };
 
       // Invalidação em tempo real: checar se a sessão do token está ativa (se houver registro no UserSession)
