@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, Loader2, Building2, Plus, Upload, Trash2, Edit2 } from 'lucide-react';
+import { Search, Loader2, Building2, Plus, Upload, Trash2, Edit2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { apiRequest } from '@/utils/api';
 import ClientModal from '@/components/ClientModal';
@@ -86,6 +86,20 @@ export default function CycleClientsPage({
       alert(err.message || 'Erro ao salvar cliente');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteClient = async (client: any) => {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir "${client.name}"? O cliente será marcado como inativo e sairá da carteira ativa, mas o histórico dele é preservado.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await apiRequest(`/clients/${client.id}?tenantId=${id}`, { method: 'DELETE' });
+      await loadClients();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir cliente');
     }
   };
 
@@ -296,13 +310,22 @@ export default function CycleClientsPage({
             <Plus className="w-4 h-4" />
             Novo Cliente
           </button>
-          <button 
+          <button
             onClick={() => setIsImportModalOpen(true)}
             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
           >
             <Upload className="w-4 h-4" />
             Importar
           </button>
+          <a
+            href="/02_Dicionario_e_Template_Unico_Carteira_MVP_REV03.xlsx"
+            download
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-sm shadow-sm"
+            title="Baixar o modelo de planilha usado na importação"
+          >
+            <Download className="w-4 h-4" />
+            Baixar Modelo
+          </a>
         </div>
       </motion.div>
 
@@ -402,12 +425,19 @@ export default function CycleClientsPage({
                       </td>
                       <td className="px-8 py-5 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                          <button 
+                          <button
                             onClick={() => openEditClient(cliente)}
                             className="p-2 text-slate-400 hover:text-teal-600 transition-colors rounded-xl hover:bg-teal-50"
                             title="Editar cliente"
                           >
                             <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClient(cliente)}
+                            className="p-2 text-slate-400 hover:text-rose-600 transition-colors rounded-xl hover:bg-rose-50"
+                            title="Excluir cliente"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

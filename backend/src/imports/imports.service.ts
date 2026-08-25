@@ -492,9 +492,24 @@ export class ImportsService {
         }
       };
 
-      await processFront('fiscal', doc ? fiscalByDoc.get(doc) : undefined);
-      await processFront('contabil', doc ? contabilByDoc.get(doc) : undefined);
-      await processFront('pessoal', doc ? pessoalByDoc.get(doc) : undefined);
+      const fiscalRow = doc ? fiscalByDoc.get(doc) : undefined;
+      const contabilRow = doc ? contabilByDoc.get(doc) : undefined;
+      const pessoalRow = doc ? pessoalByDoc.get(doc) : undefined;
+
+      await processFront('fiscal', fiscalRow);
+      await processFront('contabil', contabilRow);
+      await processFront('pessoal', pessoalRow);
+
+      // Sem nenhuma linha correspondente nas 3 abas de frente, o cliente é
+      // criado/atualizado normalmente na base, mas NENHUM ClientCycleSnapshot
+      // é gerado (processFront não faz nada sem areaRow) — ele fica invisível
+      // na Carteira do Ciclo, que lista só por snapshot. Avisa explicitamente
+      // em vez de deixar isso passar como sucesso silencioso.
+      if (cycleId && !fiscalRow && !contabilRow && !pessoalRow) {
+        warnings.push(
+          `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi cadastrado na base, mas não aparecerá na carteira deste ciclo — não há nenhuma linha para o CNPJ/CPF "${docRaw ?? ''}" nas abas 02_Fiscal, 03_Contabil ou 04_Pessoal. Adicione ao menos uma linha em uma dessas abas para vincular o cliente a uma frente.`,
+        );
+      }
 
       count++;
     }
