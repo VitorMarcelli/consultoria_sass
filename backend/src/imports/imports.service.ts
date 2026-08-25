@@ -266,15 +266,15 @@ export class ImportsService {
       const processFront = async (
         key: 'fiscal' | 'contabil' | 'pessoal',
         areaRow: RawRow | undefined,
-      ) => {
-        if (!areaRow) return; // sem linha nesta aba nesta competência: frente não avaliada
+      ): Promise<boolean> => {
+        if (!areaRow) return false; // sem linha nesta aba nesta competência: frente não avaliada
         const displayName = FRONT_DISPLAY_NAME[key];
         const front = getFront(key);
         if (!front) {
           warnings.push(
-            `${fileLabel}, linha ${rowNumber}: cliente "${name}" tem dados na aba de ${displayName}, mas o escritório não tem nenhuma frente ativa cujo nome pareça com "${displayName}" (ex.: "Fiscal", "Contábil", "DP/Pessoal") — cadastre essa frente em Estrutura para os dados aparecerem na carteira.`,
+            `${fileLabel}, linha ${rowNumber}: cliente "${name}" tem dados na aba de ${displayName}, mas o escritório não tem nenhuma frente ativa cujo nome pareça com "${displayName}" (ex.: "Fiscal", "Contábil", "DP/Pessoal") — cadastre essa frente em Estrutura pra vincular esses dados.`,
           );
-          return;
+          return false;
         }
 
         const getArea = (keys: string[]) => this.getVal(areaRow, keys);
@@ -339,7 +339,7 @@ export class ImportsService {
         const scoreTax = key === 'pessoal' ? null : parseNote('Nota Tributação', ['Nota Tributação']);
         const scoreTurnover = key === 'pessoal' ? parseNote('Nota Rotatividade', ['Nota Rotatividade']) : null;
 
-        if (rowHasInvalidNote) return;
+        if (rowHasInvalidNote) return false;
 
         const scores: CriteriaScores = {
           scoreVolume,
@@ -510,24 +510,39 @@ export class ImportsService {
             });
           }
         }
+        return true;
       };
 
       const fiscalRow = doc ? fiscalByDoc.get(doc) : undefined;
       const contabilRow = doc ? contabilByDoc.get(doc) : undefined;
       const pessoalRow = doc ? pessoalByDoc.get(doc) : undefined;
 
-      await processFront('fiscal', fiscalRow);
-      await processFront('contabil', contabilRow);
-      await processFront('pessoal', pessoalRow);
+      const fiscalMatched = await processFront('fiscal', fiscalRow);
+      const contabilMatched = await processFront('contabil', contabilRow);
+      const pessoalMatched = await processFront('pessoal', pessoalRow);
 
-      // Sem nenhuma linha correspondente nas 3 abas de frente, o cliente é
-      // criado/atualizado normalmente na base, mas NENHUM ClientCycleSnapshot
-      // é gerado (processFront não faz nada sem areaRow) — ele fica invisível
-      // na Carteira do Ciclo, que lista só por snapshot. Avisa explicitamente
-      // em vez de deixar isso passar como sucesso silencioso.
-      if (cycleId && !fiscalRow && !contabilRow && !pessoalRow) {
+      // Sem nenhuma frente reconhecida (nem linha nas abas, nem frente com
+      // nome parecido cadastrada), o cliente ainda entra na carteira deste
+      // ciclo — atribuir frente não é obrigatório pra ele aparecer, só pra
+      // ter avaliação de complexidade. Cria um snapshot "sem frente"
+      // (frontId null) em vez de deixar o cliente invisível.
+      if (cycleId && !fiscalMatched && !contabilMatched && !pessoalMatched) {
+        const existingSnapshot = await prisma.clientCycleSnapshot.findFirst({
+          where: { clientId: client.id, cycleId, frontId: null },
+        });
+        if (!existingSnapshot) {
+          await prisma.clientCycleSnapshot.create({
+            data: {
+              clientId: client.id,
+              cycleId,
+              frontId: null,
+              monthlyFee: clientData.monthlyFee,
+              classification: clientData.classification,
+            },
+          });
+        }
         warnings.push(
-          `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi cadastrado na base, mas não aparecerá na carteira deste ciclo — não há nenhuma linha para o CNPJ/CPF "${docRaw ?? ''}" nas abas 02_Fiscal, 03_Contabil ou 04_Pessoal. Adicione ao menos uma linha em uma dessas abas para vincular o cliente a uma frente.`,
+          `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — não há linha para o CNPJ/CPF "${docRaw ?? ''}" nas abas 02_Fiscal, 03_Contabil ou 04_Pessoal. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`,
         );
       }
 

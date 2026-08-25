@@ -688,8 +688,12 @@ model ClientCycleSnapshot {
   clientId String
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  frontId String
-  front   OperationalFront @relation(fields: [frontId], references: [id], onDelete: Cascade)
+  // Opcional: um cliente importado sem nenhuma linha correspondente nas abas
+  // de frente (02_Fiscal/03_Contabil/04_Pessoal) ainda entra na carteira do
+  // ciclo com um snapshot "sem frente" — atribuir frente não é mais
+  // obrigatório pra ele aparecer, só pra ele ter avaliação de complexidade.
+  frontId String?
+  front   OperationalFront? @relation(fields: [frontId], references: [id], onDelete: Cascade)
 
   subdivisionId String?
   subdivision   Subdivision? @relation(fields: [subdivisionId], references: [id])
