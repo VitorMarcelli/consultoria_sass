@@ -249,6 +249,18 @@ describe('calculateCoefficients (CCA/CCR)', () => {
     expect(result.totalActive).toBe(0);
     expect(result.assessedCount).toBe(0);
   });
+
+  it('AI_SUGGESTED fica fora do CCA/CCR até um humano confirmar (ASSESSED) — mesmo tratamento de IMPORTED', () => {
+    const records: AssessmentRecord[] = [
+      { assessmentState: 'ASSESSED', normalizedScore: 50, primaryOwnerId: 'A' },
+      { assessmentState: 'AI_SUGGESTED', normalizedScore: 100, primaryOwnerId: 'A' },
+      { assessmentState: 'IMPORTED', normalizedScore: 0, primaryOwnerId: 'A' },
+    ];
+    const result = calculateCoefficients(records);
+    expect(result.cca).toBe(50);
+    expect(result.assessedCount).toBe(1);
+    expect(result.totalActive).toBe(3);
+  });
 });
 
 describe('calculateVolumeScore', () => {

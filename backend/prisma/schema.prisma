@@ -327,6 +327,13 @@ model ClientFrontClassification {
   assessedById         String?
   assessedAt           DateTime?
 
+  // Sugestão do Agente de IA (Atendimento/Tributação/Organização/Rotatividade)
+  // pendente de revisão humana. Nunca escreve NOT_APPLICABLE/ASSESSED sozinho:
+  // ver AssessmentState = 'AI_SUGGESTED' em complexity.rules.ts. Guarda notas
+  // sugeridas, justificativa por critério, modelo e versão do prompt usados —
+  // para auditoria, já que o consultor pode aceitar ou sobrescrever depois.
+  aiSuggestion Json?
+
   taxInfo        ClientTaxInfo?
   hrInfo         ClientHrInfo?
   accountingInfo ClientAccountingInfo?

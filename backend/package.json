@@ -19,10 +19,12 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:mock": "ts-node prisma/seed-mock.ts",
+    "test:ai-agent": "ts-node prisma/test-complexity-ai-mock.ts",
     "prisma:gen": "prisma generate",
     "prisma:push": "prisma db push"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
     "@google/generative-ai": "^0.24.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
@@ -43,7 +45,8 @@
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "ua-parser-js": "^2.0.10"
+    "ua-parser-js": "^2.0.10",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

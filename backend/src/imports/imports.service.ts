@@ -118,6 +118,19 @@ export class ImportsService {
     return isNaN(d.getTime()) ? null : d;
   }
 
+  // Colunas booleanas do template (Sim/Não) — usado pelos drivers descritivos
+  // que alimentam o Agente de IA de complexidade (hasSpecialRegime,
+  // frequentAdmissions). Ausência de célula não vira "Não": fica undefined,
+  // pra não sobrescrever um valor já cadastrado por engano.
+  private parseBoolYesNo(raw: any): boolean | undefined {
+    if (raw === null || raw === undefined || String(raw).trim() === '')
+      return undefined;
+    const normalized = String(raw).trim().toUpperCase();
+    if (['SIM', 'YES', 'TRUE', '1'].includes(normalized)) return true;
+    if (['NÃO', 'NAO', 'NO', 'FALSE', '0'].includes(normalized)) return false;
+    return undefined;
+  }
+
   async importClientsJson(
     tenantId: string,
     records: any[],
@@ -345,22 +358,42 @@ export class ImportsService {
         // Perfil operacional descritivo (categorias canônicas do template) —
         // gravado à parte, nunca influencia o cálculo de complexidade.
         if (key === 'fiscal') {
+          // hasSpecialRegime/automationLevel/meetsDeadlines: colunas ainda
+          // não confirmadas no template real do cliente — se ausentes na
+          // planilha, getArea/parseBoolYesNo retornam undefined e o upsert
+          // simplesmente não altera o campo. São os drivers objetivos que o
+          // Agente de IA de complexidade usa pra sugerir Tributação e
+          // Organização (ver backend/src/complexity-ai).
           await prisma.clientTaxInfo.upsert({
             where: { classificationId: classificationRecord.id },
             update: {
               documentReceiptMethod: getArea(['Forma recebimento documentos']) || undefined,
               documentSendMethod: getArea(['Forma envio documentos']) || undefined,
               integrationMethod: getArea(['Forma integração']) || undefined,
+              hasSpecialRegime: this.parseBoolYesNo(getArea(['Possui regime especial'])),
+              specialRegimeDescription:
+                getArea(['Descrição do regime especial']) || undefined,
+              automationLevel: getArea(['Nível de automação da apuração']) || undefined,
+              meetsDeadlines: getArea(['Cumpre prazos de envio']) || undefined,
             },
             create: {
               classificationId: classificationRecord.id,
               documentReceiptMethod: getArea(['Forma recebimento documentos']) || null,
               documentSendMethod: getArea(['Forma envio documentos']) || null,
               integrationMethod: getArea(['Forma integração']) || null,
+              hasSpecialRegime:
+                this.parseBoolYesNo(getArea(['Possui regime especial'])) ?? false,
+              specialRegimeDescription:
+                getArea(['Descrição do regime especial']) || null,
+              automationLevel: getArea(['Nível de automação da apuração']) || null,
+              meetsDeadlines: getArea(['Cumpre prazos de envio']) || null,
             },
           });
         }
         if (key === 'contabil') {
+          // bookkeepingRegime/infoReceiptFrequency/integrationLevel/
+          // lastClosingMonth/trialBalanceNeed: mesmo caso do Fiscal acima —
+          // drivers para Tributação/Organização, ausentes no template atual.
           await prisma.clientAccountingInfo.upsert({
             where: { classificationId: classificationRecord.id },
             update: {
@@ -370,6 +403,13 @@ export class ImportsService {
               launchMethod: getArea(['Forma de lançamento']) || undefined,
               closingPeriod: getArea(['Periodicidade de Fechamento']) || undefined,
               lastReconciliationMonth: getArea(['Último Mês de Conciliação']) || undefined,
+              bookkeepingRegime: getArea(['Regime de escrituração']) || undefined,
+              lastClosingMonth: getArea(['Último mês de fechamento contábil']) || undefined,
+              infoReceiptFrequency:
+                getArea(['Frequência de recebimento de informação financeira']) || undefined,
+              integrationLevel: getArea(['Integração com cliente']) || undefined,
+              trialBalanceNeed:
+                getArea(['Necessidade de apresentação de balancete']) || undefined,
             },
             create: {
               classificationId: classificationRecord.id,
@@ -379,10 +419,19 @@ export class ImportsService {
               launchMethod: getArea(['Forma de lançamento']) || null,
               closingPeriod: getArea(['Periodicidade de Fechamento']) || null,
               lastReconciliationMonth: getArea(['Último Mês de Conciliação']) || null,
+              bookkeepingRegime: getArea(['Regime de escrituração']) || null,
+              lastClosingMonth: getArea(['Último mês de fechamento contábil']) || null,
+              infoReceiptFrequency:
+                getArea(['Frequência de recebimento de informação financeira']) || null,
+              integrationLevel: getArea(['Integração com cliente']) || null,
+              trialBalanceNeed:
+                getArea(['Necessidade de apresentação de balancete']) || null,
             },
           });
         }
         if (key === 'pessoal') {
+          // processingType/frequentAdmissions: driver objetivo de
+          // Rotatividade (Sim/Não), ainda não confirmado no template real.
           await prisma.clientHrInfo.upsert({
             where: { classificationId: classificationRecord.id },
             update: {
@@ -393,6 +442,10 @@ export class ImportsService {
               variablesLaunchMethod: getArea(['Recebimento variáveis']) || undefined,
               pointReceiptMethod: getArea(['Recebimento ponto']) || undefined,
               sheetSendingMethod: getArea(['Envio documentos']) || undefined,
+              processingType: getArea(['Tipo de processamento']) || undefined,
+              frequentAdmissions: this.parseBoolYesNo(
+                getArea(['Admissões e rescisões frequentes']),
+              ),
             },
             create: {
               classificationId: classificationRecord.id,
@@ -403,6 +456,9 @@ export class ImportsService {
               variablesLaunchMethod: getArea(['Recebimento variáveis']) || null,
               pointReceiptMethod: getArea(['Recebimento ponto']) || null,
               sheetSendingMethod: getArea(['Envio documentos']) || null,
+              processingType: getArea(['Tipo de processamento']) || null,
+              frequentAdmissions:
+                this.parseBoolYesNo(getArea(['Admissões e rescisões frequentes'])) ?? false,
             },
           });
         }

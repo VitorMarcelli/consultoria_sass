@@ -22,6 +22,7 @@ import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { TaxonomyModule } from './taxonomy/taxonomy.module';
 import { ActivityCatalogModule } from './activity-catalog/activity-catalog.module';
+import { ComplexityAiModule } from './complexity-ai/complexity-ai.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ActivityCatalogModule } from './activity-catalog/activity-catalog.modul
     DashboardModule,
     TaxonomyModule,
     ActivityCatalogModule,
+    ComplexityAiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -12,7 +12,11 @@ export type AssessmentState =
   | 'PARTIAL'
   | 'ASSESSED'
   | 'NOT_APPLICABLE'
-  | 'IMPORTED';
+  | 'IMPORTED'
+  // Notas propostas pelo Agente de IA, pendentes de revisão do consultor.
+  // Mesmo tratamento de IMPORTED em calculateCoefficients: fora do CCA/CCR
+  // até virar ASSESSED (só isso confirma que um humano revisou o resultado).
+  | 'AI_SUGGESTED';
 
 export interface CriteriaScores {
   scoreVolume: number | null;
