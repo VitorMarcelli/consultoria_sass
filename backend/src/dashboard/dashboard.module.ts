@@ -8,5 +8,6 @@ import { ComplexityModule } from '../complexity/complexity.module';
   imports: [PrismaModule, ComplexityModule],
   controllers: [DashboardController],
   providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

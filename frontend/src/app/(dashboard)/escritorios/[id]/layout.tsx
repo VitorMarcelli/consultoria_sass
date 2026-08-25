@@ -107,6 +107,7 @@ export default function EscritorioLayout({
       title: 'Resultados',
       items: [
         { id: 'painel', label: 'Painel Gerencial' },
+        { id: 'assistente', label: 'Assistente' },
       ]
     }
   ];

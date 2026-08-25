@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:mock": "ts-node prisma/seed-mock.ts",
     "test:ai-agent": "ts-node prisma/test-complexity-ai-mock.ts",
+    "test:assistant": "ts-node prisma/test-assistant-mock.ts",
     "prisma:gen": "prisma generate",
     "prisma:push": "prisma db push"
   },

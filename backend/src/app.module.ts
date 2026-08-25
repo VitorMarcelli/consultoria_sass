@@ -23,6 +23,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { TaxonomyModule } from './taxonomy/taxonomy.module';
 import { ActivityCatalogModule } from './activity-catalog/activity-catalog.module';
 import { ComplexityAiModule } from './complexity-ai/complexity-ai.module';
+import { AssistantModule } from './assistant/assistant.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ComplexityAiModule } from './complexity-ai/complexity-ai.module';
     TaxonomyModule,
     ActivityCatalogModule,
     ComplexityAiModule,
+    AssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService],
