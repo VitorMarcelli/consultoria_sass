@@ -38,6 +38,15 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
   const [editingClassificationData, setEditingClassificationData] = useState<any>({});
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // Agente de IA — sugestão de notas de complexidade
+  const [isSuggestingAi, setIsSuggestingAi] = useState(false);
+  const [isAcceptingAi, setIsAcceptingAi] = useState(false);
+  const [aiSuggestInfo, setAiSuggestInfo] = useState<
+    | { type: 'success'; classification: any }
+    | { type: 'blocked' | 'error'; reason: string }
+    | null
+  >(null);
+
   useEffect(() => {
     if (isOpen && client && tenantId && cycleId) {
       loadClientFronts();
@@ -96,11 +105,17 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
   const handleEditFrontClick = async (frontId: string) => {
     setEditingFrontId(frontId);
     setEditingClassificationData({});
+    setAiSuggestInfo(null);
     try {
+      // GET /clients/:clientId/fronts/:frontId/classification retorna a
+      // classificação diretamente (taxInfo/hrInfo/accountingInfo já vêm
+      // aninhados nela via include do Prisma) — não existe um envelope
+      // "{ classification: {...} }". Buscar por data.classification aqui
+      // sempre falhava silenciosamente e o formulário abria vazio.
       const data = await apiRequest(`/clients/${client.id}/fronts/${frontId}/classification?tenantId=${tenantId}`);
-      if (data && data.classification) {
+      if (data && data.id) {
         const mergedData = {
-          ...data.classification,
+          ...data,
           taxInfo: data.taxInfo || {},
           hrInfo: data.hrInfo || {},
           accountingInfo: data.accountingInfo || {}
@@ -131,11 +146,51 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
 
       setEditingFrontId(null);
       setEditingClassificationData({});
+      setAiSuggestInfo(null);
       await loadClientFronts();
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar alterações');
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  const handleAiSuggest = async () => {
+    if (!editingClassificationData?.id) return;
+    setIsSuggestingAi(true);
+    setAiSuggestInfo(null);
+    try {
+      const result = await apiRequest(
+        `/complexity/classifications/${editingClassificationData.id}/ai-suggest`,
+        { method: 'POST', body: JSON.stringify({ tenantId }) }
+      );
+      if (result?.applied) {
+        setEditingClassificationData((prev: any) => ({ ...prev, ...result.classification }));
+        setAiSuggestInfo({ type: 'success', classification: result.classification });
+      } else {
+        setAiSuggestInfo({ type: 'blocked', reason: result?.reason || 'A IA não retornou uma sugestão.' });
+      }
+    } catch (err: any) {
+      setAiSuggestInfo({ type: 'error', reason: err.message || 'Erro ao consultar a IA.' });
+    } finally {
+      setIsSuggestingAi(false);
+    }
+  };
+
+  const handleAcceptAiSuggestion = async () => {
+    if (!editingClassificationData?.id) return;
+    setIsAcceptingAi(true);
+    try {
+      const result = await apiRequest(
+        `/complexity/classifications/${editingClassificationData.id}/ai-suggest/accept`,
+        { method: 'POST', body: JSON.stringify({ tenantId }) }
+      );
+      setEditingClassificationData((prev: any) => ({ ...prev, ...result.classification }));
+      setAiSuggestInfo(null);
+    } catch (err: any) {
+      setAiSuggestInfo({ type: 'error', reason: err.message || 'Erro ao confirmar a sugestão.' });
+    } finally {
+      setIsAcceptingAi(false);
     }
   };
 
@@ -541,19 +596,81 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                 <h5 className="font-bold text-slate-800 flex items-center gap-2">
                                   <Settings className="w-4 h-4 text-teal-600" /> Editar Parâmetros: {frontSnap.frontName}
                                 </h5>
-                                <button onClick={() => setEditingFrontId(null)} className="text-slate-400 hover:text-slate-600">
+                                <button onClick={() => { setEditingFrontId(null); setAiSuggestInfo(null); }} className="text-slate-400 hover:text-slate-600">
                                   <X className="w-4 h-4" />
                                 </button>
                               </div>
-                              <FrontClassificationForm 
-                                tenantId={tenantId || ''} 
-                                frontName={frontSnap.frontName || ''} 
-                                value={editingClassificationData} 
-                                onChange={setEditingClassificationData} 
+                              <FrontClassificationForm
+                                tenantId={tenantId || ''}
+                                frontName={frontSnap.frontName || ''}
+                                value={editingClassificationData}
+                                onChange={setEditingClassificationData}
                               />
+
+                              {/* Agente de IA — sugestão de notas de complexidade */}
+                              <div className="mt-6 pt-4 border-t border-slate-200/60">
+                                <div className="flex items-center justify-between mb-3 gap-3">
+                                  <h6 className="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-teal-600" /> Agente de IA — Complexidade
+                                  </h6>
+                                  <button
+                                    onClick={handleAiSuggest}
+                                    disabled={isSuggestingAi || !editingClassificationData?.id}
+                                    className="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+                                  >
+                                    {isSuggestingAi ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                    Sugerir via IA
+                                  </button>
+                                </div>
+
+                                {editingClassificationData?.assessmentState && (
+                                  <p className="text-xs font-bold text-slate-500 mb-3">
+                                    Estado atual: <span className="text-slate-700">{editingClassificationData.assessmentState}</span>
+                                    {editingClassificationData.complexityClass && ` · Classe ${editingClassificationData.complexityClass}`}
+                                  </p>
+                                )}
+
+                                {aiSuggestInfo?.type === 'blocked' && (
+                                  <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                                    {aiSuggestInfo.reason}
+                                  </p>
+                                )}
+                                {aiSuggestInfo?.type === 'error' && (
+                                  <p className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                                    {aiSuggestInfo.reason}
+                                  </p>
+                                )}
+
+                                {aiSuggestInfo?.type === 'success' && aiSuggestInfo.classification?.aiSuggestion?.scores && (
+                                  <div className="space-y-2">
+                                    {Object.entries(aiSuggestInfo.classification.aiSuggestion.scores).map(([key, val]: [string, any]) => (
+                                      <div key={key} className="bg-white border border-slate-200 rounded-xl px-3 py-2">
+                                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                                          {key} — nota {val?.score ?? 'sem dado suficiente'}
+                                        </p>
+                                        <p className="text-xs text-slate-600 mt-0.5">{val?.justification}</p>
+                                      </div>
+                                    ))}
+                                    {aiSuggestInfo.classification.assessmentState === 'AI_SUGGESTED' ? (
+                                      <button
+                                        onClick={handleAcceptAiSuggestion}
+                                        disabled={isAcceptingAi}
+                                        className="mt-2 w-full px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                                      >
+                                        {isAcceptingAi ? 'Confirmando...' : 'Aceitar sugestão da IA'}
+                                      </button>
+                                    ) : (
+                                      <p className="text-[11px] font-bold text-slate-400 mt-1">
+                                        Ainda faltam critérios preenchidos (ex.: Volume) para poder confirmar esta avaliação.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
                               <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-slate-200/60 sm:justify-end">
                                 <button
-                                  onClick={() => setEditingFrontId(null)}
+                                  onClick={() => { setEditingFrontId(null); setAiSuggestInfo(null); }}
                                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
                                 >
                                   Cancelar

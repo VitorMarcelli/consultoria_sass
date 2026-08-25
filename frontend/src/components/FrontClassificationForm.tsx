@@ -155,11 +155,18 @@ export default function FrontClassificationForm({ tenantId, frontName, value, on
         <div className="space-y-4 pt-4 border-t border-slate-200/60">
           <h6 className="text-sm font-black text-slate-800 tracking-tight text-teal-700">Parâmetros Fiscais</h6>
           <div className="grid sm:grid-cols-2 gap-4">
-            {renderSelect('Volume de Notas / Mês', 'monthlyNotesVolume', [
+            {renderSelect('Volume de Notas / Mês (faixa)', 'monthlyNotesVolume', [
               {label: 'Até 50', value: 'ATE_50'},
               {label: '51 a 200', value: '51_200'},
               {label: '201 a 500', value: '201_500'},
               {label: 'Mais de 500', value: 'MAIS_500'}
+            ], 'taxInfo')}
+            {renderInput('Volume de Notas / Mês (número exato)', 'monthlyNotesCount', 'number', 'taxInfo')}
+            {renderSelect('Cumpre Prazos de Envio?', 'meetsDeadlines', [
+              {label: 'Nunca', value: 'NUNCA'},
+              {label: 'Às vezes', value: 'AS_VEZES'},
+              {label: 'Quase sempre', value: 'QUASE_SEMPRE'},
+              {label: 'Sempre', value: 'SEMPRE'}
             ], 'taxInfo')}
             {renderSelect('Nível de Automação', 'automationLevel', [
               {label: 'Manual', value: 'MANUAL'},
@@ -227,10 +234,18 @@ export default function FrontClassificationForm({ tenantId, frontName, value, on
               {label: 'Parcial (Planilhas)', value: 'PARCIAL'},
               {label: 'Total (Sistemas via API)', value: 'TOTAL'}
             ], 'accountingInfo')}
-            {renderSelect('Total de Lançamentos', 'launchesVolume', [
+            {renderSelect('Total de Lançamentos (faixa)', 'launchesVolume', [
               {label: 'Até 100', value: 'ATE_100'},
               {label: '101 a 500', value: '101_500'},
               {label: 'Mais de 500', value: 'MAIS_500'}
+            ], 'accountingInfo')}
+            {renderInput('Total de Lançamentos (número exato)', 'launchesCount', 'number', 'accountingInfo')}
+            {renderSelect('Frequência de Recebimento de Informação Financeira', 'infoReceiptFrequency', [
+              {label: 'Mensal', value: 'MENSAL'},
+              {label: 'Bimestral', value: 'BIMESTRAL'},
+              {label: 'Trimestral', value: 'TRIMESTRAL'},
+              {label: 'Sob demanda', value: 'SOB_DEMANDA'},
+              {label: 'Nunca envia', value: 'NUNCA_ENVIA'}
             ], 'accountingInfo')}
           </div>
         </div>
