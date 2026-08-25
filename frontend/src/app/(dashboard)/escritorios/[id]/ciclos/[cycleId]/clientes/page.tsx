@@ -10,6 +10,7 @@ import CsvImportModal from '@/components/CsvImportModal';
 import Client360SlideOver from '@/components/Client360SlideOver';
 import AllocateClientModal from './AllocateClientModal';
 import ClientCycleModal from './ClientCycleModal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const tableVariants = {
@@ -48,6 +49,9 @@ export default function CycleClientsPage({
   
   const [selectedClientFor360, setSelectedClientFor360] = useState<any>(null);
   const [is360Open, setIs360Open] = useState(false);
+
+  const [clientToDelete, setClientToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadClients = async () => {
     setIsLoading(true);
@@ -89,17 +93,21 @@ export default function CycleClientsPage({
     }
   };
 
-  const handleDeleteClient = async (client: any) => {
-    const confirmed = window.confirm(
-      `Tem certeza que deseja excluir "${client.name}"? O cliente será marcado como inativo e sairá da carteira ativa, mas o histórico dele é preservado.`
-    );
-    if (!confirmed) return;
+  const handleDeleteClient = (client: any) => {
+    setClientToDelete(client);
+  };
 
+  const confirmDeleteClient = async () => {
+    if (!clientToDelete) return;
+    setIsDeleting(true);
     try {
-      await apiRequest(`/clients/${client.id}?tenantId=${id}`, { method: 'DELETE' });
+      await apiRequest(`/clients/${clientToDelete.id}?tenantId=${id}`, { method: 'DELETE' });
+      setClientToDelete(null);
       await loadClients();
     } catch (err: any) {
       alert(err.message || 'Erro ao excluir cliente');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -483,13 +491,25 @@ export default function CycleClientsPage({
         onSuccess={loadClients}
       />
 
-      <Client360SlideOver 
+      <Client360SlideOver
         isOpen={is360Open}
         onClose={() => setIs360Open(false)}
         client={selectedClientFor360}
         tenantId={id}
         cycleId={cycleId}
         onFrontRemoved={loadClients}
+      />
+
+      <ConfirmModal
+        isOpen={!!clientToDelete}
+        onClose={() => setClientToDelete(null)}
+        onConfirm={confirmDeleteClient}
+        variant="danger"
+        title="Excluir cliente"
+        description={`Tem certeza que deseja excluir "${clientToDelete?.name}"? O cliente será marcado como inativo e sairá da carteira ativa, mas o histórico dele é preservado.`}
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        isLoading={isDeleting}
       />
     </div>
   );
