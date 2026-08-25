@@ -165,10 +165,25 @@ export class ImportsService {
     const fronts = await prisma.operationalFront.findMany({
       where: { status: 'ACTIVE' },
     });
-    const getFront = (displayName: string) =>
-      fronts.find(
-        (f) => f.name.toLowerCase().trim() === displayName.toLowerCase().trim(),
-      );
+    // Nome da frente é texto livre por tenant (ex.: "DP/Pessoal", "Departamento
+    // Pessoal", "RH" em vez de "Pessoal" — caso real do tenant do Gabriel
+    // Resende, onde a comparação exata usada antes nunca casava e a frente
+    // Pessoal inteira ficava sem ClientCycleSnapshot, silenciosamente).
+    // Mesma heurística de categorização já usada em
+    // FrontClassificationForm.tsx no frontend, só que na direção inversa
+    // (aqui buscamos a frente a partir da chave, lá a chave a partir do nome).
+    const FRONT_NAME_HINTS: Record<'fiscal' | 'contabil' | 'pessoal', string[]> = {
+      fiscal: ['fiscal', 'tribut'],
+      contabil: ['contábil', 'contabil', 'contabilidade'],
+      pessoal: ['dp', 'pessoal', 'rh', 'humanos'],
+    };
+    const getFront = (key: 'fiscal' | 'contabil' | 'pessoal') => {
+      const hints = FRONT_NAME_HINTS[key];
+      return fronts.find((f) => {
+        const name = f.name.toLowerCase().trim();
+        return hints.some((hint) => name.includes(hint));
+      });
+    };
 
     // Aba única por CNPJ/CPF — indexa as 3 abas de frente pelo documento
     // normalizado (só dígitos) pra casar com 01_Clientes independente de
@@ -254,8 +269,13 @@ export class ImportsService {
       ) => {
         if (!areaRow) return; // sem linha nesta aba nesta competência: frente não avaliada
         const displayName = FRONT_DISPLAY_NAME[key];
-        const front = getFront(displayName);
-        if (!front) return;
+        const front = getFront(key);
+        if (!front) {
+          warnings.push(
+            `${fileLabel}, linha ${rowNumber}: cliente "${name}" tem dados na aba de ${displayName}, mas o escritório não tem nenhuma frente ativa cujo nome pareça com "${displayName}" (ex.: "Fiscal", "Contábil", "DP/Pessoal") — cadastre essa frente em Estrutura para os dados aparecerem na carteira.`,
+          );
+          return;
+        }
 
         const getArea = (keys: string[]) => this.getVal(areaRow, keys);
         const hasAreaCol = (keys: string[]) => this.hasCol(areaRow, keys);
