@@ -200,6 +200,35 @@ export class ImportsService {
     const contabilByDoc = indexByDoc(contabilRows);
     const pessoalByDoc = indexByDoc(pessoalRows);
 
+    // Linha de frente cujo CNPJ/CPF não existe em nenhuma linha de
+    // 01_Clientes deste lote nunca chega a ser processada (o loop principal
+    // só itera "records", que é 01_Clientes) — antes isso desaparecia sem
+    // nenhum aviso. Caso real: um tenant preencheu 02_Fiscal/03_Contabil/
+    // 04_Pessoal mas usou CNPJs que não estavam cadastrados em 01_Clientes
+    // (inclusive CNPJs de exemplo remanescentes do próprio template),
+    // e a importação "funcionou" sem avisar que aquelas linhas foram
+    // ignoradas.
+    const clientDocs = new Set(
+      records
+        .map((r) => this.normalizeDoc(this.getVal(r, ['CNPJ/CPF', 'CNPJ', 'CPF', 'cnpj'])))
+        .filter((d): d is string => !!d),
+    );
+    const warnOrphanDocs = (
+      sheetLabel: string,
+      byDoc: Map<string, RawRow>,
+    ) => {
+      for (const doc of byDoc.keys()) {
+        if (!clientDocs.has(doc)) {
+          warnings.push(
+            `${fileLabel}, aba ${sheetLabel}: o CNPJ/CPF "${doc}" aparece nessa aba, mas não há nenhum cliente com esse documento em 01_Clientes — essa linha foi ignorada. Cadastre o cliente em 01_Clientes com o mesmo CNPJ/CPF para vincular esses dados.`,
+          );
+        }
+      }
+    };
+    warnOrphanDocs('02_Fiscal', fiscalByDoc);
+    warnOrphanDocs('03_Contabil', contabilByDoc);
+    warnOrphanDocs('04_Pessoal', pessoalByDoc);
+
     for (let rowIndex = 0; rowIndex < records.length; rowIndex++) {
       const row = records[rowIndex];
       const rowNumber = baseRow + rowIndex;
