@@ -121,6 +121,8 @@ export default function CycleOverviewPage({
     teamCount = 0,
     distributionByTaxRegime = {},
     distributionByComplexity = {},
+    complexityC0Count = 0,
+    complexityPendingCount = 0,
     distributionByFrequency = {},
     goal = '',
     totalTasks = 0,
@@ -140,10 +142,15 @@ export default function CycleOverviewPage({
     value: distributionByTaxRegime[key]
   })).sort((a, b) => b.value - a.value);
 
+  // Curva de complexidade real (C1..C5). C0 e pendentes ficam fora do gráfico
+  // e são exibidos como base de cálculo — somá-los a C1 faria carteira não
+  // mapeada parecer mapeada (ORDEM-02, Bloco B).
   const complexityData = Object.keys(distributionByComplexity).map(key => ({
     name: key,
     value: distributionByComplexity[key]
   })).sort((a, b) => a.name.localeCompare(b.name));
+
+  const complexityAssessedCount = complexityData.reduce((sum, item) => sum + item.value, 0);
 
   const frequencyData = Object.keys(distributionByFrequency).map(key => ({
     name: key,
@@ -367,11 +374,16 @@ export default function CycleOverviewPage({
 
         {/* Nível de Complexidade */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
-          <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-6 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
             <BarChart2 className="w-4 h-4 text-slate-400" /> Nível de Complexidade
           </h3>
+          <p className="text-xs font-medium text-slate-500 mb-4">
+            Calculado sobre {complexityAssessedCount} cliente{complexityAssessedCount === 1 ? '' : 's'} avaliado{complexityAssessedCount === 1 ? '' : 's'}
+            {complexityPendingCount > 0 && <> · <span className="font-bold text-amber-600">{complexityPendingCount} pendente{complexityPendingCount === 1 ? '' : 's'}</span></>}
+            {complexityC0Count > 0 && <> · {complexityC0Count} em C0 (não atua)</>}
+          </p>
           <div className="flex-1 min-h-[250px]">
-            {complexityData.length > 0 ? (
+            {complexityAssessedCount > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={complexityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />

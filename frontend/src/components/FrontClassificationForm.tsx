@@ -143,11 +143,10 @@ export default function FrontClassificationForm({ tenantId, frontName, value, on
           {label: 'Semestral', value: 'SEMESTRAL'},
           {label: 'Anual', value: 'ANUAL'}
         ])}
-        {renderSelect('Percepção de Complexidade', 'complexity', [
-          {label: '1 - Baixa', value: '1'},
-          {label: '2 - Média', value: '2'},
-          {label: '3 - Alta', value: '3'}
-        ])}
+        {/* "Percepção de Complexidade" foi removida (ORDEM-02, Bloco B): a
+            complexidade é derivada do conjunto de parâmetros desta frente pelo
+            motor de cálculo, nunca digitada. Editá-la à mão sobrescrevia a
+            classe calculada. */}
       </div>
 
       {/* FISCAL FIELDS */}

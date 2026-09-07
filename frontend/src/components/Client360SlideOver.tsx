@@ -21,6 +21,82 @@ interface Client360SlideOverProps {
   onFrontRemoved?: () => void;
 }
 
+// Escala real da complexidade: C1..C5. C0 não é um degrau da curva — quer
+// dizer "não atua nesta frente" — e por isso é exibido à parte, nunca como
+// barra vazia. Estados pendentes também: "não avaliado" é pendência de
+// trabalho, não complexidade baixa (ORDEM-02, Bloco B).
+const COMPLEXITY_CLASSES = ['C1', 'C2', 'C3', 'C4', 'C5'];
+const PENDING_STATES = ['NOT_ASSESSED', 'PARTIAL', 'IMPORTED', 'AI_SUGGESTED'];
+
+const PENDING_LABEL: Record<string, string> = {
+  NOT_ASSESSED: 'Não avaliado',
+  PARTIAL: 'Avaliação incompleta',
+  IMPORTED: 'Importado — falta revisar',
+  AI_SUGGESTED: 'Sugestão da IA — falta confirmar',
+};
+
+function renderComplexity(frontSnap: any) {
+  const assessmentState = frontSnap?.assessmentState || 'NOT_ASSESSED';
+  const complexityClass = frontSnap?.complexityClass || null;
+
+  if (complexityClass === 'C0') {
+    return (
+      <div>
+        <p className="text-sm font-black text-slate-800">C0</p>
+        <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+          Não atua nesta frente
+        </p>
+      </div>
+    );
+  }
+
+  if (!complexityClass || PENDING_STATES.includes(assessmentState)) {
+    return (
+      <div>
+        <div className="flex gap-1.5">
+          {COMPLEXITY_CLASSES.map((cls) => (
+            <div
+              key={cls}
+              className="h-2.5 w-full rounded-full bg-slate-200/60"
+            ></div>
+          ))}
+        </div>
+        <p className="text-[11px] font-bold text-amber-600 mt-2">
+          {PENDING_LABEL[assessmentState] || 'Não avaliado'}
+        </p>
+      </div>
+    );
+  }
+
+  const level = COMPLEXITY_CLASSES.indexOf(complexityClass) + 1;
+
+  return (
+    <div>
+      <div className="flex gap-1.5">
+        {COMPLEXITY_CLASSES.map((cls, index) => (
+          <div
+            key={cls}
+            className={`h-2.5 w-full rounded-full ${
+              index < level
+                ? 'bg-gradient-to-r from-teal-400 to-teal-500 shadow-sm shadow-teal-500/20'
+                : 'bg-slate-200/60'
+            }`}
+          ></div>
+        ))}
+      </div>
+      <p className="text-[11px] font-black text-slate-600 mt-2">
+        {complexityClass}
+        {frontSnap?.normalizedScore != null && (
+          <span className="font-bold text-slate-400">
+            {' '}
+            · score {frontSnap.normalizedScore}
+          </span>
+        )}
+      </p>
+    </div>
+  );
+}
+
 export default function Client360SlideOver({ isOpen, onClose, client, tenantId, cycleId, onFrontRemoved }: Client360SlideOverProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'deliveries' | 'financial'>('overview');
   const [clientFronts, setClientFronts] = useState<any[]>([]);
@@ -690,14 +766,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                   <Activity className="w-3.5 h-3.5" /> Nível de Complexidade
                                 </p>
-                                <div className="flex gap-1.5">
-                                {[1, 2, 3].map((level) => {
-                                  const isActive = level <= (frontSnap.complexity || 1);
-                                  return (
-                                    <div key={level} className={`h-2.5 w-full rounded-full ${isActive ? 'bg-gradient-to-r from-teal-400 to-teal-500 shadow-sm shadow-teal-500/20' : 'bg-slate-200/60'}`}></div>
-                                  );
-                                })}
-                              </div>
+                                {renderComplexity(frontSnap)}
                             </div>
                             <div>
                               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
