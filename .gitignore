@@ -1,7 +1,14 @@
 # AI Agent / VIBE CODE / Docs
 .agent/
-docs/
 docs_cliente/
+
+# docs/ fica fora do versionamento (contrato, PRD, apresentacoes e planilhas
+# do cliente), EXCETO a documentacao de engenharia, que o time de dev precisa
+# ler junto com o codigo.
+docs/*
+!docs/ORDEM-*.md
+!docs/REFERENCIA-*.md
+!docs/tools/
 docs_output.txt
 read_docs.py
 
