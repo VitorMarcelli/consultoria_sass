@@ -5,6 +5,39 @@ import {
 } from '@nestjs/common';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
 
+// Classes válidas da curva de complexidade. C0 fica de fora: significa "não
+// atua nesta frente", não é um degrau da curva (mesma regra do Diagnóstico em
+// dashboard.service.ts).
+const COMPLEXITY_CLASSES = ['C1', 'C2', 'C3', 'C4', 'C5'];
+
+// Estados em que a avaliação ainda não fechou — contam como pendência, nunca
+// como C1. IMPORTED e AI_SUGGESTED entram aqui porque nenhum humano revisou.
+const PENDING_STATES = [
+  'NOT_ASSESSED',
+  'PARTIAL',
+  'IMPORTED',
+  'AI_SUGGESTED',
+];
+
+// Campos da avaliação de complexidade que o snapshot congela junto com o
+// retrato comercial do cliente. Sem isso o ClientCycleSnapshot nasce com
+// complexityClass = null e o Diagnóstico enxerga a carteira inteira como não
+// avaliada, mesmo com o motor tendo calculado tudo (ORDEM-02, Bloco B).
+function freezeAssessment(source: any) {
+  if (!source) return {};
+  return {
+    scoreVolume: source.scoreVolume ?? null,
+    scoreService: source.scoreService ?? null,
+    scoreTax: source.scoreTax ?? null,
+    scoreOrganization: source.scoreOrganization ?? null,
+    scoreTurnover: source.scoreTurnover ?? null,
+    rawSum: source.rawSum ?? null,
+    normalizedScore: source.normalizedScore ?? null,
+    complexityClass: source.complexityClass ?? null,
+    assessmentState: source.assessmentState ?? 'NOT_ASSESSED',
+  };
+}
+
 @Injectable()
 export class ManagementCyclesService {
   constructor(private readonly prismaManager: PrismaClientManager) {}
@@ -14,6 +47,49 @@ export class ManagementCyclesService {
       throw new NotFoundException('ID do escritório não informado.');
     const schemaName = `tenant_${tenantId.replace(/-/g, '_')}`;
     return this.prismaManager.getClient(schemaName);
+  }
+
+  // Snapshots criados antes do Bloco B não têm complexityClass gravado. Para
+  // não exibir a carteira histórica inteira como "não avaliada", caímos na
+  // classificação viva quando o congelado estiver vazio — mesma precedência
+  // do Diagnóstico (snapshot > classificação).
+  private async buildLiveAssessmentMap(
+    tenantPrisma: any,
+    snapshots: { clientId: string; frontId: string | null }[],
+  ): Promise<Map<string, any>> {
+    const pending = snapshots.filter((s) => s.frontId);
+    if (pending.length === 0) return new Map();
+
+    const classifications =
+      await tenantPrisma.clientFrontClassification.findMany({
+        where: {
+          clientId: { in: [...new Set(pending.map((s) => s.clientId))] },
+          frontId: { in: [...new Set(pending.map((s) => s.frontId as string))] },
+        },
+      });
+
+    return new Map(
+      classifications.map((c: any) => [`${c.clientId}|${c.frontId}`, c]),
+    );
+  }
+
+  // Resolve a avaliação efetiva de um snapshot: o congelado tem precedência;
+  // o vivo só entra quando o congelado nunca foi preenchido.
+  private resolveAssessment(snap: any, liveMap: Map<string, any>) {
+    if (snap.complexityClass) {
+      return {
+        complexityClass: snap.complexityClass,
+        assessmentState: snap.assessmentState ?? 'NOT_ASSESSED',
+        normalizedScore: snap.normalizedScore ?? null,
+      };
+    }
+    const live = liveMap.get(`${snap.clientId}|${snap.frontId}`);
+    return {
+      complexityClass: live?.complexityClass ?? null,
+      assessmentState:
+        live?.assessmentState ?? snap.assessmentState ?? 'NOT_ASSESSED',
+      normalizedScore: live?.normalizedScore ?? null,
+    };
   }
 
   async findAll(tenantId: string) {
@@ -80,6 +156,9 @@ export class ManagementCyclesService {
         complexity: frontClassification?.complexity || null,
         frequency: frontClassification?.frequency || null,
         particulars: frontClassification?.particulars || null,
+        primaryOwnerId: frontClassification?.operator1Id || null,
+        secondaryOwnerId: frontClassification?.operator2Id || null,
+        ...freezeAssessment(frontClassification),
       },
     });
   }
@@ -230,6 +309,9 @@ export class ManagementCyclesService {
           complexity: snap.complexity,
           frequency: snap.frequency,
           particulars: snap.particulars,
+          primaryOwnerId: snap.primaryOwnerId,
+          secondaryOwnerId: snap.secondaryOwnerId,
+          ...freezeAssessment(snap),
         }));
         await tenantPrisma.clientCycleSnapshot.createMany({
           data: snapshotsData,
@@ -295,6 +377,9 @@ export class ManagementCyclesService {
                 complexity: frontClass.complexity,
                 frequency: frontClass.frequency,
                 particulars: frontClass.particulars,
+                primaryOwnerId: frontClass.operator1Id || null,
+                secondaryOwnerId: frontClass.operator2Id || null,
+                ...freezeAssessment(frontClass),
               });
             }
           }
@@ -331,6 +416,8 @@ export class ManagementCyclesService {
       include: { client: true, front: true },
     });
 
+    const liveMap = await this.buildLiveAssessmentMap(tenantPrisma, snapshots);
+
     return snapshots.map((snap: any) => ({
       ...snap.client,
       snapshotId: snap.id,
@@ -338,7 +425,10 @@ export class ManagementCyclesService {
       segment: snap.segment,
       monthlyFee: snap.monthlyFee,
       classification: snap.classification,
+      // LEGADO: mantido no payload só para não quebrar consumidor antigo.
+      // A tela usa complexityClass/assessmentState (ORDEM-02, Bloco B).
       complexity: snap.complexity,
+      ...this.resolveAssessment(snap, liveMap),
       frequency: snap.frequency,
       particulars: snap.particulars,
       frontId: snap.frontId,
@@ -453,6 +543,14 @@ export class ManagementCyclesService {
     const distributionByFrequency: Record<string, number> = {};
     const clientIdsForRegime = new Set<string>();
 
+    // B3: a curva passa a ser a classe calculada (C1..C5). C0 e pendentes
+    // saem para contadores próprios — somá-los a C1 é o que fazia carteira
+    // não mapeada parecer mapeada.
+    const liveMap = await this.buildLiveAssessmentMap(tenantPrisma, snapshots);
+    let complexityC0Count = 0;
+    let complexityPendingCount = 0;
+    for (const cls of COMPLEXITY_CLASSES) distributionByComplexity[cls] = 0;
+
     for (const snap of snapshots) {
       if (!clientIdsCounted.has(snap.clientId)) {
         uniqueClientsTotalRevenue += Number(snap.monthlyFee) || 0;
@@ -466,10 +564,17 @@ export class ManagementCyclesService {
         clientIdsForRegime.add(snap.clientId);
       }
 
-      if (snap.complexity !== null && snap.complexity !== undefined) {
-        const comp = `Nível ${snap.complexity}`;
-        distributionByComplexity[comp] =
-          (distributionByComplexity[comp] || 0) + 1;
+      const assessment = this.resolveAssessment(snap, liveMap);
+      if (assessment.complexityClass === 'C0') {
+        complexityC0Count += 1;
+      } else if (
+        assessment.complexityClass &&
+        !PENDING_STATES.includes(assessment.assessmentState)
+      ) {
+        distributionByComplexity[assessment.complexityClass] =
+          (distributionByComplexity[assessment.complexityClass] || 0) + 1;
+      } else {
+        complexityPendingCount += 1;
       }
 
       if (snap.frequency) {
@@ -534,6 +639,8 @@ export class ManagementCyclesService {
       teamCount: employeeIdsCounted.size,
       distributionByTaxRegime,
       distributionByComplexity,
+      complexityC0Count,
+      complexityPendingCount,
       distributionByFrequency,
       totalTasks,
       completedTasks,

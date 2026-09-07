@@ -79,7 +79,6 @@ export class ClientClassificationsService {
       operator1Id,
       operator2Id,
       frequency,
-      complexity,
       particulars,
       frontType, // 'FISCAL' | 'HR' | 'ACCOUNTING'
       taxInfo,
@@ -87,12 +86,16 @@ export class ClientClassificationsService {
       accountingInfo,
     } = data;
 
+    // `complexity` (LEGADO, 0-3 digitado na planilha) é deliberadamente
+    // ignorado aqui: a tela deixou de oferecer o campo (ORDEM-02, Bloco B) e
+    // gravá-lo a partir do payload apagaria o histórico das importações
+    // antigas toda vez que alguém salvasse a frente. O valor só entra pelo
+    // importador; quem manda na complexidade é o motor (complexityClass).
     const updateData: any = {
       leaderId: leaderId || null,
       operator1Id: operator1Id || null,
       operator2Id: operator2Id || null,
       frequency: frequency || null,
-      complexity: complexity ? Number(complexity) : null,
       particulars: particulars || null,
       actsInFront: 'YES',
     };

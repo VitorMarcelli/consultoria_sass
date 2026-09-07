@@ -5,10 +5,14 @@ import { ComplexityService } from '../complexity/complexity.service';
 import { AssessmentState } from '../complexity/complexity.rules';
 
 const COMPLEXITY_CLASSES = ['C1', 'C2', 'C3', 'C4', 'C5'] as const;
+// AI_SUGGESTED entra aqui pelo mesmo motivo de IMPORTED: nenhum humano
+// revisou a nota ainda. Sem ele, um registro sugerido pela IA não caía nem em
+// `assessedPortfolio` nem em `pendingCount` e sumia da soma da tela.
 const PENDING_STATES: AssessmentState[] = [
   'NOT_ASSESSED',
   'PARTIAL',
   'IMPORTED',
+  'AI_SUGGESTED',
 ];
 
 function round2(value: number): number {
@@ -70,14 +74,40 @@ export class DashboardService {
     let portfolio: PortfolioRecord[];
     if (snapshots.length > 0) {
       // Retrato congelado do ciclo — prioridade 1 (D1).
-      portfolio = snapshots.map((s) => ({
-        client: s.client,
-        complexityClass: s.complexityClass,
-        assessmentState: (s.assessmentState ??
-          'NOT_ASSESSED') as AssessmentState,
-        normalizedScore: s.normalizedScore,
-        primaryOwnerId: s.primaryOwnerId,
-      }));
+      //
+      // Snapshots criados antes da ORDEM-02/Bloco B nasceram sem os campos de
+      // avaliação (a ORDEM-01 adicionou as colunas mas nenhum caminho de
+      // criação as preenchia). Na base real isso é a maioria: 96% sem
+      // complexityClass e 100% sem primaryOwnerId — ou seja, curva vazia e
+      // tabela de CCR sem nenhuma linha. Para esses, caímos na classificação
+      // viva; o congelado continua tendo precedência sempre que existir.
+      const classifications =
+        await tenantPrisma.clientFrontClassification.findMany({
+          where: {
+            frontId,
+            clientId: { in: snapshots.map((s) => s.clientId) },
+          },
+        });
+      const liveByClient = new Map(
+        classifications.map((c) => [c.clientId, c]),
+      );
+
+      portfolio = snapshots.map((s) => {
+        const live = liveByClient.get(s.clientId);
+        return {
+          client: s.client,
+          complexityClass: s.complexityClass ?? live?.complexityClass ?? null,
+          assessmentState: (s.complexityClass
+            ? (s.assessmentState ?? 'NOT_ASSESSED')
+            : (live?.assessmentState ??
+              s.assessmentState ??
+              'NOT_ASSESSED')) as AssessmentState,
+          normalizedScore: s.complexityClass
+            ? s.normalizedScore
+            : (live?.normalizedScore ?? null),
+          primaryOwnerId: s.primaryOwnerId ?? live?.operator1Id ?? null,
+        };
+      });
     } else {
       // Sem snapshot: carteira viva de quem atua na frente — prioridade 2 (D1).
       const classifications =
