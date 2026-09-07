@@ -18,10 +18,14 @@ export default function SecurityForm() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [maxSessions, setMaxSessions] = useState<number | null>(null);
+  const [limitEnforced, setLimitEnforced] = useState(true);
 
   useEffect(() => {
     apiRequest('/users/me')
-      .then((me) => setMaxSessions(me?.maxConcurrentSessions ?? 1))
+      .then((me) => {
+        setMaxSessions(me?.maxConcurrentSessions ?? 1);
+        setLimitEnforced(me?.sessionLimitEnforced !== false);
+      })
       .catch(() => setMaxSessions(1));
   }, []);
 
@@ -235,9 +239,21 @@ export default function SecurityForm() {
           <div>
             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Dispositivos Conectados</h2>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Gerencie e desconecte as sessões ativas nos seus dispositivos. Você pode manter até{' '}
-              <strong className="text-slate-700 dark:text-slate-300">{maxSessions ?? 1}</strong>{' '}
-              {(maxSessions ?? 1) === 1 ? 'dispositivo conectado' : 'dispositivos conectados'} simultaneamente.
+              {limitEnforced ? (
+                <>
+                  Gerencie e desconecte as sessões ativas nos seus dispositivos. Você pode manter até{' '}
+                  <strong className="text-slate-700 dark:text-slate-300">{maxSessions ?? 1}</strong>{' '}
+                  {(maxSessions ?? 1) === 1 ? 'dispositivo conectado' : 'dispositivos conectados'} simultaneamente.
+                </>
+              ) : (
+                <>
+                  Gerencie e desconecte as sessões ativas nos seus dispositivos.{' '}
+                  <strong className="text-amber-600 dark:text-amber-400">
+                    O limite de acessos simultâneos está desativado
+                  </strong>{' '}
+                  — nenhum login é bloqueado no momento.
+                </>
+              )}
             </p>
           </div>
         </div>

@@ -95,6 +95,7 @@ export default function AccessControlForm() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [limitEnforced, setLimitEnforced] = useState(true);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -108,6 +109,12 @@ export default function AccessControlForm() {
       }
     };
     fetchUsers();
+
+    // O valor por usuário continua editável e é gravado normalmente; o que
+    // pode estar desligado é a imposição da regra no backend.
+    apiRequest('/users/me')
+      .then((me) => setLimitEnforced(me?.sessionLimitEnforced !== false))
+      .catch(() => setLimitEnforced(true));
   }, []);
 
   const handleSaved = (userId: string, newValue: number) => {
@@ -137,6 +144,19 @@ export default function AccessControlForm() {
             </p>
           </div>
         </div>
+
+        {!limitEnforced && (
+          <div className="mb-6 rounded-inner border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-5 py-4">
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+              O limite de acessos simultâneos está desativado
+            </p>
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400/80 mt-1">
+              Os valores abaixo continuam sendo salvos, mas nenhum login está sendo bloqueado. Para voltar a aplicar a
+              regra, defina <code className="font-mono text-xs">AUTH_SESSION_LIMIT_ENABLED=true</code> no ambiente do
+              backend.
+            </p>
+          </div>
+        )}
 
         <div className="relative w-full max-w-md mb-6">
           <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />

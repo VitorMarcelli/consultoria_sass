@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isSessionLimitEnabled } from '../auth/session-limit.config';
 import { createClient } from '@supabase/supabase-js';
 import { CreateConsultantDto } from './dto/create-consultant.dto';
 import * as jwt from 'jsonwebtoken';
@@ -93,7 +94,10 @@ export class UsersService {
       }
     }
 
-    return user;
+    // `maxConcurrentSessions` continua sendo devolvido normalmente, mas a
+    // tela precisa saber se a regra está de fato sendo aplicada — senão
+    // anuncia um limite que o backend não impõe (ver session-limit.config.ts).
+    return { ...user, sessionLimitEnforced: isSessionLimitEnabled() };
   }
 
   async findAll() {

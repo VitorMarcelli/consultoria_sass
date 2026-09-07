@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { isSessionLimitEnabled } from './session-limit.config';
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 
 @Injectable()
@@ -84,10 +85,13 @@ export class JwtAuthGuard implements CanActivate {
       };
 
       // Invalidação em tempo real: checar se a sessão do token está ativa (se houver registro no UserSession)
+      // Só vale quando o limite de acessos está ligado — desligado, uma
+      // sessão marcada inativa não deve derrubar a requisição no meio do
+      // fluxo (ver session-limit.config.ts).
       try {
         const isCreatingSession =
           request.method === 'POST' && request.url.includes('/auth/sessions');
-        if (!isCreatingSession) {
+        if (isSessionLimitEnabled() && !isCreatingSession) {
           const deviceSessionId = request.headers['x-device-session-id'];
           const sessionId =
             deviceSessionId || (payload as Record<string, unknown>).session_id;

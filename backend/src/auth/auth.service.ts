@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isSessionLimitEnabled } from './session-limit.config';
 import UAParser from 'ua-parser-js';
 
 @Injectable()
@@ -97,7 +98,11 @@ export class AuthService {
       },
     });
 
-    if (!isSameActiveDevice && otherActiveCount >= limit) {
+    if (
+      isSessionLimitEnabled() &&
+      !isSameActiveDevice &&
+      otherActiveCount >= limit
+    ) {
       throw new ForbiddenException('SESSION_LIMIT_REACHED');
     }
 
