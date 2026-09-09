@@ -225,6 +225,51 @@ Contradição adicional a desempatar: no exemplo da aba de lógica, o cliente C 
 
 ---
 
+## 4.1 Decisões fechadas na reunião de 09/09/2026
+
+A ata do cliente resolveu os pontos que travavam os Blocos A e C.
+
+**Frente inativa sai do cálculo — não vira zero.** A premissa de "dois tipos de zero" estava errada. Cliente inativo numa frente não aparece naquela frente: fora do numerador e do denominador, em todos os níveis de agregação. O caso `0-3` do exemplo da planilha (Natureza zerada com Maturidade valendo 3) deixa de existir.
+
+**Reflexo na listagem de clientes:** não exibir Ativo/Inativo. Exibir as siglas das frentes em que o cliente está ATIVO, e "INATIVO" apenas quando ele estiver inativo em todas.
+
+**"NÃO SE APLICA" por característica** sai do numerador e do denominador da média daquela frente.
+
+**Índice com uma casa decimal, classe derivada por faixa.** Decimal é o valor, classe é a faixa — convivem, não era escolher um.
+
+| Classe | Faixa |
+|---|---|
+| C0 | 0 até 0 |
+| C1 | 0,1 até 1,4 |
+| C2 | 1,5 até 2,4 |
+| C3 | 2,5 até 3,4 |
+| C4 | 3,5 até 4,4 |
+| C5 | 4,5 até 5,0 |
+
+Como toda nota aplicável vale no mínimo 1 e frentes inativas ficam fora, a média nunca dá 0 nem cai entre 0,1 e 0,9. **C0 deixa de ser resultado de cálculo e passa a ser um estado** ("sem frente ativa"); C1 começa efetivamente em 1,0.
+
+### Consequência: o exemplo da planilha ficou desatualizado
+
+Recalculando a aba "Lógica da Complexidade" com as regras acima:
+
+| | Na planilha | Com as novas regras |
+|---|---|---|
+| Fiscal | CC 1,8 · CO 2,3 (n=6) | **CC 2,2 (C2) · CO 2,8 (C3)** (n=5) |
+| Contábil | CC 2,5 · CO 2,5 (n=6) | **CC 3,0 (C3) · CO 2,4 (C2)** (n=5) |
+| Pessoal | CC 2,5 · CO 3,0 (n=6) | CC 2,5 (C3) · CO 3,0 (C3) (n=6) |
+| Carteira geral | CC 2,3 · CO 2,6 (n=18) | **CC 2,6 · CO 2,8** (n=16) |
+
+Atualizar a aba antes que o desenvolvimento a consuma como fonte, sob pena de codificar o comportamento antigo.
+
+### Continua em aberto
+
+- Campo 44 (Pessoal → Recebimento documentos): notas de CO preenchidas, marcadores dizendo `Cadastro / Controle`. Muda o divisor do CO Pessoal de 4 para 5.
+- Atendimento pontuando nos dois índices: precisa constar como decisão consciente.
+- Faixas de Volume no Fiscal e no Contábil.
+- Tempos de referência e fatores (ORDEM-03) — o cliente registrou que não trataria disso nesta fase.
+
+---
+
 ## 5. Plano de execução proposto
 
 Blocos na ordem de dependência. Cada bloco termina com `npm run build` no backend e reporte antes de seguir.
