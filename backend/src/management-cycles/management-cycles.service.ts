@@ -458,6 +458,12 @@ export class ManagementCyclesService {
       // LEGADO: mantido no payload só para não quebrar consumidor antigo.
       // A tela usa complexityClass/assessmentState (ORDEM-02, Bloco B).
       complexity: snap.complexity,
+      // Atuação viva na frente: a listagem de clientes exibe as siglas das
+      // frentes ATIVAS em vez de um badge Ativo/Inativo do cliente inteiro
+      // (decisão do cliente, 09/09/2026). O snapshot sozinho não diz isso —
+      // ele registra alocação, não atuação.
+      actsInFront:
+        liveMap.get(`${snap.clientId}|${snap.frontId}`)?.actsInFront ?? 'YES',
       ...this.resolveAssessment(snap, liveMap),
       frequency: snap.frequency,
       particulars: snap.particulars,

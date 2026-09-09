@@ -274,19 +274,57 @@ export default function CycleClientsPage({
     return map[regime] || regime || '-';
   };
 
-  const formatStatus = (status: string) => {
-    const map: Record<string, { label: string, classes: string }> = {
-      'ACTIVE': { label: 'Ativo', classes: 'bg-emerald-100 text-emerald-700 ring-emerald-500/20' },
-      'INACTIVE': { label: 'Inativo', classes: 'bg-rose-100 text-rose-700 ring-rose-500/20' },
-      'PREPARATION': { label: 'Preparação', classes: 'bg-amber-100 text-amber-700 ring-amber-500/20' }
-    };
-    
-    const config = map[status] || { label: status || 'Desconhecido', classes: 'bg-slate-100 text-slate-700 ring-slate-500/20' };
-    
+  // Sigla curta da frente. As tres conhecidas tem abreviacao fixa; nome
+  // customizado do escritorio cai nas tres primeiras letras.
+  const siglaFrente = (nome?: string) => {
+    const n = (nome ?? '')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase();
+    if (/fiscal|tributar|impost/.test(n)) return 'FIS';
+    if (/contab|escritur|societ/.test(n)) return 'CTB';
+    if (/pessoal|folha|trabalhista|rh/.test(n) || /\bdp\b/.test(n)) return 'DP';
+    return (nome ?? '?').slice(0, 3).toUpperCase();
+  };
+
+  // A listagem deixa de exibir Ativo/Inativo do cliente e passa a exibir as
+  // siglas das frentes em que ele ATUA (decisao do cliente, 09/09/2026).
+  // "INATIVO" aparece so quando ele nao atua em nenhuma — que e a unica
+  // situacao em que o cliente esta de fato fora da operacao.
+  const frentesAtivasPorCliente = React.useMemo(() => {
+    const mapa = new Map<string, string[]>();
+    for (const linha of clientes) {
+      if (linha.actsInFront !== 'YES') continue;
+      const atual = mapa.get(linha.id) ?? [];
+      const sigla = siglaFrente(linha.frontName);
+      if (sigla && !atual.includes(sigla)) atual.push(sigla);
+      mapa.set(linha.id, atual);
+    }
+    return mapa;
+  }, [clientes]);
+
+  const formatStatus = (clienteId: string) => {
+    const frentes = frentesAtivasPorCliente.get(clienteId) ?? [];
+
+    if (frentes.length === 0) {
+      return (
+        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ring-1 bg-rose-100 text-rose-700 ring-rose-500/20">
+          Inativo
+        </span>
+      );
+    }
+
     return (
-      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ring-1 ${config.classes}`}>
-        {config.label}
-      </span>
+      <div className="flex flex-wrap gap-1">
+        {frentes.map((sigla) => (
+          <span
+            key={sigla}
+            className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ring-1 bg-teal-100 text-teal-700 ring-teal-500/20"
+          >
+            {sigla}
+          </span>
+        ))}
+      </div>
     );
   };
 
@@ -366,7 +404,7 @@ export default function CycleClientsPage({
                 <th className="px-8 py-5 font-bold">CNPJ</th>
                 <th className="px-8 py-5 font-bold">Regime Tributário</th>
                 <th className="px-8 py-5 font-bold">Honorários (Neste Mês)</th>
-                <th className="px-8 py-5 font-bold">Status Origem</th>
+                <th className="px-8 py-5 font-bold">Frentes Ativas</th>
                 <th className="px-8 py-5 text-right font-bold w-32">Ações</th>
               </tr>
             </thead>
@@ -429,7 +467,7 @@ export default function CycleClientsPage({
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cliente.monthlyFee || 0)}
                       </td>
                       <td className="px-8 py-5">
-                        {formatStatus(cliente.status)}
+                        {formatStatus(cliente.id)}
                       </td>
                       <td className="px-8 py-5 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">

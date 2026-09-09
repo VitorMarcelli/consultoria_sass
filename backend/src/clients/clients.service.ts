@@ -5,12 +5,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
+import { CcCoService } from '../complexity/cc-co.service';
 
 @Injectable()
 export class ClientsService {
   constructor(
     private readonly globalPrisma: PrismaService,
     private readonly prismaManager: PrismaClientManager,
+    private readonly ccCoService: CcCoService,
   ) {}
 
   private getTenantPrisma(tenantId: string) {
@@ -443,6 +445,12 @@ export class ClientsService {
     if (data.profileType !== undefined) {
       updateData.profileType = data.profileType || null;
     }
+    if (data.catalogAnswers !== undefined) {
+      // Substitui o bloco MESTRE inteiro: a tela sempre envia o conjunto
+      // completo das respostas gerais, então mesclar deixaria resposta antiga
+      // sobrevivendo depois de o usuário limpar um campo.
+      updateData.catalogAnswers = data.catalogAnswers ?? null;
+    }
     if (data.certificateExpiration !== undefined) {
       updateData.certificateExpiration =
         data.certificateExpiration?.toString().trim() === ''
@@ -456,10 +464,25 @@ export class ClientsService {
           : Number(data.monthlyFee);
     }
 
-    return tenantPrisma.client.update({
+    const atualizado = await tenantPrisma.client.update({
       where: { id },
       data: updateData,
     });
+
+    // Perfil, Regime e Faixa de faturamento compõem a Natureza do Cliente em
+    // TODAS as frentes. Editar o bloco MESTRE sem recalcular deixaria o índice
+    // de cada frente parado no valor anterior, e a tela mostraria um número
+    // que não corresponde mais às respostas.
+    try {
+      await this.ccCoService.assessClientAllFronts(tenantId, id);
+    } catch (err) {
+      // Recalcular é complementar: falhar aqui não pode desfazer a edição que
+      // o usuário acabou de salvar. O próximo save ou a abertura da ficha
+      // recalculam de novo.
+      console.error('Falha ao recalcular CC/CO após editar o cliente:', err);
+    }
+
+    return atualizado;
   }
 
   async remove(tenantId: string, id: string) {
