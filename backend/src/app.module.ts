@@ -27,6 +27,7 @@ import { ComplexityAiModule } from './complexity-ai/complexity-ai.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { LoggingModule } from './logging/logging.module';
 import { ClientCatalogModule } from './client-catalog/client-catalog.module';
+import { ComplexityModule } from './complexity/complexity.module';
 import { SystemLogExceptionFilter } from './logging/system-log-exception.filter';
 import { SystemLogActivityInterceptor } from './logging/system-log-activity.interceptor';
 
@@ -48,6 +49,7 @@ import { SystemLogActivityInterceptor } from './logging/system-log-activity.inte
     ManagementCyclesModule,
     ClientClassificationsModule,
     ClientCatalogModule,
+    ComplexityModule,
     SystemOptionsModule,
     TimesheetsModule,
     OpportunitiesModule,
