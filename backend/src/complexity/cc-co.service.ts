@@ -193,6 +193,130 @@ export class CcCoService {
   }
 
   // Índices da carteira. Sem frontId, consolida o escritório inteiro pelo
+  // Quanto do mapeamento do M0 já foi feito, e quanto falta.
+  //
+  // O índice só aparece quando a avaliação de uma frente fecha, então sem
+  // esta contagem o escritório não tem como saber se está a 5 ou a 300
+  // respostas do fim — vê só uma sequência de "não avaliado" e não sabe
+  // dimensionar o esforço. É o indicador que diz se o M0 está entregue.
+  //
+  // Somente leitura: não persiste nada, para poder ser chamado a cada
+  // abertura de tela sem efeito colateral.
+  async getPortfolioCompleteness(tenantId: string, frontId?: string) {
+    const prisma = this.getTenantPrisma(tenantId);
+
+    const classifications = await prisma.clientFrontClassification.findMany({
+      where: frontId ? { frontId } : {},
+      include: { client: true, front: true, hrInfo: true },
+    });
+
+    interface Resumo {
+      clientId: string;
+      clientName: string;
+      frentesAtivas: number;
+      frentesFechadas: number;
+      respostasFaltando: number;
+    }
+
+    const porCliente = new Map<string, Resumo>();
+    const porFrente = new Map<
+      string,
+      { frontId: string; frontName: string; total: number; fechadas: number }
+    >();
+    let semMapeamentoDeFrente = 0;
+
+    for (const c of classifications) {
+      const front = resolveFront(c.front?.name);
+      // Frente que não casa com nenhuma das três do motor não tem perguntas
+      // definidas — contamos à parte em vez de somar como pendência.
+      if (!front) {
+        semMapeamentoDeFrente += 1;
+        continue;
+      }
+
+      const input = buildFrontInput(front, c.client, c);
+      const resultado = assessFront(input);
+
+      const resumo = porCliente.get(c.clientId) ?? {
+        clientId: c.clientId,
+        clientName: c.client?.name ?? '',
+        frentesAtivas: 0,
+        frentesFechadas: 0,
+        respostasFaltando: 0,
+      };
+
+      if (input.active) {
+        resumo.frentesAtivas += 1;
+
+        const fechada =
+          resultado.cc.state === 'ASSESSED' && resultado.co.state === 'ASSESSED';
+        if (fechada) resumo.frentesFechadas += 1;
+
+        // Atendimento pontua nos dois índices, então aparece nas duas listas
+        // de pendências. Contar por chave única evita inflar o número.
+        const faltando = new Set([
+          ...resultado.cc.missing,
+          ...resultado.co.missing,
+        ]);
+        resumo.respostasFaltando += faltando.size;
+
+        const agregadoFrente = porFrente.get(c.frontId) ?? {
+          frontId: c.frontId,
+          frontName: c.front?.name ?? '',
+          total: 0,
+          fechadas: 0,
+        };
+        agregadoFrente.total += 1;
+        if (fechada) agregadoFrente.fechadas += 1;
+        porFrente.set(c.frontId, agregadoFrente);
+      }
+
+      porCliente.set(c.clientId, resumo);
+    }
+
+    const clientes = [...porCliente.values()];
+    const comFrenteAtiva = clientes.filter((r) => r.frentesAtivas > 0);
+
+    const completos = comFrenteAtiva.filter(
+      (r) => r.frentesFechadas === r.frentesAtivas,
+    );
+    const naoIniciados = comFrenteAtiva.filter((r) => r.frentesFechadas === 0);
+
+    return {
+      totalClients: clientes.length,
+      // Cliente sem nenhuma frente ativa está fora da operação: não conta como
+      // pendência de mapeamento, senão o indicador nunca fecharia.
+      activeClients: comFrenteAtiva.length,
+      inactiveClients: clientes.length - comFrenteAtiva.length,
+      complete: completos.length,
+      partial: comFrenteAtiva.length - completos.length - naoIniciados.length,
+      notStarted: naoIniciados.length,
+      completePercent:
+        comFrenteAtiva.length > 0
+          ? Math.round((completos.length / comFrenteAtiva.length) * 100)
+          : null,
+      // O tamanho real do trabalho que falta, em respostas.
+      missingAnswers: comFrenteAtiva.reduce(
+        (soma, r) => soma + r.respostasFaltando,
+        0,
+      ),
+      unmappedFronts: semMapeamentoDeFrente,
+      byFront: [...porFrente.values()],
+      // Quem está mais longe de fechar vem primeiro: é por onde começar.
+      pending: comFrenteAtiva
+        .filter((r) => r.frentesFechadas < r.frentesAtivas)
+        .sort((a, b) => b.respostasFaltando - a.respostasFaltando)
+        .slice(0, 20)
+        .map((r) => ({
+          clientId: r.clientId,
+          clientName: r.clientName,
+          missingAnswers: r.respostasFaltando,
+          frontsDone: r.frentesFechadas,
+          frontsTotal: r.frentesAtivas,
+        })),
+    };
+  }
+
   // pool de observações cliente-frente — mesma base da aba de lógica do
   // template, e não a média das médias de cada área.
   async getPortfolioAssessment(

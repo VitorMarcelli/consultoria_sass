@@ -6,6 +6,7 @@ import { Search, Loader2, Building2, Plus, Upload, Trash2, Edit2, Download } fro
 import * as XLSX from 'xlsx';
 import { apiRequest } from '@/utils/api';
 import ClientModal from '@/components/ClientModal';
+import MappingProgress from '@/components/catalog/MappingProgress';
 import CsvImportModal from '@/components/CsvImportModal';
 import Client360SlideOver from '@/components/Client360SlideOver';
 import AllocateClientModal from './AllocateClientModal';
@@ -380,6 +381,11 @@ export default function CycleClientsPage({
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8"
       >
+        {/* Progresso do mapeamento: sem ele, o consultor vê uma sequência de
+            "não avaliado" e não sabe dimensionar o que falta. */}
+        <div className="p-6 pb-0">
+          <MappingProgress tenantId={id} frontId={frontId || undefined} refreshKey={clientes} />
+        </div>
         <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <div className="relative w-full max-w-md">
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />

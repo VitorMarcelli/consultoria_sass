@@ -50,6 +50,15 @@ export class CcCoController {
     return this.ccCo.assessClientAllFronts(tenantId, clientId);
   }
 
+  // Quanto do mapeamento do M0 já foi feito e quanto falta, em respostas.
+  @Get('completeness')
+  getCompleteness(
+    @Query('tenantId') tenantId: string,
+    @Query('frontId') frontId?: string,
+  ) {
+    return this.ccCo.getPortfolioCompleteness(tenantId, frontId);
+  }
+
   // Índices da carteira. Sem frontId, consolida o escritório inteiro.
   @Get('portfolio')
   getPortfolio(
