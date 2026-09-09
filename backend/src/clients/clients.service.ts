@@ -67,6 +67,15 @@ export class ClientsService {
             : data.foundationDate
               ? new Date(data.foundationDate)
               : undefined,
+        // Data de Início (Operação) do template CC/CO: quando o escritório
+        // começou a atender de fato, não a data do contrato.
+        entryDate:
+          data.entryDate?.toString().trim() === ''
+            ? null
+            : data.entryDate
+              ? new Date(data.entryDate)
+              : undefined,
+        profileType: data.profileType || undefined,
         certificateExpiration:
           data.certificateExpiration?.toString().trim() === ''
             ? null
@@ -424,6 +433,15 @@ export class ClientsService {
         data.foundationDate?.toString().trim() === ''
           ? null
           : new Date(data.foundationDate);
+    }
+    if (data.entryDate !== undefined) {
+      updateData.entryDate =
+        data.entryDate?.toString().trim() === ''
+          ? null
+          : new Date(data.entryDate);
+    }
+    if (data.profileType !== undefined) {
+      updateData.profileType = data.profileType || null;
     }
     if (data.certificateExpiration !== undefined) {
       updateData.certificateExpiration =

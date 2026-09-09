@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Loader2, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiRequest } from '@/utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import FrontClassificationForm from '@/components/FrontClassificationForm';
-
 import { Portal } from '@/components/ui/Portal';
-import { maskCnpj } from '@/utils/masks';
+import { maskCnpj, maskCpf } from '@/utils/masks';
+import {
+  useClientCatalog,
+  isRenderableField,
+  CatalogField,
+  ComplexityFront,
+} from '@/components/catalog/useClientCatalog';
+import CatalogFieldInput from '@/components/catalog/CatalogFieldInput';
+import IndexProgress from '@/components/catalog/IndexProgress';
 
 interface ClientCycleModalProps {
   isOpen: boolean;
@@ -15,50 +21,83 @@ interface ClientCycleModalProps {
   onSuccess: () => void;
 }
 
-export default function ClientCycleModal({ isOpen, onClose, tenantId, cycleId, onSuccess }: ClientCycleModalProps) {
+// As três frentes do motor de complexidade. O escritório pode nomear a sua
+// OperationalFront como quiser; o casamento entre o nome livre e a frente fixa
+// é feito no backend (cc-co.input.ts).
+const FRONT_STEPS: { front: ComplexityFront; label: string }[] = [
+  { front: 'FISCAL', label: 'Fiscal' },
+  { front: 'CONTABIL', label: 'Contábil' },
+  { front: 'PESSOAL', label: 'Pessoal' },
+];
+
+function matchFront(name: string | undefined, front: ComplexityFront): boolean {
+  const n = (name ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+  if (front === 'FISCAL') return /fiscal|tributar|impost/.test(n);
+  if (front === 'CONTABIL') return /contab|escritur|societ/.test(n);
+  return /pessoal|folha|trabalhista|rh|\bdp\b/.test(n);
+}
+
+export default function ClientCycleModal({
+  isOpen,
+  onClose,
+  tenantId,
+  cycleId,
+  onSuccess,
+}: ClientCycleModalProps) {
+  const { catalog, loading: loadingCatalog, error: catalogError, fieldsOf } =
+    useClientCatalog();
+
   const [fronts, setFronts] = useState<any[]>([]);
-  const [subdivisions, setSubdivisions] = useState<any[]>([]);
-  
-  // Client Data
-  const [name, setName] = useState('');
-  const [tradeName, setTradeName] = useState('');
-  const [cnpj, setCnpj] = useState('');
-  const [taxRegime, setTaxRegime] = useState('SIMPLES_NACIONAL');
-  const [segment, setSegment] = useState('');
-  const [revenueBracket, setRevenueBracket] = useState('');
-  const [hasEconomicGroup, setHasEconomicGroup] = useState(false);
-  const [economicGroupName, setEconomicGroupName] = useState('');
-  const [monthlyFee, setMonthlyFee] = useState('');
-  const [classification, setClassification] = useState('A');
-  const [status, setStatus] = useState('ACTIVE');
-  const [observations, setObservations] = useState('');
-  
-  // Allocation Data
-  const [selectedFront, setSelectedFront] = useState('');
-  const [selectedSubdivision, setSelectedSubdivision] = useState('');
-  const [classificationData, setClassificationData] = useState<any>({});
-  
-  const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadFronts();
-    } else {
-      resetForm();
-    }
-  }, [isOpen]);
+  // Identificação — campos com coluna própria no banco.
+  const [name, setName] = useState('');
+  const [tradeName, setTradeName] = useState('');
+  const [document, setDocument] = useState('');
+  const [isCpf, setIsCpf] = useState(false);
+  const [monthlyFee, setMonthlyFee] = useState('');
+  const [entryDate, setEntryDate] = useState('');
+
+  // Respostas do catálogo: bloco MESTRE e um mapa por frente.
+  const [masterAnswers, setMasterAnswers] = useState<Record<string, string>>({});
+  const [frontAnswers, setFrontAnswers] = useState<
+    Record<ComplexityFront, Record<string, string>>
+  >({ FISCAL: {}, CONTABIL: {}, PESSOAL: {} });
+
+  // Escopo contratado — é o gatilho que decide quais passos existem.
+  const [scope, setScope] = useState<Record<ComplexityFront, boolean>>({
+    FISCAL: false,
+    CONTABIL: false,
+    PESSOAL: false,
+  });
+
+  const [stepIndex, setStepIndex] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const masterFields = useMemo(
+    () => fieldsOf('MESTRE').filter(isRenderableField),
+    [catalog],
+  );
+
+  // Os passos existentes dependem do escopo marcado: quem não contrata a
+  // frente não responde as perguntas dela. É a semântica de "Gatilho" do
+  // template, e é o que impede o formulário de virar um questionário gigante.
+  const activeFronts = FRONT_STEPS.filter((s) => scope[s.front]);
+  const steps = ['MESTRE', ...activeFronts.map((f) => f.front)];
+  const currentStep = steps[stepIndex] as 'MESTRE' | ComplexityFront;
+  const isLastStep = stepIndex === steps.length - 1;
 
   useEffect(() => {
-    if (selectedFront) {
-      const front = fronts.find(f => f.id === selectedFront);
-      setSubdivisions(front?.subdivisions || []);
-      setSelectedSubdivision('');
-    } else {
-      setSubdivisions([]);
+    if (!isOpen) {
+      resetForm();
+      return;
     }
-  }, [selectedFront]);
+    loadFronts();
+  }, [isOpen]);
 
   const loadFronts = async () => {
     setIsFetching(true);
@@ -66,7 +105,7 @@ export default function ClientCycleModal({ isOpen, onClose, tenantId, cycleId, o
       const data = await apiRequest(`/structures/fronts?tenantId=${tenantId}`);
       setFronts(data || []);
     } catch (err) {
-      console.error('Error fetching fronts:', err);
+      console.error('Erro ao buscar frentes:', err);
     } finally {
       setIsFetching(false);
     }
@@ -75,371 +114,415 @@ export default function ClientCycleModal({ isOpen, onClose, tenantId, cycleId, o
   const resetForm = () => {
     setName('');
     setTradeName('');
-    setCnpj('');
-    setTaxRegime('SIMPLES_NACIONAL');
-    setSegment('');
-    setRevenueBracket('');
-    setHasEconomicGroup(false);
-    setEconomicGroupName('');
+    setDocument('');
+    setIsCpf(false);
     setMonthlyFee('');
-    setClassification('A');
-    setStatus('ACTIVE');
-    setObservations('');
-    setSelectedFront('');
-    setSelectedSubdivision('');
-    setClassificationData({});
-    setStep(1);
+    setEntryDate('');
+    setMasterAnswers({});
+    setFrontAnswers({ FISCAL: {}, CONTABIL: {}, PESSOAL: {} });
+    setScope({ FISCAL: false, CONTABIL: false, PESSOAL: false });
+    setStepIndex(0);
+    setError(null);
   };
 
-  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCnpj(maskCnpj(e.target.value));
+  const handleDocumentChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    // Pessoa física, produtor rural PF e empregador doméstico entram por CPF —
+    // o formulário antigo exigia 14 dígitos e bloqueava esses cadastros.
+    const cpf = isCpf || digits.length <= 11;
+    setDocument(cpf ? maskCpf(raw) : maskCnpj(raw));
   };
 
-  const handleNextStep = () => {
-    if (!name || !cnpj) {
-      alert('Preencha os campos obrigatórios (Razão Social e CNPJ).');
-      return;
+  const setMaster = (key: string, value: string) =>
+    setMasterAnswers((prev) => ({ ...prev, [key]: value }));
+
+  const setFront = (front: ComplexityFront) => (key: string, value: string) =>
+    setFrontAnswers((prev) => ({
+      ...prev,
+      [front]: { ...prev[front], [key]: value },
+    }));
+
+  // Descobre o id da OperationalFront do escritório que corresponde à frente
+  // do motor. Sem isso não há onde alocar o cliente.
+  const frontIdFor = (front: ComplexityFront): string | null =>
+    fronts.find((f) => matchFront(f.name, front))?.id ?? null;
+
+  const validateMaster = (): string | null => {
+    if (!name.trim()) return 'Informe a razão social ou o nome.';
+    const digits = document.replace(/\D/g, '');
+    if (digits.length !== 11 && digits.length !== 14)
+      return 'Informe um CNPJ (14 dígitos) ou CPF (11 dígitos) válido.';
+    if (!scope.FISCAL && !scope.CONTABIL && !scope.PESSOAL)
+      return 'Marque ao menos uma frente contratada.';
+    for (const s of FRONT_STEPS) {
+      if (scope[s.front] && !frontIdFor(s.front))
+        return `O escritório não tem uma frente cadastrada que corresponda a "${s.label}".`;
     }
-    const unmaskedCnpj = cnpj.replace(/\D/g, '');
-    if (unmaskedCnpj.length !== 14) {
-      alert('CNPJ inválido.');
-      return;
-    }
-    setStep(2);
+    return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFront) {
-      alert('Selecione uma Frente para alocar.');
-      return;
+  const goNext = () => {
+    if (currentStep === 'MESTRE') {
+      const problem = validateMaster();
+      if (problem) return setError(problem);
+    }
+    setError(null);
+    setStepIndex((i) => Math.min(i + 1, steps.length - 1));
+  };
+
+  const goBack = () => {
+    setError(null);
+    setStepIndex((i) => Math.max(i - 1, 0));
+  };
+
+  const handleSubmit = async () => {
+    const problem = validateMaster();
+    if (problem) {
+      setStepIndex(0);
+      return setError(problem);
     }
 
-    const unmaskedCnpj = cnpj.replace(/\D/g, '');
-
-    setIsLoading(true);
+    setIsSaving(true);
+    setError(null);
     try {
-      const result = await apiRequest(`/clients`, {
+      const digits = document.replace(/\D/g, '');
+      const chosen = FRONT_STEPS.filter((s) => scope[s.front]);
+      const firstFrontId = frontIdFor(chosen[0].front) as string;
+
+      // 1. Cria o cliente já alocado na primeira frente contratada.
+      const result = await apiRequest('/clients', {
         method: 'POST',
         body: JSON.stringify({
           tenantId,
           cycleId,
           name,
           tradeName,
-          cnpj: unmaskedCnpj,
-          taxRegime,
-          segment,
-          revenueBracket,
-          hasEconomicGroup,
-          economicGroupName,
+          cnpj: digits,
           monthlyFee: monthlyFee ? Number(monthlyFee) : null,
-          classification,
-          status,
-          observations,
-          frontId: selectedFront,
-          subdivisionId: selectedSubdivision || null
-        })
+          entryDate: entryDate || null,
+          // Guarda também nas colunas legadas, que as telas antigas ainda leem.
+          taxRegime: masterAnswers['MESTRE__REGIME_TRIBUTARIO'] || null,
+          segment: masterAnswers['MESTRE__SEGMENTO'] || null,
+          revenueBracket:
+            masterAnswers['MESTRE__FAIXA_FATURAMENTO_ANUAL'] || null,
+          classification: masterAnswers['MESTRE__CLASSIFICACAO_A_D'] || null,
+          status: masterAnswers['MESTRE__STATUS_CONTRATO'] || 'ACTIVE',
+          observations: masterAnswers['MESTRE__OBSERVACOES_GERAIS'] || null,
+          frontId: firstFrontId,
+        }),
       });
 
-      if (Object.keys(classificationData).length > 0 && result?.client?.id) {
-        await apiRequest(`/clients/${result.client.id}/fronts/${selectedFront}/classification`, {
-          method: 'PUT',
-          body: JSON.stringify({ ...classificationData, tenantId })
+      const clientId = result?.client?.id ?? result?.id;
+      if (!clientId) throw new Error('O servidor não devolveu o cliente criado.');
+
+      // 2. Aloca nas demais frentes contratadas.
+      for (const s of chosen.slice(1)) {
+        await apiRequest(`/management-cycles/${cycleId}/clients`, {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId,
+            clientId,
+            frontId: frontIdFor(s.front),
+          }),
         });
+      }
+
+      // 3. Grava as respostas e deixa o backend calcular. O índice nunca é
+      //    enviado pela tela — é sempre derivado no servidor.
+      for (const s of chosen) {
+        await apiRequest(
+          `/cc-co/clients/${clientId}/fronts/${frontIdFor(s.front)}/answers`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              tenantId,
+              profileType: masterAnswers['MESTRE__PERFIL_DO_CLIENTE'] || null,
+              masterAnswers,
+              frontAnswers: frontAnswers[s.front],
+            }),
+          },
+        );
       }
 
       onSuccess();
       onClose();
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Erro ao criar e alocar cliente.');
+      setError(err.message || 'Erro ao cadastrar o cliente.');
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
+
+  const stepTitle =
+    currentStep === 'MESTRE'
+      ? 'Dados gerais e escopo contratado'
+      : `Frente ${FRONT_STEPS.find((f) => f.front === currentStep)?.label}`;
+
+  const inputClasses =
+    'w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm font-medium ' +
+    'focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all';
 
   return (
     <Portal>
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 z-[100] pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm pointer-events-auto"
-        />
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-xl bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-white/20 pointer-events-auto"
-        >
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                Novo Cliente
-                <span className="text-xs font-bold bg-slate-200 text-slate-500 px-2 py-1 rounded-lg">Passo {step} de 2</span>
-              </h2>
-              <p className="text-sm text-slate-500 mt-1">
-                {step === 1 ? 'Cadastre os dados básicos da empresa.' : 'Alocação de escopo e definições de parâmetros.'}
-              </p>
-            </div>
-            <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-xl transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm pointer-events-auto"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-2xl bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-white/20 pointer-events-auto"
+            >
+              <div className="p-6 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                      Novo Cliente
+                      <span className="text-xs font-bold bg-slate-200 text-slate-500 px-2 py-1 rounded-lg">
+                        Passo {stepIndex + 1} de {steps.length}
+                      </span>
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">{stepTitle}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-          <div className="p-6 overflow-y-auto">
-            {isFetching ? (
-              <div className="flex justify-center py-10">
-                <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
-              </div>
-            ) : (
-              <form onSubmit={(e) => { e.preventDefault(); if (step === 2) handleSubmit(e); }} className="space-y-6">
-                
-                {step === 1 && (
-                  <div className="space-y-4 animate-in fade-in">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">Dados da Empresa</h3>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="sm:col-span-2">
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Razão Social *</label>
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                          placeholder="Ex: Empresa Exemplo LTDA"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Nome Fantasia</label>
-                        <input
-                          type="text"
-                          value={tradeName}
-                          onChange={(e) => setTradeName(e.target.value)}
-                          placeholder="Ex: Empresa Exemplo"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">CNPJ *</label>
-                        <input
-                          type="text"
-                          value={cnpj}
-                          onChange={handleCnpjChange}
-                          required
-                          maxLength={18}
-                          placeholder="00.000.000/0000-00"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Regime Tributário</label>
-                        <select
-                          value={taxRegime}
-                          onChange={(e) => setTaxRegime(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        >
-                          <option value="SIMPLES_NACIONAL">Simples Nacional</option>
-                          <option value="LUCRO_PRESUMIDO">Lucro Presumido</option>
-                          <option value="LUCRO_REAL">Lucro Real</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Segmento</label>
-                        <input
-                          type="text"
-                          value={segment}
-                          onChange={(e) => setSegment(e.target.value)}
-                          placeholder="Ex: Varejo, Indústria..."
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Faixa de Faturamento</label>
-                        <input
-                          type="text"
-                          value={revenueBracket}
-                          onChange={(e) => setRevenueBracket(e.target.value)}
-                          placeholder="Ex: Até R$ 1M"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Honorário Mensal (R$)</label>
-                        <input
-                          type="number"
-                          value={monthlyFee}
-                          onChange={(e) => setMonthlyFee(e.target.value)}
-                          placeholder="0.00"
-                          step="0.01"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Classificação</label>
-                        <select
-                          value={classification}
-                          onChange={(e) => setClassification(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        >
-                          <option value="A">A</option>
-                          <option value="B">B</option>
-                          <option value="C">C</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Status</label>
-                        <select
-                          value={status}
-                          onChange={(e) => setStatus(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        >
-                          <option value="ACTIVE">Ativo</option>
-                          <option value="INACTIVE">Inativo</option>
-                          <option value="PREPARATION">Em Preparação</option>
-                        </select>
-                      </div>
-
-                      <div className="sm:col-span-2 flex flex-col justify-center mt-2">
-                        <label className="flex items-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={hasEconomicGroup}
-                            onChange={(e) => setHasEconomicGroup(e.target.checked)}
-                            className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 w-5 h-5"
-                          />
-                          Pertence a Grupo Empresarial?
-                        </label>
-                      </div>
-
-                      {hasEconomicGroup && (
-                        <div className="sm:col-span-2 animate-in fade-in">
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Nome do Grupo Empresarial</label>
-                          <input
-                            type="text"
-                            value={economicGroupName}
-                            onChange={(e) => setEconomicGroupName(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                          />
-                        </div>
-                      )}
-
-                      <div className="sm:col-span-2">
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Observações Cadastrais</label>
-                        <textarea
-                          value={observations}
-                          onChange={(e) => setObservations(e.target.value)}
-                          rows={3}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                          placeholder="Anotações sobre o cliente..."
-                        />
-                      </div>
-                    </div>
+                {steps.length > 1 && (
+                  <div className="flex gap-1.5 mt-4">
+                    {steps.map((s, i) => (
+                      <div
+                        key={s}
+                        className={`h-1.5 flex-1 rounded-full transition-colors ${
+                          i <= stepIndex ? 'bg-teal-500' : 'bg-slate-200'
+                        }`}
+                      />
+                    ))}
                   </div>
                 )}
+              </div>
 
-                {step === 2 && (
-                  <div className="space-y-4 pt-2 animate-in fade-in">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">Alocação e Parâmetros</h3>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Frente *</label>
-                        <select
-                          value={selectedFront}
-                          onChange={(e) => setSelectedFront(e.target.value)}
-                          required
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                        >
-                          <option value="">Selecione uma frente</option>
-                          {fronts.map(front => (
-                            <option key={front.id} value={front.id}>{front.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {selectedFront && subdivisions.length > 0 && (
-                        <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Célula (Opcional)</label>
-                          <select
-                            value={selectedSubdivision}
-                            onChange={(e) => setSelectedSubdivision(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
-                          >
-                            <option value="">Selecione uma célula (opcional)</option>
-                            {subdivisions.map(sub => (
-                              <option key={sub.id} value={sub.id}>{sub.name}</option>
-                            ))}
-                          </select>
+              <div className="p-6 overflow-y-auto flex-1">
+                {loadingCatalog || isFetching ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+                  </div>
+                ) : catalogError ? (
+                  <p className="text-sm font-medium text-rose-600">
+                    {catalogError}
+                  </p>
+                ) : (
+                  <div className="space-y-6">
+                    {currentStep === 'MESTRE' && (
+                      <>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="sm:col-span-2">
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                              Razão Social / Nome *
+                            </label>
+                            <input
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              className={inputClasses}
+                              placeholder="Ex: Empresa Exemplo LTDA"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                              Nome Fantasia
+                            </label>
+                            <input
+                              value={tradeName}
+                              onChange={(e) => setTradeName(e.target.value)}
+                              className={inputClasses}
+                            />
+                          </div>
+                          <div>
+                            <label className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                              <span>{isCpf ? 'CPF *' : 'CNPJ *'}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsCpf(!isCpf);
+                                  setDocument('');
+                                }}
+                                className="text-[10px] font-bold text-teal-600 hover:text-teal-700 normal-case"
+                              >
+                                usar {isCpf ? 'CNPJ' : 'CPF'}
+                              </button>
+                            </label>
+                            <input
+                              value={document}
+                              onChange={(e) => handleDocumentChange(e.target.value)}
+                              className={inputClasses}
+                              placeholder={
+                                isCpf ? '000.000.000-00' : '00.000.000/0000-00'
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                              Honorário Faturado (R$)
+                            </label>
+                            <input
+                              type="number"
+                              value={monthlyFee}
+                              onChange={(e) => setMonthlyFee(e.target.value)}
+                              className={inputClasses}
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                              Data de Início (Operação)
+                            </label>
+                            <input
+                              type="date"
+                              value={entryDate}
+                              onChange={(e) => setEntryDate(e.target.value)}
+                              className={inputClasses}
+                            />
+                          </div>
                         </div>
-                      )}
-                    </div>
 
-                    {selectedFront && (
-                      <FrontClassificationForm 
-                        tenantId={tenantId}
-                        frontName={fronts.find(f => f.id === selectedFront)?.name || ''}
-                        value={classificationData}
-                        onChange={setClassificationData}
-                      />
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          {masterFields.map((f: CatalogField) => (
+                            <CatalogFieldInput
+                              key={f.key}
+                              field={f}
+                              value={masterAnswers[f.key] ?? ''}
+                              onChange={setMaster}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200/70 bg-slate-50/60 p-4">
+                          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-3">
+                            Frentes contratadas
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {FRONT_STEPS.map((s) => {
+                              const disponivel = !!frontIdFor(s.front);
+                              const on = scope[s.front];
+                              return (
+                                <button
+                                  key={s.front}
+                                  type="button"
+                                  disabled={!disponivel}
+                                  onClick={() =>
+                                    setScope((p) => ({
+                                      ...p,
+                                      [s.front]: !p[s.front],
+                                    }))
+                                  }
+                                  className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors flex items-center gap-2 ${
+                                    on
+                                      ? 'bg-teal-600 text-white border-teal-600'
+                                      : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'
+                                  } ${!disponivel ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                  title={
+                                    disponivel
+                                      ? undefined
+                                      : 'O escritório não tem esta frente cadastrada'
+                                  }
+                                >
+                                  {on && <Check className="w-4 h-4" />}
+                                  {s.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-3 text-[11px] font-medium text-slate-500">
+                            Só aparecem os passos das frentes marcadas. Frente
+                            não contratada fica fora do cálculo — não é tratada
+                            como complexidade zero.
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    {currentStep !== 'MESTRE' && (
+                      <>
+                        <IndexProgress
+                          front={currentStep}
+                          masterFields={masterFields}
+                          frontFields={fieldsOf(currentStep).filter(
+                            isRenderableField,
+                          )}
+                          answers={{
+                            ...masterAnswers,
+                            ...frontAnswers[currentStep],
+                          }}
+                        />
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          {fieldsOf(currentStep)
+                            .filter(isRenderableField)
+                            .map((f: CatalogField) => (
+                              <CatalogFieldInput
+                                key={f.key}
+                                field={f}
+                                value={frontAnswers[currentStep][f.key] ?? ''}
+                                onChange={setFront(currentStep)}
+                              />
+                            ))}
+                        </div>
+                      </>
+                    )}
+
+                    {error && (
+                      <p className="text-sm font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+                        {error}
+                      </p>
                     )}
                   </div>
                 )}
+              </div>
 
-                <div className="pt-4 flex gap-3">
-                  {step === 1 ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={onClose}
-                        className="flex-1 py-3 px-4 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleNextStep}
-                        className="flex-1 py-3 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors"
-                      >
-                        Avançar →
-                      </button>
-                    </>
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 shrink-0 flex justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={stepIndex === 0 ? onClose : goBack}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white transition-colors text-sm flex items-center gap-2"
+                >
+                  {stepIndex === 0 ? (
+                    'Cancelar'
                   ) : (
                     <>
-                      <button
-                        type="button"
-                        onClick={() => setStep(1)}
-                        className="flex-1 py-3 px-4 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors"
-                      >
-                        ← Voltar
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isLoading || !selectedFront}
-                        className="flex-1 py-3 px-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-50"
-                      >
-                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Finalizar e Alocar'}
-                      </button>
+                      <ChevronLeft className="w-4 h-4" /> Voltar
                     </>
                   )}
-                </div>
-              </form>
-            )}
-          </div>
-        </motion.div>
+                </button>
+                <button
+                  type="button"
+                  disabled={isSaving || loadingCatalog}
+                  onClick={isLastStep ? handleSubmit : goNext}
+                  className="px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isLastStep ? (
+                    'Cadastrar cliente'
+                  ) : (
+                    <>
+                      Avançar <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
