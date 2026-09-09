@@ -2,9 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
 import { ComplexityService } from '../complexity/complexity.service';
+import { assessPortfolio } from '../complexity/cc-co.rules';
+import { isClientActive } from '../complexity/cc-co.input';
 import { AssessmentState } from '../complexity/complexity.rules';
 
 const COMPLEXITY_CLASSES = ['C1', 'C2', 'C3', 'C4', 'C5'] as const;
+// Classes do motor CC/CO. C0 fica fora: frente inativa nao entra em media.
+const CC_CO_CLASSES = ['C1', 'C2', 'C3', 'C4', 'C5'];
 // AI_SUGGESTED entra aqui pelo mesmo motivo de IMPORTED: nenhum humano
 // revisou a nota ainda. Sem ele, um registro sugerido pela IA não caía nem em
 // `assessedPortfolio` nem em `pendingCount` e sumia da soma da tela.
@@ -65,161 +69,147 @@ export class DashboardService {
         taxRegime: string | null;
         segment: string | null;
       };
-      complexityClass: string | null;
-      assessmentState: AssessmentState;
-      normalizedScore: number | null;
+      active: boolean;
+      cc: number | null;
+      co: number | null;
+      ccClass: string | null;
+      coClass: string | null;
       primaryOwnerId: string | null;
     }
 
+    // Snapshots criados antes da ORDEM-02 nasceram sem os campos de avaliacao.
+    // Para esses caimos na classificacao viva; o congelado tem precedencia
+    // sempre que existir.
+    const classifications =
+      await tenantPrisma.clientFrontClassification.findMany({
+        where: { frontId },
+        include: { client: true },
+      });
+    const liveByClient = new Map(classifications.map((c: any) => [c.clientId, c]));
+
     let portfolio: PortfolioRecord[];
     if (snapshots.length > 0) {
-      // Retrato congelado do ciclo — prioridade 1 (D1).
-      //
-      // Snapshots criados antes da ORDEM-02/Bloco B nasceram sem os campos de
-      // avaliação (a ORDEM-01 adicionou as colunas mas nenhum caminho de
-      // criação as preenchia). Na base real isso é a maioria: 96% sem
-      // complexityClass e 100% sem primaryOwnerId — ou seja, curva vazia e
-      // tabela de CCR sem nenhuma linha. Para esses, caímos na classificação
-      // viva; o congelado continua tendo precedência sempre que existir.
-      const classifications =
-        await tenantPrisma.clientFrontClassification.findMany({
-          where: {
-            frontId,
-            clientId: { in: snapshots.map((s) => s.clientId) },
-          },
-        });
-      const liveByClient = new Map(
-        classifications.map((c) => [c.clientId, c]),
-      );
-
-      portfolio = snapshots.map((s) => {
-        const live = liveByClient.get(s.clientId);
+      portfolio = snapshots.map((s: any) => {
+        const live: any = liveByClient.get(s.clientId);
+        const congelado = s.ccScore != null || s.coScore != null;
+        const fonte: any = congelado ? s : (live ?? s);
         return {
           client: s.client,
-          complexityClass: s.complexityClass ?? live?.complexityClass ?? null,
-          assessmentState: (s.complexityClass
-            ? (s.assessmentState ?? 'NOT_ASSESSED')
-            : (live?.assessmentState ??
-              s.assessmentState ??
-              'NOT_ASSESSED')) as AssessmentState,
-          normalizedScore: s.complexityClass
-            ? s.normalizedScore
-            : (live?.normalizedScore ?? null),
+          active:
+            (live?.actsInFront ?? 'YES') === 'YES' &&
+            isClientActive(s.client?.status),
+          cc: fonte.ccScore ?? null,
+          co: fonte.coScore ?? null,
+          ccClass: fonte.ccClass ?? null,
+          coClass: fonte.coClass ?? null,
           primaryOwnerId: s.primaryOwnerId ?? live?.operator1Id ?? null,
         };
       });
     } else {
-      // Sem snapshot: carteira viva de quem atua na frente — prioridade 2 (D1).
-      const classifications =
-        await tenantPrisma.clientFrontClassification.findMany({
-          where: { frontId, actsInFront: 'YES' },
-          include: { client: true },
-        });
-      portfolio = classifications.map((c) => ({
-        client: c.client,
-        complexityClass: c.complexityClass,
-        assessmentState: (c.assessmentState ??
-          'NOT_ASSESSED') as AssessmentState,
-        normalizedScore: c.normalizedScore,
-        primaryOwnerId: c.operator1Id, // D3: responsável principal da frente
-      }));
+      portfolio = classifications
+        .filter((c: any) => c.actsInFront === 'YES')
+        .map((c: any) => ({
+          client: c.client,
+          active: isClientActive(c.client?.status),
+          cc: c.ccScore ?? null,
+          co: c.coScore ?? null,
+          ccClass: c.ccClass ?? null,
+          coClass: c.coClass ?? null,
+          primaryOwnerId: c.operator1Id,
+        }));
     }
 
-    // "Ativos" para fins de cobertura/curva/CCA = clientes com Client.status
-    // ACTIVE (independente de estarem no snapshot congelado ou na carteira
-    // viva — os dois já só contêm quem atua na frente).
-    const activePortfolio = portfolio.filter(
-      (p) => p.client.status === 'ACTIVE',
-    );
-    const assessedPortfolio = activePortfolio.filter(
-      (p) => p.assessmentState === 'ASSESSED',
+    // Frente inativa e cliente sem movimento ficam fora de toda media
+    // (decisao do cliente, 09/09/2026): e ausencia, nao complexidade zero.
+    const activePortfolio = portfolio.filter((p) => p.active);
+    const avaliados = activePortfolio.filter(
+      (p) => p.cc != null && p.co != null,
     );
 
-    // statusData: sempre ao vivo a partir de actsInFront (YES/NO/NO_MOVEMENT)
-    // de TODA a ClientFrontClassification da frente — é a única fonte com um
-    // terceiro estado ("sem movimento"); Client.status só tem ACTIVE/INACTIVE
-    // e o snapshot não cobre quem não atua na frente.
-    const allClassifications =
-      await tenantPrisma.clientFrontClassification.findMany({
-        where: { frontId },
-      });
+    // statusData continua vindo ao vivo de actsInFront: e a unica fonte com o
+    // terceiro estado ("sem movimento").
     const statusData = {
-      ativos: allClassifications.filter((c) => c.actsInFront === 'YES').length,
-      inativos: allClassifications.filter((c) => c.actsInFront === 'NO').length,
-      semMovimento: allClassifications.filter(
-        (c) => c.actsInFront === 'NO_MOVEMENT',
+      ativos: classifications.filter((c: any) => c.actsInFront === 'YES')
+        .length,
+      inativos: classifications.filter((c: any) => c.actsInFront === 'NO')
+        .length,
+      semMovimento: classifications.filter(
+        (c: any) => c.actsInFront === 'NO_MOVEMENT',
       ).length,
-      total: allClassifications.length,
+      total: classifications.length,
     };
 
-    // Tributação e segmento a partir da carteira ativa (não mais de entregas).
     const regimesMap = new Map<string, number>();
     const segmentsMap = new Map<string, number>();
     activePortfolio.forEach((p) => {
-      const regime = p.client.taxRegime || 'Não Informado';
-      const segment = p.client.segment || 'Não Informado';
+      const regime = p.client.taxRegime || 'Nao Informado';
+      const segment = p.client.segment || 'Nao Informado';
       regimesMap.set(regime, (regimesMap.get(regime) || 0) + 1);
       segmentsMap.set(segment, (segmentsMap.get(segment) || 0) + 1);
     });
     const formatMap = (map: Map<string, number>) =>
       Array.from(map.entries()).map(([name, value]) => ({ name, value }));
 
-    // D2: curva de complexidade real (nunca mais prioridade da entrega).
-    // C0 e pendentes ficam fora da curva, expostos à parte (nunca somados a C1).
-    const c0Count = activePortfolio.filter(
-      (p) => p.assessmentState === 'NOT_APPLICABLE',
-    ).length;
-    const pendingCount = activePortfolio.filter((p) =>
-      PENDING_STATES.includes(p.assessmentState),
-    ).length;
+    // Duas curvas, nao uma. A da Natureza descreve a carteira que o escritorio
+    // tem; a da Maturidade descreve o quanto a operacao ainda pode melhorar —
+    // e e a unica das duas sobre a qual ha acao possivel.
+    const curva = (campo: 'ccClass' | 'coClass') => {
+      const contagem: Record<string, number> = {};
+      avaliados.forEach((p) => {
+        const cls = p[campo];
+        if (cls) contagem[cls] = (contagem[cls] || 0) + 1;
+      });
+      return CC_CO_CLASSES.map((cls) => ({
+        class: cls,
+        count: contagem[cls] || 0,
+        percent:
+          avaliados.length > 0
+            ? round2(((contagem[cls] || 0) / avaliados.length) * 100)
+            : 0,
+      }));
+    };
 
-    const classCounts: Record<string, number> = {};
-    assessedPortfolio.forEach((p) => {
-      if (p.complexityClass) {
-        classCounts[p.complexityClass] =
-          (classCounts[p.complexityClass] || 0) + 1;
-      }
-    });
-    const complexityCurve = COMPLEXITY_CLASSES.map((cls) => ({
-      class: cls,
-      count: classCounts[cls] || 0,
-      percent:
-        assessedPortfolio.length > 0
-          ? round2(((classCounts[cls] || 0) / assessedPortfolio.length) * 100)
-          : 0,
-    }));
-
-    // D3/D4: CCA/CCR via motor de complexidade (Bloco B) + enriquecimento
-    // com nome do responsável e quebra por classe (o motor não conhece nome
-    // de funcionário nem complexityClass, só normalizedScore).
-    const coefficients = this.complexityService.calculateCoefficients(
-      activePortfolio.map((p) => ({
-        assessmentState: p.assessmentState,
-        normalizedScore: p.normalizedScore,
-        primaryOwnerId: p.primaryOwnerId,
-      })),
+    const carteira = assessPortfolio(
+      activePortfolio.map((p) => ({ active: true, cc: p.cc, co: p.co })),
     );
 
     const employees = await tenantPrisma.employee.findMany();
     const employeeNameById = new Map(employees.map((e) => [e.id, e.name]));
 
-    const byOwner = coefficients.byOwner.map((owner) => {
-      const ownerAssessed = assessedPortfolio.filter(
-        (p) => p.primaryOwnerId === owner.ownerId,
+    const ownerIds = [
+      ...new Set(
+        avaliados
+          .filter((p) => p.primaryOwnerId)
+          .map((p) => p.primaryOwnerId as string),
+      ),
+    ];
+
+    const byOwner = ownerIds.map((ownerId) => {
+      const doOwner = avaliados.filter((p) => p.primaryOwnerId === ownerId);
+      const agregado = assessPortfolio(
+        doOwner.map((p) => ({ active: true, cc: p.cc, co: p.co })),
       );
       const byClass: Record<string, number> = {};
-      COMPLEXITY_CLASSES.forEach((cls) => {
-        byClass[cls] = ownerAssessed.filter(
-          (p) => p.complexityClass === cls,
-        ).length;
+      CC_CO_CLASSES.forEach((cls) => {
+        byClass[cls] = doOwner.filter((p) => p.ccClass === cls).length;
       });
       return {
-        ownerId: owner.ownerId,
-        ownerName: employeeNameById.get(owner.ownerId) || 'Desconhecido',
-        total: owner.count,
+        ownerId,
+        ownerName: employeeNameById.get(ownerId) || 'Desconhecido',
+        total: doOwner.length,
         byClass,
-        ccr: owner.ccr,
-        distance: owner.distance,
+        cc: agregado.cc,
+        co: agregado.co,
+        // Distancia em relacao a media da area: positivo significa carteira
+        // mais pesada, ou operacao menos madura, que a media do escritorio.
+        ccDistance:
+          agregado.cc != null && carteira.cc != null
+            ? round2(agregado.cc - carteira.cc)
+            : null,
+        coDistance:
+          agregado.co != null && carteira.co != null
+            ? round2(agregado.co - carteira.co)
+            : null,
       };
     });
 
@@ -227,16 +217,22 @@ export class DashboardService {
       coverage: {
         totalClients: portfolio.length,
         activeClients: activePortfolio.length,
-        assessedClients: assessedPortfolio.length,
-        coveragePercent: coefficients.coveragePercent,
+        assessedClients: avaliados.length,
+        coveragePercent:
+          activePortfolio.length > 0
+            ? round2((avaliados.length / activePortfolio.length) * 100)
+            : null,
       },
       statusData,
       taxRegimes: formatMap(regimesMap),
       segments: formatMap(segmentsMap),
-      complexityCurve,
-      c0Count,
-      pendingCount,
-      cca: coefficients.cca,
+      ccCurve: curva('ccClass'),
+      coCurve: curva('coClass'),
+      inactiveCount: portfolio.length - activePortfolio.length,
+      pendingCount: activePortfolio.length - avaliados.length,
+      cc: carteira.cc,
+      co: carteira.co,
+      pair: carteira.pair,
       byOwner,
     };
   }

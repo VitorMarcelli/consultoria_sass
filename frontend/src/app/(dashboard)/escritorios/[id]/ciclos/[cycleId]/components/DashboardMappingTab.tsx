@@ -13,6 +13,11 @@ const CLASS_COLORS: Record<string, string> = {
   C1: '#3b82f6', C2: '#14B8A6', C3: '#eab308', C4: '#f97316', C5: '#ef4444'
 };
 
+// Índices vêm com uma casa decimal (decisão de 09/09/2026). Vírgula, não
+// ponto — a tela é lida por contador brasileiro.
+const fmt = (v: number | null | undefined) =>
+  v == null ? '—' : v.toFixed(1).replace('.', ',');
+
 export default function DashboardMappingTab({ tenantId, cycleId, activeFrontId }: { tenantId: string; cycleId: string; activeFrontId: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -66,14 +71,18 @@ export default function DashboardMappingTab({ tenantId, cycleId, activeFrontId }
             </p>
           </div>
           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CCA (Coeficiente da Área)</p>
-            <p className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-1">
-              {data.cca != null ? data.cca : '—'}
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Natureza do Cliente</p>
+            <p className="text-2xl font-black text-slate-700 dark:text-slate-200 mt-1">
+              {fmt(data.cc)}
             </p>
+            <p className="text-[11px] font-semibold text-slate-400 mt-0.5">média da carteira · não muda com o projeto</p>
           </div>
           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">C0 (Sem Movimento/Inativos)</p>
-            <p className="text-2xl font-black text-slate-400 mt-1">{data.c0Count}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Maturidade da Operação</p>
+            <p className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-1">
+              {fmt(data.co)}
+            </p>
+            <p className="text-[11px] font-semibold text-slate-400 mt-0.5">é o que o projeto faz cair</p>
           </div>
           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pendentes de Avaliação</p>
@@ -102,28 +111,29 @@ export default function DashboardMappingTab({ tenantId, cycleId, activeFrontId }
             </div>
           </div>
 
-          {/* Curva de Complexidade */}
+          {/* Duas curvas: a Natureza descreve a carteira; a Maturidade
+              descreve o quanto a operação ainda pode melhorar. Só a segunda
+              admite ação, e por isso as duas nunca são somadas. */}
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-sm h-96">
             <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">Curva de Complexidade</h3>
             <p className="text-xs font-semibold text-slate-400 mb-5">
-              Distribuição entre os {data.coverage.assessedClients} clientes avaliados — C0 e pendentes ficam fora da curva.
+              Entre os {data.coverage.assessedClients} clientes avaliados. Frentes inativas e avaliações
+              incompletas ficam fora — nunca somadas a C1.
             </p>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.complexityCurve}>
+                <BarChart data={(data.ccCurve || []).map((c: any, i: number) => ({
+                  class: c.class,
+                  natureza: c.count,
+                  maturidade: data.coCurve?.[i]?.count ?? 0,
+                }))}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                   <XAxis dataKey="class" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip
-                    cursor={{ fill: 'transparent' }}
-                    contentStyle={{ borderRadius: '12px' }}
-                    formatter={(value: any, name: any, props: any) => [`${value} (${props.payload.percent}%)`, 'Clientes']}
-                  />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                    {data.complexityCurve.map((entry: any) => (
-                      <Cell key={entry.class} fill={CLASS_COLORS[entry.class] || '#94a3b8'} />
-                    ))}
-                  </Bar>
+                  <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px' }} />
+                  <Legend />
+                  <Bar dataKey="natureza" name="Natureza do cliente" fill="#64748b" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="maturidade" name="Maturidade da operação" fill="#14B8A6" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -173,9 +183,9 @@ export default function DashboardMappingTab({ tenantId, cycleId, activeFrontId }
 
           {/* Responsáveis x Complexidade */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm col-span-1 lg:col-span-2">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">Responsáveis (Nº de Empresas por Complexidade)</h3>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">Responsáveis (Nº de Empresas por Classe de Natureza)</h3>
             <p className="text-xs font-semibold text-slate-400 mb-5">
-              CCR = coeficiente médio do responsável · Distância = CCR − CCA (positivo: carteira mais complexa que a média da área)
+              Distância = índice do responsável menos a média da frente. Positivo em Natureza significa carteira mais pesada; positivo em Maturidade significa operação menos madura que a média — e este é o acionável.
             </p>
             {data.byOwner.length === 0 ? (
               <p className="text-sm font-medium text-slate-400 py-8 text-center">Nenhum responsável com clientes avaliados ainda.</p>
@@ -201,8 +211,10 @@ export default function DashboardMappingTab({ tenantId, cycleId, activeFrontId }
                       <tr>
                         <th className="text-left font-bold py-2">Responsável</th>
                         <th className="text-right font-bold py-2">Total</th>
-                        <th className="text-right font-bold py-2">CCR</th>
-                        <th className="text-right font-bold py-2">Distância (CCR − CCA)</th>
+                        <th className="text-right font-bold py-2">Natureza</th>
+                        <th className="text-right font-bold py-2">Dist.</th>
+                        <th className="text-right font-bold py-2">Maturidade</th>
+                        <th className="text-right font-bold py-2">Dist.</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -210,9 +222,13 @@ export default function DashboardMappingTab({ tenantId, cycleId, activeFrontId }
                         <tr key={owner.ownerId}>
                           <td className="py-2 font-bold text-slate-800 dark:text-slate-200">{owner.ownerName}</td>
                           <td className="py-2 text-right font-semibold text-slate-600 dark:text-slate-400">{owner.total}</td>
-                          <td className="py-2 text-right font-semibold text-slate-600 dark:text-slate-400">{owner.ccr ?? '—'}</td>
-                          <td className={`py-2 text-right font-bold ${owner.distance == null ? 'text-slate-400' : owner.distance > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                            {owner.distance != null ? (owner.distance > 0 ? `+${owner.distance}` : owner.distance) : '—'}
+                          <td className="py-2 text-right font-semibold text-slate-600 dark:text-slate-400">{fmt(owner.cc)}</td>
+                          <td className={`py-2 text-right font-bold ${owner.ccDistance == null ? 'text-slate-400' : owner.ccDistance > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                            {owner.ccDistance != null ? (owner.ccDistance > 0 ? `+${fmt(owner.ccDistance)}` : fmt(owner.ccDistance)) : '—'}
+                          </td>
+                          <td className="py-2 text-right font-semibold text-slate-600 dark:text-slate-400">{fmt(owner.co)}</td>
+                          <td className={`py-2 text-right font-bold ${owner.coDistance == null ? 'text-slate-400' : owner.coDistance > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                            {owner.coDistance != null ? (owner.coDistance > 0 ? `+${fmt(owner.coDistance)}` : fmt(owner.coDistance)) : '—'}
                           </td>
                         </tr>
                       ))}

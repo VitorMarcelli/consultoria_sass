@@ -121,6 +121,7 @@ export default function CycleOverviewPage({
     teamCount = 0,
     distributionByTaxRegime = {},
     distributionByComplexity = {},
+    coDistribution = {},
     complexityC0Count = 0,
     complexityPendingCount = 0,
     distributionByFrequency = {},
@@ -145,9 +146,13 @@ export default function CycleOverviewPage({
   // Curva de complexidade real (C1..C5). C0 e pendentes ficam fora do gráfico
   // e são exibidos como base de cálculo — somá-los a C1 faria carteira não
   // mapeada parecer mapeada (ORDEM-02, Bloco B).
+  // Duas séries: Natureza do Cliente e Maturidade da Operação. Elas nunca são
+  // somadas — só a segunda admite ação do escritório.
   const complexityData = Object.keys(distributionByComplexity).map(key => ({
     name: key,
-    value: distributionByComplexity[key]
+    natureza: distributionByComplexity[key],
+    maturidade: coDistribution[key] ?? 0,
+    value: distributionByComplexity[key],
   })).sort((a, b) => a.name.localeCompare(b.name));
 
   const complexityAssessedCount = complexityData.reduce((sum, item) => sum + item.value, 0);
@@ -394,7 +399,9 @@ export default function CycleOverviewPage({
                     formatter={(value: any) => [`${value} clientes`, 'Quantidade']}
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
-                  <Bar dataKey="value" fill="#0d9488" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                  <Legend />
+                  <Bar dataKey="natureza" name="Natureza do cliente" fill="#64748b" radius={[6, 6, 0, 0]} maxBarSize={30} />
+                  <Bar dataKey="maturidade" name="Maturidade da operação" fill="#14B8A6" radius={[6, 6, 0, 0]} maxBarSize={30} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

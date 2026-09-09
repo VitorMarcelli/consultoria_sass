@@ -35,6 +35,18 @@ function freezeAssessment(source: any) {
     normalizedScore: source.normalizedScore ?? null,
     complexityClass: source.complexityClass ?? null,
     assessmentState: source.assessmentState ?? 'NOT_ASSESSED',
+
+    // Motor CC/CO. Congelar estes campos é o que permite comparar ciclos: a
+    // queda da Maturidade ao longo dos meses é a evidência de que a operação
+    // amadureceu, e sem o retrato do mês anterior não há o que comparar.
+    profileType: source.client?.profileType ?? null,
+    catalogAnswers: source.catalogAnswers ?? undefined,
+    ccScore: source.ccScore ?? null,
+    coScore: source.coScore ?? null,
+    ccClass: source.ccClass ?? null,
+    coClass: source.coClass ?? null,
+    ccState: source.ccState ?? null,
+    coState: source.coState ?? null,
   };
 }
 
@@ -567,7 +579,11 @@ export class ManagementCyclesService {
     const liveMap = await this.buildLiveAssessmentMap(tenantPrisma, snapshots);
     let complexityC0Count = 0;
     let complexityPendingCount = 0;
-    for (const cls of COMPLEXITY_CLASSES) distributionByComplexity[cls] = 0;
+    const coDistribution: Record<string, number> = {};
+    for (const cls of COMPLEXITY_CLASSES) {
+      distributionByComplexity[cls] = 0;
+      coDistribution[cls] = 0;
+    }
 
     for (const snap of snapshots) {
       if (!clientIdsCounted.has(snap.clientId)) {
@@ -582,15 +598,17 @@ export class ManagementCyclesService {
         clientIdsForRegime.add(snap.clientId);
       }
 
+      // Motor CC/CO: dois indices por frente. Frente inativa nao entra em
+      // media nenhuma, e avaliacao incompleta conta como pendencia em vez de
+      // ser somada a classe mais simples.
       const assessment = this.resolveAssessment(snap, liveMap);
-      if (assessment.complexityClass === 'C0') {
+      if (assessment.ccState === 'INACTIVE') {
         complexityC0Count += 1;
-      } else if (
-        assessment.complexityClass &&
-        !PENDING_STATES.includes(assessment.assessmentState)
-      ) {
-        distributionByComplexity[assessment.complexityClass] =
-          (distributionByComplexity[assessment.complexityClass] || 0) + 1;
+      } else if (assessment.ccClass && assessment.coClass) {
+        distributionByComplexity[assessment.ccClass] =
+          (distributionByComplexity[assessment.ccClass] || 0) + 1;
+        coDistribution[assessment.coClass] =
+          (coDistribution[assessment.coClass] || 0) + 1;
       } else {
         complexityPendingCount += 1;
       }
@@ -656,7 +674,10 @@ export class ManagementCyclesService {
       clientsCount: clientIdsCounted.size,
       teamCount: employeeIdsCounted.size,
       distributionByTaxRegime,
+      // distributionByComplexity guarda a Natureza do Cliente; coDistribution,
+      // a Maturidade da Operacao. O nome antigo fica para nao quebrar consumidor.
       distributionByComplexity,
+      coDistribution,
       complexityC0Count,
       complexityPendingCount,
       distributionByFrequency,
