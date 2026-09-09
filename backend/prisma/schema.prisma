@@ -272,23 +272,6 @@ model Client {
   classification String? // A, B, C
   observations   String?
 
-  // --- Cadastro conforme template CC/CO (ORDEM-02) ---
-  // Perfil do Cliente: Empresa PJ, Produtor Rural PF, Pessoa Física ou
-  // Empregador Doméstico. Compõe a Complexidade do Cliente nas três frentes.
-  // Guarda o CÓDIGO da opção do catálogo (client-catalog.data.ts), não o
-  // rótulo — é o código que o motor usa para achar a nota.
-  profileType String?
-
-  // Respostas do bloco MESTRE mapeadas por chave do catálogo, ex.:
-  // { "MESTRE__REGIME_TRIBUTARIO": "LUCRO_REAL" }.
-  //
-  // Convive de propósito com as colunas soltas que já existem (taxRegime,
-  // segment, revenueBracket...): elas guardam texto livre histórico e
-  // continuam servindo as telas antigas, enquanto este campo guarda o código
-  // canônico que o motor consome. A unificação é o Bloco F da ORDEM-02 — até
-  // lá, nada quebra e nada se perde.
-  catalogAnswers Json?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -350,29 +333,6 @@ model ClientFrontClassification {
   // sugeridas, justificativa por critério, modelo e versão do prompt usados —
   // para auditoria, já que o consultor pode aceitar ou sobrescrever depois.
   aiSuggestion Json?
-
-  // --- Avaliação CC/CO (ORDEM-02, motor em complexity/cc-co.rules.ts) ---
-  // Convive com os campos do motor antigo acima (scoreVolume, rawSum,
-  // normalizedScore, complexityClass), que continuam servindo as telas atuais
-  // até a troca ser concluída. Só adições, nunca remoção — o push propaga com
-  // --accept-data-loss.
-
-  // Respostas do bloco da frente por chave do catálogo, ex.:
-  // { "FISCAL__FORMA_RECEBIMENTO_DOCUMENTOS": "PLATAFORMA_INTEGRADA" }.
-  // Json em vez de coluna por campo porque o catálogo é gerado da planilha:
-  // acrescentar ou tirar uma característica não pode exigir mexer no schema
-  // e propagar para todos os tenants.
-  catalogAnswers Json?
-
-  ccScore Float? // Complexidade do Cliente, 0..5 com uma casa
-  coScore Float? // Complexidade Operacional, 0..5 com uma casa
-  ccClass String? // C0..C5, derivado da régua sobre ccScore
-  coClass String? // C0..C5, derivado da régua sobre coScore
-
-  // INACTIVE | NOT_ASSESSED | PARTIAL | ASSESSED. INACTIVE não é zero: a
-  // frente sai de todas as médias (decisão do cliente, 09/09/2026).
-  ccState String?
-  coState String?
 
   taxInfo        ClientTaxInfo?
   hrInfo         ClientHrInfo?
@@ -763,19 +723,6 @@ model ClientCycleSnapshot {
 
   // --- Perfil operacional congelado ---
   operationalProfile Json? // cópia integral de TaxInfo / HrInfo / AccountingInfo
-
-  // --- Avaliação CC/CO congelada (ORDEM-02) ---
-  // Espelha ClientFrontClassification. É o que permite comparar ciclos: a
-  // queda do CO ao longo dos meses é a evidência de que a operação amadureceu,
-  // e sem o retrato do mês anterior não há o que comparar.
-  profileType    String?
-  catalogAnswers Json?
-  ccScore        Float?
-  coScore        Float?
-  ccClass        String?
-  coClass        String?
-  ccState        String?
-  coState        String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
