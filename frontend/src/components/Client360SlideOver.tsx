@@ -21,78 +21,113 @@ interface Client360SlideOverProps {
   onFrontRemoved?: () => void;
 }
 
-// Escala real da complexidade: C1..C5. C0 não é um degrau da curva — quer
-// dizer "não atua nesta frente" — e por isso é exibido à parte, nunca como
-// barra vazia. Estados pendentes também: "não avaliado" é pendência de
-// trabalho, não complexidade baixa (ORDEM-02, Bloco B).
-const COMPLEXITY_CLASSES = ['C1', 'C2', 'C3', 'C4', 'C5'];
-const PENDING_STATES = ['NOT_ASSESSED', 'PARTIAL', 'IMPORTED', 'AI_SUGGESTED'];
+// Exibição do par CC-CO (ORDEM-02). São dois índices independentes por
+// frente, escala 0 a 5 com uma casa decimal, e a classe é a faixa em que o
+// valor cai. Mostrar os dois lado a lado é o ponto: 5,0-1,0 é cliente pesado
+// bem operado (nada a fazer) e 1,0-5,0 é cliente simples mal operado
+// (desperdício puro). Uma média entre eles apagaria essa diferença.
+const CLASS_STEPS = ['C1', 'C2', 'C3', 'C4', 'C5'];
 
-const PENDING_LABEL: Record<string, string> = {
-  NOT_ASSESSED: 'Não avaliado',
+const STATE_LABEL: Record<string, string> = {
+  NOT_ASSESSED: 'Sem respostas',
   PARTIAL: 'Avaliação incompleta',
-  IMPORTED: 'Importado — falta revisar',
-  AI_SUGGESTED: 'Sugestão da IA — falta confirmar',
+  INACTIVE: 'Não atua nesta frente',
 };
 
-function renderComplexity(frontSnap: any) {
-  const assessmentState = frontSnap?.assessmentState || 'NOT_ASSESSED';
-  const complexityClass = frontSnap?.complexityClass || null;
+function formatIndex(value: number | null | undefined): string {
+  if (value == null) return '—';
+  return value.toFixed(1).replace('.', ',');
+}
 
-  if (complexityClass === 'C0') {
-    return (
-      <div>
-        <p className="text-sm font-black text-slate-800">C0</p>
-        <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-          Não atua nesta frente
-        </p>
-      </div>
-    );
-  }
-
-  if (!complexityClass || PENDING_STATES.includes(assessmentState)) {
-    return (
-      <div>
-        <div className="flex gap-1.5">
-          {COMPLEXITY_CLASSES.map((cls) => (
-            <div
-              key={cls}
-              className="h-2.5 w-full rounded-full bg-slate-200/60"
-            ></div>
-          ))}
-        </div>
-        <p className="text-[11px] font-bold text-amber-600 mt-2">
-          {PENDING_LABEL[assessmentState] || 'Não avaliado'}
-        </p>
-      </div>
-    );
-  }
-
-  const level = COMPLEXITY_CLASSES.indexOf(complexityClass) + 1;
+function IndexBar({
+  titulo,
+  valor,
+  classe,
+  estado,
+  faltam,
+}: {
+  titulo: string;
+  valor: number | null;
+  classe: string | null;
+  estado: string | null;
+  faltam?: number;
+}) {
+  const fechado = valor != null && classe != null && classe !== 'C0';
+  const nivel = fechado ? CLASS_STEPS.indexOf(classe as string) + 1 : 0;
 
   return (
-    <div>
-      <div className="flex gap-1.5">
-        {COMPLEXITY_CLASSES.map((cls, index) => (
+    <div className="flex-1">
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">
+        {titulo}
+      </p>
+      <div className="flex gap-1">
+        {CLASS_STEPS.map((c, i) => (
           <div
-            key={cls}
-            className={`h-2.5 w-full rounded-full ${
-              index < level
-                ? 'bg-gradient-to-r from-teal-400 to-teal-500 shadow-sm shadow-teal-500/20'
-                : 'bg-slate-200/60'
+            key={c}
+            className={`h-2 w-full rounded-full ${
+              i < nivel
+                ? 'bg-gradient-to-r from-teal-400 to-teal-500'
+                : 'bg-slate-200/70'
             }`}
-          ></div>
+          />
         ))}
       </div>
-      <p className="text-[11px] font-black text-slate-600 mt-2">
-        {complexityClass}
-        {frontSnap?.normalizedScore != null && (
-          <span className="font-bold text-slate-400">
-            {' '}
-            · score {frontSnap.normalizedScore}
+      {fechado ? (
+        <p className="mt-1.5 text-sm font-black text-slate-800">
+          {formatIndex(valor)}
+          <span className="ml-1.5 text-[10px] font-bold text-slate-400">
+            {classe}
           </span>
-        )}
-      </p>
+        </p>
+      ) : (
+        <p className="mt-1.5 text-[11px] font-bold text-amber-600">
+          {STATE_LABEL[estado ?? 'NOT_ASSESSED'] ?? 'Não avaliado'}
+          {faltam ? ` · faltam ${faltam}` : ''}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function renderComplexity(frontSnap: any, detalhe?: any) {
+  // O detalhe vem de /cc-co/clients/:id e traz quantas respostas faltam. O
+  // resumo do snapshot basta para o índice em si.
+  const cc = detalhe?.cc;
+  const co = detalhe?.co;
+
+  const ccState = cc?.state ?? frontSnap?.ccState ?? 'NOT_ASSESSED';
+  const coState = co?.state ?? frontSnap?.coState ?? 'NOT_ASSESSED';
+
+  if (ccState === 'INACTIVE' && coState === 'INACTIVE') {
+    return (
+      <div>
+        <p className="text-sm font-black text-slate-800">Fora do cálculo</p>
+        <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+          Cliente não atua nesta frente — não entra nas médias da carteira
+        </p>
+      </div>
+    );
+  }
+
+  const faltaCc = cc ? cc.applicable - cc.answered : undefined;
+  const faltaCo = co ? co.applicable - co.answered : undefined;
+
+  return (
+    <div className="flex gap-5">
+      <IndexBar
+        titulo="Natureza do cliente"
+        valor={cc?.value ?? frontSnap?.ccScore ?? null}
+        classe={cc?.class ?? frontSnap?.ccClass ?? null}
+        estado={ccState}
+        faltam={faltaCc}
+      />
+      <IndexBar
+        titulo="Maturidade da operação"
+        valor={co?.value ?? frontSnap?.coScore ?? null}
+        classe={co?.class ?? frontSnap?.coClass ?? null}
+        estado={coState}
+        faltam={faltaCo}
+      />
     </div>
   );
 }
@@ -101,6 +136,9 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'deliveries' | 'financial'>('overview');
   const [clientFronts, setClientFronts] = useState<any[]>([]);
   const [isLoadingFronts, setIsLoadingFronts] = useState(false);
+  // Avaliação CC/CO por frente e o consolidado do cliente, vindos do motor.
+  const [ccCoByFront, setCcCoByFront] = useState<Record<string, any>>({});
+  const [ccCoConsolidado, setCcCoConsolidado] = useState<any>(null);
   const [availableFronts, setAvailableFronts] = useState<any[]>([]);
   const [isAllocating, setIsAllocating] = useState(false);
   
@@ -142,6 +180,22 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
       console.error('Failed to load client fronts:', err);
     } finally {
       setIsLoadingFronts(false);
+    }
+
+    // Detalhe do motor CC/CO, em chamada separada de propósito: ele traz
+    // quantas respostas faltam por índice, e falhar aqui não pode impedir o
+    // painel de abrir. Sem ele a tela ainda mostra o índice que veio no
+    // snapshot — só perde a contagem de pendências.
+    try {
+      const detalhe = await apiRequest(
+        `/cc-co/clients/${client.id}?tenantId=${tenantId}`,
+      );
+      const porFrente: Record<string, any> = {};
+      for (const f of detalhe?.fronts ?? []) porFrente[f.frontId] = f;
+      setCcCoByFront(porFrente);
+      setCcCoConsolidado(detalhe?.consolidated ?? null);
+    } catch (err) {
+      console.error('Falha ao carregar avaliação CC/CO:', err);
     }
   };
 
@@ -547,7 +601,9 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                         <div className="flex-1">
                           <h4 className="text-xl font-black tracking-tight">Mapeamento de Escopo</h4>
                           <p className="text-sm text-teal-50 font-medium mt-1 opacity-90 max-w-md">
-                            Visão panorâmica da complexidade e atuação do cliente nas diferentes frentes de negócio do escritório.
+                            {ccCoConsolidado?.pair
+                              ? `Complexidade consolidada do cliente: ${ccCoConsolidado.pair} · natureza e maturidade da operação, sobre ${ccCoConsolidado.activeCount} frente(s) ativa(s).`
+                              : 'Natureza do cliente e maturidade da operação, medidas por frente. A natureza não muda com o projeto; a maturidade é o que ele existe para melhorar.'}
                           </p>
                         </div>
                         <button 
@@ -766,7 +822,7 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                   <Activity className="w-3.5 h-3.5" /> Nível de Complexidade
                                 </p>
-                                {renderComplexity(frontSnap)}
+                                {renderComplexity(frontSnap, ccCoByFront[frontSnap.frontId])}
                             </div>
                             <div>
                               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">

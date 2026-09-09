@@ -76,15 +76,33 @@ export class ManagementCyclesService {
   // Resolve a avaliação efetiva de um snapshot: o congelado tem precedência;
   // o vivo só entra quando o congelado nunca foi preenchido.
   private resolveAssessment(snap: any, liveMap: Map<string, any>) {
+    const live = liveMap.get(`${snap.clientId}|${snap.frontId}`);
+
+    // Índices CC/CO (ORDEM-02). Congelado tem precedência; o vivo cobre o
+    // registro que ainda não foi congelado no ciclo.
+    const ccScore = snap.ccScore ?? live?.ccScore ?? null;
+    const coScore = snap.coScore ?? live?.coScore ?? null;
+    const novo = {
+      ccScore,
+      coScore,
+      ccClass: snap.ccClass ?? live?.ccClass ?? null,
+      coClass: snap.coClass ?? live?.coClass ?? null,
+      ccState: snap.ccState ?? live?.ccState ?? null,
+      coState: snap.coState ?? live?.coState ?? null,
+    };
+
+    // LEGADO: campos do motor antigo (escala 1..3 normalizada 0..100).
+    // Continuam no payload enquanto telas não migradas os consomem.
     if (snap.complexityClass) {
       return {
+        ...novo,
         complexityClass: snap.complexityClass,
         assessmentState: snap.assessmentState ?? 'NOT_ASSESSED',
         normalizedScore: snap.normalizedScore ?? null,
       };
     }
-    const live = liveMap.get(`${snap.clientId}|${snap.frontId}`);
     return {
+      ...novo,
       complexityClass: live?.complexityClass ?? null,
       assessmentState:
         live?.assessmentState ?? snap.assessmentState ?? 'NOT_ASSESSED',
