@@ -189,10 +189,22 @@ export class CcCoService {
     });
     const porFrente = new Map(existentes.map((c) => [c.frontId, c]));
 
+    // Frente pedida sem classificação: cria antes de gravar, em vez de pular.
+    // Pular calado era o defeito reportado em 10/09/2026 — o cadastro dizia
+    // sucesso e duas das três frentes ficavam sem resposta nenhuma.
+    const faltando = payload.fronts.filter((f) => !porFrente.has(f.frontId));
+    for (const f of faltando) {
+      const criada = await prisma.clientFrontClassification.create({
+        data: { clientId, frontId: f.frontId, actsInFront: 'YES' },
+        select: { id: true, frontId: true, catalogAnswers: true },
+      });
+      porFrente.set(criada.frontId, criada);
+    }
+
     const escritas = [];
     for (const f of payload.fronts) {
       const atual = porFrente.get(f.frontId);
-      if (!atual) continue; // frente não alocada: ignora em vez de falhar o lote
+      if (!atual) continue;
       escritas.push(
         prisma.clientFrontClassification.update({
           where: { id: atual.id },

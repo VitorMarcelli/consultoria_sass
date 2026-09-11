@@ -173,6 +173,22 @@ export class ManagementCyclesService {
         'Este cliente já está alocado nesta frente para este ciclo.',
       );
 
+    // Alocar cria o snapshot do ciclo E garante a classificação viva da
+    // frente. Sem a classificação o cliente aparece na carteira mas não tem
+    // onde guardar as respostas do catálogo: era o que fazia um cadastro de
+    // três frentes gravar só a primeira, em silêncio, porque as outras
+    // recebiam apenas snapshot (reportado nos testes de 10/09/2026).
+    if (!frontClassification) {
+      await tenantPrisma.clientFrontClassification.create({
+        data: {
+          clientId: data.clientId,
+          frontId: data.frontId,
+          subdivisionId: data.subdivisionId || null,
+          actsInFront: 'YES',
+        },
+      });
+    }
+
     return tenantPrisma.clientCycleSnapshot.create({
       data: {
         cycleId,

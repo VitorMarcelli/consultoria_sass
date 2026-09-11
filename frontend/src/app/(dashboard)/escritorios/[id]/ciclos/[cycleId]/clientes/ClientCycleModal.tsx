@@ -211,7 +211,17 @@ export default function ClientCycleModal({
       const firstFrontId = frontIdFor(chosen[0].front) as string;
 
       // 1. Cria o cliente já alocado na primeira frente contratada.
-      const result = await apiRequest('/clients', {
+      //
+      // Se o cadastro já tinha sido tentado e parou no meio, o cliente existe
+      // e o CNPJ duplicado bloqueia qualquer nova tentativa — a pessoa fica
+      // presa sem conseguir nem concluir nem refazer (reportado em
+      // 10/09/2026). Neste caso recuperamos o cliente existente e seguimos
+      // completando as frentes que faltam, em vez de falhar.
+      let clientId: string | null = null;
+      let recuperado = false;
+
+      try {
+        const result = await apiRequest('/clients', {
         method: 'POST',
         body: JSON.stringify({
           tenantId,
@@ -233,19 +243,42 @@ export default function ClientCycleModal({
         }),
       });
 
-      const clientId = result?.client?.id ?? result?.id;
+        clientId = result?.client?.id ?? result?.id ?? null;
+      } catch (err: any) {
+        const duplicado = String(err?.message ?? '').toLowerCase().includes('cnpj');
+        if (!duplicado) throw err;
+
+        const existentes = await apiRequest(`/clients?tenantId=${tenantId}`);
+        const achado = (existentes ?? []).find(
+          (c: any) => String(c.cnpj ?? '').replace(/\D/g, '') === digits,
+        );
+        if (!achado) throw err;
+        clientId = achado.id;
+        recuperado = true;
+      }
+
       if (!clientId) throw new Error('O servidor não devolveu o cliente criado.');
 
       // 2. Aloca nas demais frentes contratadas.
-      for (const s of chosen.slice(1)) {
-        await apiRequest(`/management-cycles/${cycleId}/clients`, {
-          method: 'POST',
-          body: JSON.stringify({
-            tenantId,
-            clientId,
-            frontId: frontIdFor(s.front),
-          }),
-        });
+      // Numa recuperação, a primeira frente também pode faltar — por isso
+      // percorremos todas, não só da segunda em diante. Frente já alocada
+      // devolve conflito, que aqui é resultado esperado e não erro.
+      for (const s of recuperado ? chosen : chosen.slice(1)) {
+        try {
+          await apiRequest(`/management-cycles/${cycleId}/clients`, {
+            method: 'POST',
+            body: JSON.stringify({
+              tenantId,
+              clientId,
+              frontId: frontIdFor(s.front),
+            }),
+          });
+        } catch (err: any) {
+          const jaAlocado = String(err?.message ?? '')
+            .toLowerCase()
+            .includes('já está alocado');
+          if (!jaAlocado) throw err;
+        }
       }
 
       // 3. Grava as respostas de todas as frentes numa requisição só e
@@ -352,6 +385,14 @@ export default function ClientCycleModal({
                   <div className="space-y-6">
                     {currentStep === 'MESTRE' && (
                       <>
+                        {/* O passo 1 era uma lista corrida e longa: campos
+                            importantes se perdiam na rolagem — o Honorário
+                            Faturado foi dado como ausente nos testes de
+                            10/09/2026 mesmo estando na tela. Dividir em
+                            seções resolve a descoberta. */}
+                        <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                          Identificação
+                        </p>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div className="sm:col-span-2">
                             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -422,6 +463,9 @@ export default function ClientCycleModal({
                           </div>
                         </div>
 
+                        <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 pt-2">
+                          Contrato, porte e tributação
+                        </p>
                         <div className="grid sm:grid-cols-2 gap-4">
                           {masterFields.map((f: CatalogField) => (
                             <CatalogFieldInput
