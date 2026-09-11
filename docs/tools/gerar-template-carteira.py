@@ -182,7 +182,13 @@ def nota_do_cabecalho(coluna) -> str:
     partes.append(f"Entra no cálculo: {papel}")
     if coluna["pilar"]:
         partes.append(f"Pilar: {coluna['pilar']}")
-    if coluna["formato"]:
+    if coluna["formato"] == "Data":
+        # A planilha guarda data como número de dias desde 1899. Pedir o mês
+        # escrito evita que a importação receba 46235 onde a pessoa quis dizer
+        # agosto de 2026 — o importador converte os dois, mas o texto é o que
+        # a pessoa consegue conferir.
+        partes.append("Formato: mês no padrão AAAA-MM (ex.: 2026-08)")
+    elif coluna["formato"]:
         partes.append(f"Formato: {coluna['formato']}")
     if coluna["opcoes"]:
         partes.append("Opções: " + " · ".join(coluna["opcoes"]))

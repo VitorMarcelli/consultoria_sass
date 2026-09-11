@@ -424,3 +424,45 @@ frentes sem nenhum aviso, todos os campos que pontuam respondidos, e os dois
 índices saindo calculados com uma casa decimal.
 
 Renomear uma única coluna do gerador faz esse teste falhar — verificado.
+
+### 7.6 Incidente de 11/09/2026 — data de planilha derrubando a importação
+
+Primeira importação real com o template novo, cem clientes: **Internal server
+error**, três tentativas, nenhuma pista na tela. O registro na Auditoria
+mostrou o motivo em uma linha:
+
+```
+Argument `lastReconciliationMonth`: Invalid value provided.
+Expected String or Null, provided Int.   →  lastReconciliationMonth: 46235
+```
+
+`46235` é 01/08/2026. O Excel não guarda data como texto: guarda o número de
+dias desde 30/12/1899. A coluna "Último Mês de Conciliação" é texto no banco, o
+Prisma recusou o Int, e a exceção subiu até o controller.
+
+Três correções, em ordem de importância:
+
+1. **Uma linha com problema não derruba mais o lote.** O laço de clientes
+   passou a ter `try/catch` por linha: a linha vira erro no relatório, com
+   número e motivo, e as demais seguem. Antes, qualquer exceção não prevista
+   virava 500 para a planilha inteira — sem dizer qual linha nem qual campo —,
+   e os clientes gravados até ali ficavam pela metade. Esse era o defeito mais
+   caro: não o tipo errado, mas não haver como descobrir isso da tela.
+
+2. **Mês de planilha é convertido.** `parseCompetencia` entende número de
+   série, `Date`, `AAAA-MM`, `MM/AAAA` e `DD/MM/AAAA`, e devolve sempre
+   `AAAA-MM`. Número fora da faixa 20000–60000 (1954 a 2064) não vira data:
+   `new Date('3')` responde 2001 sem hesitar, e uma quantidade virando
+   competência seria pior que o erro original. A mesma função serve o catálogo
+   e as colunas legadas.
+
+   O `parseDate` das datas de entrada também passou a entender série. Ele não
+   dava erro — dava 01/01/1970, calado.
+
+3. **Campo descritivo é normalizado para texto** antes de chegar ao banco (os
+   quarenta `getArea(...)` que alimentam colunas String). O Excel devolve
+   número sempre que a célula tem cara de número; fechar a porta de uma vez
+   custa menos que esperar cada campo aparecer em produção.
+
+O template gerado passou a dizer, no comentário de cada coluna de mês, "mês no
+padrão AAAA-MM (ex.: 2026-08)".

@@ -5,6 +5,7 @@ import { ComplexityService } from '../complexity/complexity.service';
 import { CATALOG_FIELDS } from '../client-catalog/client-catalog.data';
 import {
   legacyNoteFromAnswers,
+  parseCompetencia,
   translateFrontRow,
   translateMasterRow,
 } from './catalog-import';
@@ -121,11 +122,52 @@ export class ImportsService {
     return isNaN(parsed) ? null : parsed;
   }
 
+  // Data em célula de Excel não é texto: é um número de dias desde 30/12/1899.
+  // A planilha manda 46235 onde a pessoa digitou agosto/2026. Sem converter,
+  // `new Date(46235)` dá 1º de janeiro de 1970 — e ninguém percebe, porque é
+  // uma data válida.
+  private excelSerialToDate(raw: any): Date | null {
+    const n = typeof raw === 'number' ? raw : Number(String(raw).trim());
+    // Faixa de segurança: 20000 é 1954 e 60000 é 2064. Fora disso o número
+    // quase certamente não é data, e chutar seria pior que ignorar.
+    if (!Number.isFinite(n) || n < 20000 || n > 60000) return null;
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   private parseDate(raw: any): Date | null {
     if (!raw) return null;
     if (raw instanceof Date) return raw;
+    if (typeof raw === 'number') return this.excelSerialToDate(raw);
     const d = new Date(raw);
     return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Competência para as colunas de mês que o banco guarda como texto —
+  // "Último Mês de Conciliação" e o último fechamento contábil. Quando o Excel
+  // entrega a célula como número de série, gravar o número direto derrubava a
+  // importação inteira com erro de tipo do Prisma: coluna de texto recebendo
+  // Int (reportado em 11/09/2026, importação de cem clientes).
+  //
+  // A regra de conversão é a mesma do catálogo. O que não for reconhecido como
+  // mês fica como o texto original: esta coluna é livre e vem de planilha
+  // antiga, então descartar o que a pessoa escreveu seria perder informação.
+  // Célula de planilha destinada a campo de texto do banco.
+  //
+  // O Excel devolve número sempre que a célula tem cara de número, e o Prisma
+  // recusa Int em coluna String — a importação inteira cai com erro de tipo,
+  // não a linha. Normalizar aqui fecha essa porta para todos os campos
+  // descritivos de uma vez, em vez de esperar cada um aparecer em produção.
+  private texto(raw: any): string | undefined {
+    if (raw === null || raw === undefined) return undefined;
+    const v = String(raw).trim();
+    return v === '' ? undefined : v;
+  }
+
+  private competenciaTexto(raw: any): string | undefined {
+    if (raw === null || raw === undefined || String(raw).trim() === '')
+      return undefined;
+    return parseCompetencia(raw) ?? String(raw).trim();
   }
 
   // Colunas booleanas do template (Sim/Não) — usado pelos drivers descritivos
@@ -242,494 +284,520 @@ export class ImportsService {
     for (let rowIndex = 0; rowIndex < records.length; rowIndex++) {
       const row = records[rowIndex];
       const rowNumber = baseRow + rowIndex;
-      const getVal = (keys: string[]) => this.getVal(row, keys);
+      // Uma linha com problema não pode derrubar o lote inteiro.
+      //
+      // Sem isto, qualquer exceção não prevista — um tipo que o banco recusa,
+      // um CNPJ repetido dentro do próprio arquivo — voltava como "Internal
+      // server error" para uma planilha de cem clientes, sem dizer qual linha
+      // nem qual campo, e os clientes já gravados até ali ficavam. Foi o que
+      // aconteceu em 11/09/2026, quando uma célula de mês veio como número de
+      // série do Excel. Agora a linha vira erro no relatório e as outras
+      // seguem.
+      try {
+        const getVal = (keys: string[]) => this.getVal(row, keys);
 
-      // Layout de coluna única: as colunas de frente vêm prefixadas na mesma
-      // linha ("Fiscal | Nota Volume"). O divisor devolve as linhas de frente
-      // no mesmo formato que as abas produziam, então daqui pra frente os dois
-      // layouts seguem pelo mesmo caminho. Quando o arquivo vem em abas, o
-      // divisor não encontra prefixo e não devolve nada — as abas continuam
-      // tendo precedência.
-      const plano = splitFlatRow(row, CATALOG_FIELDS);
+        // Layout de coluna única: as colunas de frente vêm prefixadas na mesma
+        // linha ("Fiscal | Nota Volume"). O divisor devolve as linhas de frente
+        // no mesmo formato que as abas produziam, então daqui pra frente os dois
+        // layouts seguem pelo mesmo caminho. Quando o arquivo vem em abas, o
+        // divisor não encontra prefixo e não devolve nada — as abas continuam
+        // tendo precedência.
+        const plano = splitFlatRow(row, CATALOG_FIELDS);
 
-      const name = getVal(['Razão social/Nome', 'Razão Social', 'Razao Social', 'name', 'Nome']);
-      if (!name) continue;
+        const name = getVal(['Razão social/Nome', 'Razão Social', 'Razao Social', 'name', 'Nome']);
+        if (!name) continue;
 
-      const docRaw = getVal(['CNPJ/CPF', 'CNPJ', 'CPF', 'cnpj']);
-      const doc = this.normalizeDoc(docRaw);
-      const personType = (() => {
-        const raw = getVal(['Tipo pessoa']);
-        if (!raw) return null;
-        const normalized = String(raw).trim().toUpperCase();
-        if (normalized === 'PJ') return 'PJ';
-        if (normalized.includes('DOM') || normalized === 'PF') return 'PF_DOMESTICA';
-        return normalized;
-      })();
+        const docRaw = getVal(['CNPJ/CPF', 'CNPJ', 'CPF', 'cnpj']);
+        const doc = this.normalizeDoc(docRaw);
+        const personType = (() => {
+          const raw = getVal(['Tipo pessoa']);
+          if (!raw) return null;
+          const normalized = String(raw).trim().toUpperCase();
+          if (normalized === 'PJ') return 'PJ';
+          if (normalized.includes('DOM') || normalized === 'PF') return 'PF_DOMESTICA';
+          return normalized;
+        })();
 
-      const tradeName = getVal(['Nome fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
-      const statusVal = this.normalizeStatus(getVal(['Status contrato', 'Status', 'status']));
-      const revenueBracket = getVal(['Faixa faturamento anual', 'Faixa de Faturamento']) || null;
-      const monthlyFee = this.parseMoney(getVal(['Honorário faturado', 'Honorários']));
-      const classification = getVal(['Classificação A-D', 'Classificação', 'classificacao']) || null;
-      const entryDate = this.parseDate(
-        getVal(['Data entrada', 'Data de Início (Operação)', 'Data de Inicio (Operação)']),
-      );
-      const exitDate = this.parseDate(getVal(['Data saída']));
+        const tradeName = getVal(['Nome fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
+        const statusVal = this.normalizeStatus(getVal(['Status contrato', 'Status', 'status']));
+        const revenueBracket = getVal(['Faixa faturamento anual', 'Faixa de Faturamento']) || null;
+        const monthlyFee = this.parseMoney(getVal(['Honorário faturado', 'Honorários']));
+        const classification = getVal(['Classificação A-D', 'Classificação', 'classificacao']) || null;
+        const entryDate = this.parseDate(
+          getVal(['Data entrada', 'Data de Início (Operação)', 'Data de Inicio (Operação)']),
+        );
+        const exitDate = this.parseDate(getVal(['Data saída']));
 
-      // O template MVP REV03 não tem mais Regime Tributário no 01_Clientes —
-      // ele agora é preenchido por frente (02_Fiscal / 03_Contabil). Mantém
-      // Client.taxRegime populado (usado na listagem da carteira) puxando da
-      // frente Fiscal, com fallback pra Contábil quando só ela existir.
-      const fiscalRowForRegime = doc ? fiscalByDoc.get(doc) : undefined;
-      const contabilRowForRegime = doc ? contabilByDoc.get(doc) : undefined;
-      // No layout de coluna única o regime volta a ser uma coluna do cliente,
-      // que é onde o catálogo o define — por isso ele é a primeira opção aqui.
-      const taxRegime =
-        getVal(['Regime tributário', 'Regime Tributario']) ||
-        (fiscalRowForRegime && this.getVal(fiscalRowForRegime, ['Regime tributário'])) ||
-        (contabilRowForRegime && this.getVal(contabilRowForRegime, ['Regime tributário'])) ||
-        null;
+        // O template MVP REV03 não tem mais Regime Tributário no 01_Clientes —
+        // ele agora é preenchido por frente (02_Fiscal / 03_Contabil). Mantém
+        // Client.taxRegime populado (usado na listagem da carteira) puxando da
+        // frente Fiscal, com fallback pra Contábil quando só ela existir.
+        const fiscalRowForRegime = doc ? fiscalByDoc.get(doc) : undefined;
+        const contabilRowForRegime = doc ? contabilByDoc.get(doc) : undefined;
+        // No layout de coluna única o regime volta a ser uma coluna do cliente,
+        // que é onde o catálogo o define — por isso ele é a primeira opção aqui.
+        const taxRegime =
+          getVal(['Regime tributário', 'Regime Tributario']) ||
+          (fiscalRowForRegime && this.getVal(fiscalRowForRegime, ['Regime tributário'])) ||
+          (contabilRowForRegime && this.getVal(contabilRowForRegime, ['Regime tributário'])) ||
+          null;
 
-      // Tradução do bloco MESTRE para os códigos do catálogo. As colunas
-      // legadas continuam sendo gravadas como sempre; estas respostas são o
-      // que o motor CC/CO consome. Valor que não casa vira aviso e fica em
-      // branco — nunca é adivinhado, porque nota errada aqui redistribui
-      // carteira.
-      const traducaoMestre = translateMasterRow(row, CATALOG_FIELDS, {
-        origem: `${fileLabel}, linha ${rowNumber}`,
-        documento: docRaw ? String(docRaw) : null,
-      });
-      warnings.push(...traducaoMestre.warnings);
-      const respostasMestre = traducaoMestre.answers;
-
-      // No template MVP REV03 o Regime tributário mora nas abas de frente
-      // (02_Fiscal / 03_Contabil), não em 01_Clientes — mas no catálogo ele é
-      // campo do bloco MESTRE e compõe a Natureza do Cliente nas duas frentes.
-      // Sem esta ponte, a nota de regime nunca chegaria ao cálculo numa
-      // importação. `taxRegime` já foi resolvido acima com a mesma
-      // precedência (Fiscal, e Contábil como reserva).
-      if (!respostasMestre['MESTRE__REGIME_TRIBUTARIO'] && taxRegime) {
-        const r = mapTaxRegime(taxRegime);
-        if (r.status === 'MAPEADO') {
-          respostasMestre['MESTRE__REGIME_TRIBUTARIO'] = r.code;
-        } else if (r.status !== 'VAZIO') {
-          warnings.push(
-            `${fileLabel}, linha ${rowNumber}, campo "Regime tributário": ${r.reason}.`,
-          );
-        }
-      }
-
-      const clientData: any = {
-        name,
-        tradeName: tradeName || null,
-        status: statusVal,
-        revenueBracket,
-        monthlyFee,
-        classification,
-        catalogAnswers: respostasMestre,
-        profileType: respostasMestre['MESTRE__PERFIL_DO_CLIENTE'] ?? undefined,
-      };
-      if (taxRegime) clientData.taxRegime = taxRegime;
-      // "Tipo pessoa" é coluna do template antigo. No novo, o mesmo dado vem
-      // como "Perfil do Cliente" com o rótulo da opção, já traduzido acima —
-      // aproveita a tradução em vez de exigir as duas colunas na planilha.
-      const perfilPessoa = (() => {
-        if (personType) return personType;
-        switch (respostasMestre['MESTRE__PERFIL_DO_CLIENTE']) {
-          case 'EMPRESA_PJ':
-            return 'PJ';
-          case 'EMPREGADOR_DOMESTICO':
-            return 'PF_DOMESTICA';
-          case 'PESSOA_FISICA':
-          case 'PRODUTOR_RURAL_PF':
-            return 'PF';
-          default:
-            return null;
-        }
-      })();
-      if (perfilPessoa) clientData.personType = perfilPessoa;
-      if (entryDate) clientData.entryDate = entryDate;
-      if (exitDate) clientData.exitDate = exitDate;
-
-      let client = docRaw
-        ? await prisma.client.findUnique({ where: { cnpj: String(docRaw) } })
-        : null;
-
-      if (client) {
-        client = await prisma.client.update({ where: { id: client.id }, data: clientData });
-      } else {
-        client = await prisma.client.create({
-          data: { ...clientData, cnpj: docRaw ? String(docRaw) : null },
+        // Tradução do bloco MESTRE para os códigos do catálogo. As colunas
+        // legadas continuam sendo gravadas como sempre; estas respostas são o
+        // que o motor CC/CO consome. Valor que não casa vira aviso e fica em
+        // branco — nunca é adivinhado, porque nota errada aqui redistribui
+        // carteira.
+        const traducaoMestre = translateMasterRow(row, CATALOG_FIELDS, {
+          origem: `${fileLabel}, linha ${rowNumber}`,
+          documento: docRaw ? String(docRaw) : null,
         });
-      }
+        warnings.push(...traducaoMestre.warnings);
+        const respostasMestre = traducaoMestre.answers;
 
-      const processFront = async (
-        key: 'fiscal' | 'contabil' | 'pessoal',
-        areaRow: RawRow | undefined,
-      ): Promise<boolean> => {
-        if (!areaRow) return false; // sem linha nesta aba nesta competência: frente não avaliada
-        const displayName = FRONT_DISPLAY_NAME[key];
-        const front = getFront(key);
-        if (!front) {
-          warnings.push(
-            `${fileLabel}, linha ${rowNumber}: cliente "${name}" tem dados na aba de ${displayName}, mas o escritório não tem nenhuma frente ativa cujo nome pareça com "${displayName}" (ex.: "Fiscal", "Contábil", "DP/Pessoal") — cadastre essa frente em Estrutura pra vincular esses dados.`,
-          );
-          return false;
+        // No template MVP REV03 o Regime tributário mora nas abas de frente
+        // (02_Fiscal / 03_Contabil), não em 01_Clientes — mas no catálogo ele é
+        // campo do bloco MESTRE e compõe a Natureza do Cliente nas duas frentes.
+        // Sem esta ponte, a nota de regime nunca chegaria ao cálculo numa
+        // importação. `taxRegime` já foi resolvido acima com a mesma
+        // precedência (Fiscal, e Contábil como reserva).
+        if (!respostasMestre['MESTRE__REGIME_TRIBUTARIO'] && taxRegime) {
+          const r = mapTaxRegime(taxRegime);
+          if (r.status === 'MAPEADO') {
+            respostasMestre['MESTRE__REGIME_TRIBUTARIO'] = r.code;
+          } else if (r.status !== 'VAZIO') {
+            warnings.push(
+              `${fileLabel}, linha ${rowNumber}, campo "Regime tributário": ${r.reason}.`,
+            );
+          }
         }
 
-        const getArea = (keys: string[]) => this.getVal(areaRow, keys);
-        const hasAreaCol = (keys: string[]) => this.hasCol(areaRow, keys);
+        const clientData: any = {
+          name,
+          tradeName: tradeName || null,
+          status: statusVal,
+          revenueBracket,
+          monthlyFee,
+          classification,
+          catalogAnswers: respostasMestre,
+          profileType: respostasMestre['MESTRE__PERFIL_DO_CLIENTE'] ?? undefined,
+        };
+        if (taxRegime) clientData.taxRegime = taxRegime;
+        // "Tipo pessoa" é coluna do template antigo. No novo, o mesmo dado vem
+        // como "Perfil do Cliente" com o rótulo da opção, já traduzido acima —
+        // aproveita a tradução em vez de exigir as duas colunas na planilha.
+        const perfilPessoa = (() => {
+          if (personType) return personType;
+          switch (respostasMestre['MESTRE__PERFIL_DO_CLIENTE']) {
+            case 'EMPRESA_PJ':
+              return 'PJ';
+            case 'EMPREGADOR_DOMESTICO':
+              return 'PF_DOMESTICA';
+            case 'PESSOA_FISICA':
+            case 'PRODUTOR_RURAL_PF':
+              return 'PF';
+            default:
+              return null;
+          }
+        })();
+        if (perfilPessoa) clientData.personType = perfilPessoa;
+        if (entryDate) clientData.entryDate = entryDate;
+        if (exitDate) clientData.exitDate = exitDate;
 
-        const actsInFront = this.statusFrenteToActsInFront(
-          getArea(['Status da frente']),
-        );
+        let client = docRaw
+          ? await prisma.client.findUnique({ where: { cnpj: String(docRaw) } })
+          : null;
 
-        let classificationRecord =
-          await prisma.clientFrontClassification.findUnique({
-            where: {
-              clientId_frontId: { clientId: client.id, frontId: front.id },
-            },
+        if (client) {
+          client = await prisma.client.update({ where: { id: client.id }, data: clientData });
+        } else {
+          client = await prisma.client.create({
+            data: { ...clientData, cnpj: docRaw ? String(docRaw) : null },
           });
+        }
 
-        const operator1Id = getEmployeeId(getArea(['Responsável principal']));
-        const operator2Id = getEmployeeId(getArea(['Responsável secundário']));
+        const processFront = async (
+          key: 'fiscal' | 'contabil' | 'pessoal',
+          areaRow: RawRow | undefined,
+        ): Promise<boolean> => {
+          if (!areaRow) return false; // sem linha nesta aba nesta competência: frente não avaliada
+          const displayName = FRONT_DISPLAY_NAME[key];
+          const front = getFront(key);
+          if (!front) {
+            warnings.push(
+              `${fileLabel}, linha ${rowNumber}: cliente "${name}" tem dados na aba de ${displayName}, mas o escritório não tem nenhuma frente ativa cujo nome pareça com "${displayName}" (ex.: "Fiscal", "Contábil", "DP/Pessoal") — cadastre essa frente em Estrutura pra vincular esses dados.`,
+            );
+            return false;
+          }
 
-        // A tradução para o catálogo vem antes das notas do motor antigo
-        // porque agora ela alimenta as duas coisas: o par CC/CO e, por
-        // conversão, a escala de 1 a 3 que os painéis antigos ainda leem.
-        const frenteMotor = FRONT_TYPE[key];
-        const traducaoFrente = translateFrontRow(
-          areaRow,
-          CATALOG_FIELDS,
-          frenteMotor,
-          { origem: `${fileLabel}, linha ${rowNumber}, ${displayName}` },
-        );
-        warnings.push(...traducaoFrente.warnings);
+          const getArea = (keys: string[]) => this.getVal(areaRow, keys);
+          const hasAreaCol = (keys: string[]) => this.hasCol(areaRow, keys);
 
-        let rowHasInvalidNote = false;
-        const parseNote = (label: string, keys: string[]): number | null => {
-          // Template de coluna única: a célula traz o rótulo da opção. A nota
-          // antiga sai da resposta já traduzida, pela posição da opção na
-          // escala do catálogo.
-          const daResposta = legacyNoteFromAnswers(
+          const actsInFront = this.statusFrenteToActsInFront(
+            getArea(['Status da frente']),
+          );
+
+          let classificationRecord =
+            await prisma.clientFrontClassification.findUnique({
+              where: {
+                clientId_frontId: { clientId: client.id, frontId: front.id },
+              },
+            });
+
+          const operator1Id = getEmployeeId(getArea(['Responsável principal']));
+          const operator2Id = getEmployeeId(getArea(['Responsável secundário']));
+
+          // A tradução para o catálogo vem antes das notas do motor antigo
+          // porque agora ela alimenta as duas coisas: o par CC/CO e, por
+          // conversão, a escala de 1 a 3 que os painéis antigos ainda leem.
+          const frenteMotor = FRONT_TYPE[key];
+          const traducaoFrente = translateFrontRow(
+            areaRow,
             CATALOG_FIELDS,
             frenteMotor,
-            label,
-            traducaoFrente.answers,
+            { origem: `${fileLabel}, linha ${rowNumber}, ${displayName}` },
           );
-          if (daResposta !== null) return daResposta;
+          warnings.push(...traducaoFrente.warnings);
 
-          if (!hasAreaCol(keys)) return null; // coluna ausente: não é erro
-          const raw = getArea(keys);
-          if (raw === null || raw === undefined || String(raw).trim() === '')
-            return null; // coluna existe, célula vazia: critério ausente
-          const parsed = parseInt(String(raw).trim(), 10);
-          // Valor de texto que não virou resposta: a tradução já avisou o
-          // motivo. Rejeitar de novo aqui derrubaria a frente inteira por
-          // causa de uma célula — é o que acontecia quando esta função só
-          // entendia números.
-          if (isNaN(parsed)) return null;
-          if (parsed < 1 || parsed > 3) {
-            errors.push(
-              `${fileLabel}, linha ${rowNumber}, campo "${displayName} - ${label}": valor "${raw}" inválido — a nota deve ser 1, 2 ou 3.`,
+          let rowHasInvalidNote = false;
+          const parseNote = (label: string, keys: string[]): number | null => {
+            // Template de coluna única: a célula traz o rótulo da opção. A nota
+            // antiga sai da resposta já traduzida, pela posição da opção na
+            // escala do catálogo.
+            const daResposta = legacyNoteFromAnswers(
+              CATALOG_FIELDS,
+              frenteMotor,
+              label,
+              traducaoFrente.answers,
             );
-            rowHasInvalidNote = true;
-            return null;
+            if (daResposta !== null) return daResposta;
+
+            if (!hasAreaCol(keys)) return null; // coluna ausente: não é erro
+            const raw = getArea(keys);
+            if (raw === null || raw === undefined || String(raw).trim() === '')
+              return null; // coluna existe, célula vazia: critério ausente
+            const parsed = parseInt(String(raw).trim(), 10);
+            // Valor de texto que não virou resposta: a tradução já avisou o
+            // motivo. Rejeitar de novo aqui derrubaria a frente inteira por
+            // causa de uma célula — é o que acontecia quando esta função só
+            // entendia números.
+            if (isNaN(parsed)) return null;
+            if (parsed < 1 || parsed > 3) {
+              errors.push(
+                `${fileLabel}, linha ${rowNumber}, campo "${displayName} - ${label}": valor "${raw}" inválido — a nota deve ser 1, 2 ou 3.`,
+              );
+              rowHasInvalidNote = true;
+              return null;
+            }
+            return parsed;
+          };
+
+          // Pessoal: Nota Volume nunca é lida da planilha — é sempre calculada
+          // a partir do Total de Vínculos (template MVP REV03, 07_Regras:
+          // "Regra versionada", nunca editável diretamente).
+          let scoreVolume: number | null;
+          let totalVinculos: number | null = null;
+          if (key === 'pessoal') {
+            const funcionarios = this.parseIntOrNull(getArea(['Qtd. Funcionários']));
+            const prolabores = this.parseIntOrNull(getArea(['Qtd. Pró-labores']));
+            const domesticas = this.parseIntOrNull(getArea(['Qtd. Domésticas']));
+            if (funcionarios !== null || prolabores !== null || domesticas !== null) {
+              totalVinculos = (funcionarios || 0) + (prolabores || 0) + (domesticas || 0);
+            }
+            scoreVolume =
+              totalVinculos === null
+                ? null
+                : this.complexityService.calculateVolumeScore({
+                    front: 'PESSOAL',
+                    driverValue: totalVinculos,
+                  }).scoreVolume;
+          } else {
+            scoreVolume = parseNote('Nota Volume', ['Nota Volume']);
           }
-          return parsed;
-        };
 
-        // Pessoal: Nota Volume nunca é lida da planilha — é sempre calculada
-        // a partir do Total de Vínculos (template MVP REV03, 07_Regras:
-        // "Regra versionada", nunca editável diretamente).
-        let scoreVolume: number | null;
-        let totalVinculos: number | null = null;
-        if (key === 'pessoal') {
-          const funcionarios = this.parseIntOrNull(getArea(['Qtd. Funcionários']));
-          const prolabores = this.parseIntOrNull(getArea(['Qtd. Pró-labores']));
-          const domesticas = this.parseIntOrNull(getArea(['Qtd. Domésticas']));
-          if (funcionarios !== null || prolabores !== null || domesticas !== null) {
-            totalVinculos = (funcionarios || 0) + (prolabores || 0) + (domesticas || 0);
+          const scoreService = parseNote('Nota Atendimento', ['Nota Atendimento']);
+          const scoreOrganization = parseNote('Nota Organização', ['Nota Organização']);
+          const scoreTax = key === 'pessoal' ? null : parseNote('Nota Tributação', ['Nota Tributação']);
+          const scoreTurnover = key === 'pessoal' ? parseNote('Nota Rotatividade', ['Nota Rotatividade']) : null;
+
+          if (rowHasInvalidNote) return false;
+
+          const scores: CriteriaScores = {
+            scoreVolume,
+            scoreService,
+            scoreTax,
+            scoreOrganization,
+            scoreTurnover,
+          };
+
+          const assessment: EvaluateComplexityResult = this.complexityService.evaluate({
+            front: FRONT_TYPE[key],
+            actsInFront,
+            clientStatus: clientData.status,
+            scores,
+          });
+
+          // Cálculo dos índices CC/CO em memória, com o que já foi lido da
+          // planilha: chamar o serviço de complexidade por cliente significaria
+          // uma ida ao banco por frente, e numa importação de cinquenta clientes
+          // isso são centenas de travessias até o banco.
+          const avaliacao = assessFront(
+            buildFrontInput(
+              frenteMotor,
+              {
+                status: clientData.status,
+                profileType: clientData.profileType,
+                catalogAnswers: respostasMestre,
+              },
+              {
+                actsInFront,
+                catalogAnswers: traducaoFrente.answers,
+                hrInfo:
+                  key === 'pessoal'
+                    ? {
+                        employeesCount: this.parseIntOrNull(
+                          getArea(['Qtd. Funcionários']),
+                        ),
+                        prolaboreCount: this.parseIntOrNull(
+                          getArea(['Qtd. Pró-labores']),
+                        ),
+                        domesticsCount: this.parseIntOrNull(
+                          getArea(['Qtd. Domésticas']),
+                        ),
+                      }
+                    : null,
+              },
+            ),
+          );
+
+          const data: any = {
+            actsInFront,
+            operator1Id,
+            operator2Id,
+            ...scores,
+            ...assessment,
+            catalogAnswers: traducaoFrente.answers,
+            ccScore: avaliacao.cc.value,
+            coScore: avaliacao.co.value,
+            ccClass: avaliacao.cc.class,
+            coClass: avaliacao.co.class,
+            ccState: avaliacao.cc.state,
+            coState: avaliacao.co.state,
+          };
+
+          if (classificationRecord) {
+            classificationRecord = await prisma.clientFrontClassification.update({
+              where: { id: classificationRecord.id },
+              data,
+            });
+          } else {
+            classificationRecord = await prisma.clientFrontClassification.create({
+              data: { clientId: client.id, frontId: front.id, ...data },
+            });
           }
-          scoreVolume =
-            totalVinculos === null
-              ? null
-              : this.complexityService.calculateVolumeScore({
-                  front: 'PESSOAL',
-                  driverValue: totalVinculos,
-                }).scoreVolume;
-        } else {
-          scoreVolume = parseNote('Nota Volume', ['Nota Volume']);
-        }
 
-        const scoreService = parseNote('Nota Atendimento', ['Nota Atendimento']);
-        const scoreOrganization = parseNote('Nota Organização', ['Nota Organização']);
-        const scoreTax = key === 'pessoal' ? null : parseNote('Nota Tributação', ['Nota Tributação']);
-        const scoreTurnover = key === 'pessoal' ? parseNote('Nota Rotatividade', ['Nota Rotatividade']) : null;
+          // Perfil operacional descritivo (categorias canônicas do template) —
+          // gravado à parte, nunca influencia o cálculo de complexidade.
+          if (key === 'fiscal') {
+            // hasSpecialRegime/automationLevel/meetsDeadlines: colunas ainda
+            // não confirmadas no template real do cliente — se ausentes na
+            // planilha, getArea/parseBoolYesNo retornam undefined e o upsert
+            // simplesmente não altera o campo. São os drivers objetivos que o
+            // Agente de IA de complexidade usa pra sugerir Tributação e
+            // Organização (ver backend/src/complexity-ai).
+            await prisma.clientTaxInfo.upsert({
+              where: { classificationId: classificationRecord.id },
+              update: {
+                documentReceiptMethod: this.texto(getArea(['Forma recebimento documentos'])),
+                documentSendMethod: this.texto(getArea(['Forma envio documentos'])),
+                integrationMethod: this.texto(getArea(['Forma integração'])),
+                hasSpecialRegime: this.parseBoolYesNo(getArea(['Possui regime especial'])),
+                specialRegimeDescription:
+                  this.texto(getArea(['Descrição do regime especial'])),
+                automationLevel: this.texto(getArea(['Nível de automação da apuração'])),
+                meetsDeadlines: this.texto(getArea(['Cumpre prazos de envio'])),
+              },
+              create: {
+                classificationId: classificationRecord.id,
+                documentReceiptMethod: this.texto(getArea(['Forma recebimento documentos'])) ?? null,
+                documentSendMethod: this.texto(getArea(['Forma envio documentos'])) ?? null,
+                integrationMethod: this.texto(getArea(['Forma integração'])) ?? null,
+                hasSpecialRegime:
+                  this.parseBoolYesNo(getArea(['Possui regime especial'])) ?? false,
+                specialRegimeDescription:
+                  this.texto(getArea(['Descrição do regime especial'])) ?? null,
+                automationLevel: this.texto(getArea(['Nível de automação da apuração'])) ?? null,
+                meetsDeadlines: this.texto(getArea(['Cumpre prazos de envio'])) ?? null,
+              },
+            });
+          }
+          if (key === 'contabil') {
+            // bookkeepingRegime/infoReceiptFrequency/integrationLevel/
+            // lastClosingMonth/trialBalanceNeed: mesmo caso do Fiscal acima —
+            // drivers para Tributação/Organização, ausentes no template atual.
+            await prisma.clientAccountingInfo.upsert({
+              where: { classificationId: classificationRecord.id },
+              update: {
+                documentReceiptMethod: this.texto(getArea(['Forma recebimento documentos'])),
+                documentSendMethod: this.texto(getArea(['Forma envio documentos'])),
+                integrationMethod: this.texto(getArea(['Forma integração'])),
+                launchMethod: this.texto(getArea(['Forma de lançamento'])),
+                closingPeriod: this.texto(getArea(['Periodicidade de Fechamento'])),
+                lastReconciliationMonth:
+                  this.competenciaTexto(getArea(['Último Mês de Conciliação'])),
+                bookkeepingRegime: this.texto(getArea(['Regime de escrituração'])),
+                lastClosingMonth:
+                  this.competenciaTexto(getArea(['Último mês de fechamento contábil'])),
+                infoReceiptFrequency:
+                  this.texto(getArea(['Frequência de recebimento de informação financeira'])),
+                integrationLevel: this.texto(getArea(['Integração com cliente'])),
+                trialBalanceNeed:
+                  this.texto(getArea(['Necessidade de apresentação de balancete'])),
+              },
+              create: {
+                classificationId: classificationRecord.id,
+                documentReceiptMethod: this.texto(getArea(['Forma recebimento documentos'])) ?? null,
+                documentSendMethod: this.texto(getArea(['Forma envio documentos'])) ?? null,
+                integrationMethod: this.texto(getArea(['Forma integração'])) ?? null,
+                launchMethod: this.texto(getArea(['Forma de lançamento'])) ?? null,
+                closingPeriod: this.texto(getArea(['Periodicidade de Fechamento'])) ?? null,
+                lastReconciliationMonth:
+                  this.competenciaTexto(getArea(['Último Mês de Conciliação'])) ??
+                  null,
+                bookkeepingRegime: this.texto(getArea(['Regime de escrituração'])) ?? null,
+                lastClosingMonth:
+                  this.competenciaTexto(
+                    getArea(['Último mês de fechamento contábil']),
+                  ) ?? null,
+                infoReceiptFrequency:
+                  this.texto(getArea(['Frequência de recebimento de informação financeira'])) ?? null,
+                integrationLevel: this.texto(getArea(['Integração com cliente'])) ?? null,
+                trialBalanceNeed:
+                  this.texto(getArea(['Necessidade de apresentação de balancete'])) ?? null,
+              },
+            });
+          }
+          if (key === 'pessoal') {
+            // processingType/frequentAdmissions: driver objetivo de
+            // Rotatividade (Sim/Não), ainda não confirmado no template real.
+            await prisma.clientHrInfo.upsert({
+              where: { classificationId: classificationRecord.id },
+              update: {
+                employeesCount: this.parseIntOrNull(getArea(['Qtd. Funcionários'])) ?? undefined,
+                prolaboreCount: this.parseIntOrNull(getArea(['Qtd. Pró-labores'])) ?? undefined,
+                domesticsCount: this.parseIntOrNull(getArea(['Qtd. Domésticas'])) ?? undefined,
+                documentReceiptMethod: this.texto(getArea(['Recebimento documentos'])),
+                variablesLaunchMethod: this.texto(getArea(['Recebimento variáveis'])),
+                pointReceiptMethod: this.texto(getArea(['Recebimento ponto'])),
+                sheetSendingMethod: this.texto(getArea(['Envio documentos'])),
+                processingType: this.texto(getArea(['Tipo de processamento'])),
+                frequentAdmissions: this.parseBoolYesNo(
+                  getArea(['Admissões e rescisões frequentes']),
+                ),
+              },
+              create: {
+                classificationId: classificationRecord.id,
+                employeesCount: this.parseIntOrNull(getArea(['Qtd. Funcionários'])),
+                prolaboreCount: this.parseIntOrNull(getArea(['Qtd. Pró-labores'])),
+                domesticsCount: this.parseIntOrNull(getArea(['Qtd. Domésticas'])),
+                documentReceiptMethod: this.texto(getArea(['Recebimento documentos'])) ?? null,
+                variablesLaunchMethod: this.texto(getArea(['Recebimento variáveis'])) ?? null,
+                pointReceiptMethod: this.texto(getArea(['Recebimento ponto'])) ?? null,
+                sheetSendingMethod: this.texto(getArea(['Envio documentos'])) ?? null,
+                processingType: this.texto(getArea(['Tipo de processamento'])) ?? null,
+                frequentAdmissions:
+                  this.parseBoolYesNo(getArea(['Admissões e rescisões frequentes'])) ?? false,
+              },
+            });
+          }
 
-        if (rowHasInvalidNote) return false;
-
-        const scores: CriteriaScores = {
-          scoreVolume,
-          scoreService,
-          scoreTax,
-          scoreOrganization,
-          scoreTurnover,
+          if (cycleId) {
+            const existingSnapshot = await prisma.clientCycleSnapshot.findFirst({
+              where: { clientId: client.id, cycleId, frontId: front.id },
+            });
+            if (!existingSnapshot) {
+              await prisma.clientCycleSnapshot.create({
+                data: {
+                  clientId: client.id,
+                  cycleId,
+                  frontId: front.id,
+                  monthlyFee: clientData.monthlyFee,
+                  classification: clientData.classification,
+                  scoreVolume: scores.scoreVolume,
+                  scoreService: scores.scoreService,
+                  scoreTax: scores.scoreTax,
+                  scoreOrganization: scores.scoreOrganization,
+                  scoreTurnover: scores.scoreTurnover,
+                  rawSum: assessment.rawSum,
+                  normalizedScore: assessment.normalizedScore,
+                  complexityClass: assessment.complexityClass,
+                  assessmentState: assessment.assessmentState,
+                  primaryOwnerId: operator1Id,
+                  secondaryOwnerId: operator2Id,
+                  catalogAnswers: traducaoFrente.answers,
+                  profileType: clientData.profileType ?? null,
+                  ccScore: avaliacao.cc.value,
+                  coScore: avaliacao.co.value,
+                  ccClass: avaliacao.cc.class,
+                  coClass: avaliacao.co.class,
+                  ccState: avaliacao.cc.state,
+                  coState: avaliacao.co.state,
+                },
+              });
+            }
+          }
+          return true;
         };
 
-        const assessment: EvaluateComplexityResult = this.complexityService.evaluate({
-          front: FRONT_TYPE[key],
-          actsInFront,
-          clientStatus: clientData.status,
-          scores,
-        });
+        // Aba da frente quando o arquivo vem em abas; a própria linha, dividida
+        // pelos prefixos, quando vem em coluna única.
+        const fiscalRow =
+          (doc ? fiscalByDoc.get(doc) : undefined) ?? plano.fronts.FISCAL;
+        const contabilRow =
+          (doc ? contabilByDoc.get(doc) : undefined) ?? plano.fronts.CONTABIL;
+        const pessoalRow =
+          (doc ? pessoalByDoc.get(doc) : undefined) ?? plano.fronts.PESSOAL;
 
-        // Cálculo dos índices CC/CO em memória, com o que já foi lido da
-        // planilha: chamar o serviço de complexidade por cliente significaria
-        // uma ida ao banco por frente, e numa importação de cinquenta clientes
-        // isso são centenas de travessias até o banco.
-        const avaliacao = assessFront(
-          buildFrontInput(
-            frenteMotor,
-            {
-              status: clientData.status,
-              profileType: clientData.profileType,
-              catalogAnswers: respostasMestre,
-            },
-            {
-              actsInFront,
-              catalogAnswers: traducaoFrente.answers,
-              hrInfo:
-                key === 'pessoal'
-                  ? {
-                      employeesCount: this.parseIntOrNull(
-                        getArea(['Qtd. Funcionários']),
-                      ),
-                      prolaboreCount: this.parseIntOrNull(
-                        getArea(['Qtd. Pró-labores']),
-                      ),
-                      domesticsCount: this.parseIntOrNull(
-                        getArea(['Qtd. Domésticas']),
-                      ),
-                    }
-                  : null,
-            },
-          ),
-        );
+        const fiscalMatched = await processFront('fiscal', fiscalRow);
+        const contabilMatched = await processFront('contabil', contabilRow);
+        const pessoalMatched = await processFront('pessoal', pessoalRow);
 
-        const data: any = {
-          actsInFront,
-          operator1Id,
-          operator2Id,
-          ...scores,
-          ...assessment,
-          catalogAnswers: traducaoFrente.answers,
-          ccScore: avaliacao.cc.value,
-          coScore: avaliacao.co.value,
-          ccClass: avaliacao.cc.class,
-          coClass: avaliacao.co.class,
-          ccState: avaliacao.cc.state,
-          coState: avaliacao.co.state,
-        };
-
-        if (classificationRecord) {
-          classificationRecord = await prisma.clientFrontClassification.update({
-            where: { id: classificationRecord.id },
-            data,
-          });
-        } else {
-          classificationRecord = await prisma.clientFrontClassification.create({
-            data: { clientId: client.id, frontId: front.id, ...data },
-          });
-        }
-
-        // Perfil operacional descritivo (categorias canônicas do template) —
-        // gravado à parte, nunca influencia o cálculo de complexidade.
-        if (key === 'fiscal') {
-          // hasSpecialRegime/automationLevel/meetsDeadlines: colunas ainda
-          // não confirmadas no template real do cliente — se ausentes na
-          // planilha, getArea/parseBoolYesNo retornam undefined e o upsert
-          // simplesmente não altera o campo. São os drivers objetivos que o
-          // Agente de IA de complexidade usa pra sugerir Tributação e
-          // Organização (ver backend/src/complexity-ai).
-          await prisma.clientTaxInfo.upsert({
-            where: { classificationId: classificationRecord.id },
-            update: {
-              documentReceiptMethod: getArea(['Forma recebimento documentos']) || undefined,
-              documentSendMethod: getArea(['Forma envio documentos']) || undefined,
-              integrationMethod: getArea(['Forma integração']) || undefined,
-              hasSpecialRegime: this.parseBoolYesNo(getArea(['Possui regime especial'])),
-              specialRegimeDescription:
-                getArea(['Descrição do regime especial']) || undefined,
-              automationLevel: getArea(['Nível de automação da apuração']) || undefined,
-              meetsDeadlines: getArea(['Cumpre prazos de envio']) || undefined,
-            },
-            create: {
-              classificationId: classificationRecord.id,
-              documentReceiptMethod: getArea(['Forma recebimento documentos']) || null,
-              documentSendMethod: getArea(['Forma envio documentos']) || null,
-              integrationMethod: getArea(['Forma integração']) || null,
-              hasSpecialRegime:
-                this.parseBoolYesNo(getArea(['Possui regime especial'])) ?? false,
-              specialRegimeDescription:
-                getArea(['Descrição do regime especial']) || null,
-              automationLevel: getArea(['Nível de automação da apuração']) || null,
-              meetsDeadlines: getArea(['Cumpre prazos de envio']) || null,
-            },
-          });
-        }
-        if (key === 'contabil') {
-          // bookkeepingRegime/infoReceiptFrequency/integrationLevel/
-          // lastClosingMonth/trialBalanceNeed: mesmo caso do Fiscal acima —
-          // drivers para Tributação/Organização, ausentes no template atual.
-          await prisma.clientAccountingInfo.upsert({
-            where: { classificationId: classificationRecord.id },
-            update: {
-              documentReceiptMethod: getArea(['Forma recebimento documentos']) || undefined,
-              documentSendMethod: getArea(['Forma envio documentos']) || undefined,
-              integrationMethod: getArea(['Forma integração']) || undefined,
-              launchMethod: getArea(['Forma de lançamento']) || undefined,
-              closingPeriod: getArea(['Periodicidade de Fechamento']) || undefined,
-              lastReconciliationMonth: getArea(['Último Mês de Conciliação']) || undefined,
-              bookkeepingRegime: getArea(['Regime de escrituração']) || undefined,
-              lastClosingMonth: getArea(['Último mês de fechamento contábil']) || undefined,
-              infoReceiptFrequency:
-                getArea(['Frequência de recebimento de informação financeira']) || undefined,
-              integrationLevel: getArea(['Integração com cliente']) || undefined,
-              trialBalanceNeed:
-                getArea(['Necessidade de apresentação de balancete']) || undefined,
-            },
-            create: {
-              classificationId: classificationRecord.id,
-              documentReceiptMethod: getArea(['Forma recebimento documentos']) || null,
-              documentSendMethod: getArea(['Forma envio documentos']) || null,
-              integrationMethod: getArea(['Forma integração']) || null,
-              launchMethod: getArea(['Forma de lançamento']) || null,
-              closingPeriod: getArea(['Periodicidade de Fechamento']) || null,
-              lastReconciliationMonth: getArea(['Último Mês de Conciliação']) || null,
-              bookkeepingRegime: getArea(['Regime de escrituração']) || null,
-              lastClosingMonth: getArea(['Último mês de fechamento contábil']) || null,
-              infoReceiptFrequency:
-                getArea(['Frequência de recebimento de informação financeira']) || null,
-              integrationLevel: getArea(['Integração com cliente']) || null,
-              trialBalanceNeed:
-                getArea(['Necessidade de apresentação de balancete']) || null,
-            },
-          });
-        }
-        if (key === 'pessoal') {
-          // processingType/frequentAdmissions: driver objetivo de
-          // Rotatividade (Sim/Não), ainda não confirmado no template real.
-          await prisma.clientHrInfo.upsert({
-            where: { classificationId: classificationRecord.id },
-            update: {
-              employeesCount: this.parseIntOrNull(getArea(['Qtd. Funcionários'])) ?? undefined,
-              prolaboreCount: this.parseIntOrNull(getArea(['Qtd. Pró-labores'])) ?? undefined,
-              domesticsCount: this.parseIntOrNull(getArea(['Qtd. Domésticas'])) ?? undefined,
-              documentReceiptMethod: getArea(['Recebimento documentos']) || undefined,
-              variablesLaunchMethod: getArea(['Recebimento variáveis']) || undefined,
-              pointReceiptMethod: getArea(['Recebimento ponto']) || undefined,
-              sheetSendingMethod: getArea(['Envio documentos']) || undefined,
-              processingType: getArea(['Tipo de processamento']) || undefined,
-              frequentAdmissions: this.parseBoolYesNo(
-                getArea(['Admissões e rescisões frequentes']),
-              ),
-            },
-            create: {
-              classificationId: classificationRecord.id,
-              employeesCount: this.parseIntOrNull(getArea(['Qtd. Funcionários'])),
-              prolaboreCount: this.parseIntOrNull(getArea(['Qtd. Pró-labores'])),
-              domesticsCount: this.parseIntOrNull(getArea(['Qtd. Domésticas'])),
-              documentReceiptMethod: getArea(['Recebimento documentos']) || null,
-              variablesLaunchMethod: getArea(['Recebimento variáveis']) || null,
-              pointReceiptMethod: getArea(['Recebimento ponto']) || null,
-              sheetSendingMethod: getArea(['Envio documentos']) || null,
-              processingType: getArea(['Tipo de processamento']) || null,
-              frequentAdmissions:
-                this.parseBoolYesNo(getArea(['Admissões e rescisões frequentes'])) ?? false,
-            },
-          });
-        }
-
-        if (cycleId) {
+        // Sem nenhuma frente reconhecida (nem linha nas abas, nem frente com
+        // nome parecido cadastrada), o cliente ainda entra na carteira deste
+        // ciclo — atribuir frente não é obrigatório pra ele aparecer, só pra
+        // ter avaliação de complexidade. Cria um snapshot "sem frente"
+        // (frontId null) em vez de deixar o cliente invisível.
+        if (cycleId && !fiscalMatched && !contabilMatched && !pessoalMatched) {
           const existingSnapshot = await prisma.clientCycleSnapshot.findFirst({
-            where: { clientId: client.id, cycleId, frontId: front.id },
+            where: { clientId: client.id, cycleId, frontId: null },
           });
           if (!existingSnapshot) {
             await prisma.clientCycleSnapshot.create({
               data: {
                 clientId: client.id,
                 cycleId,
-                frontId: front.id,
+                frontId: null,
                 monthlyFee: clientData.monthlyFee,
                 classification: clientData.classification,
-                scoreVolume: scores.scoreVolume,
-                scoreService: scores.scoreService,
-                scoreTax: scores.scoreTax,
-                scoreOrganization: scores.scoreOrganization,
-                scoreTurnover: scores.scoreTurnover,
-                rawSum: assessment.rawSum,
-                normalizedScore: assessment.normalizedScore,
-                complexityClass: assessment.complexityClass,
-                assessmentState: assessment.assessmentState,
-                primaryOwnerId: operator1Id,
-                secondaryOwnerId: operator2Id,
-                catalogAnswers: traducaoFrente.answers,
-                profileType: clientData.profileType ?? null,
-                ccScore: avaliacao.cc.value,
-                coScore: avaliacao.co.value,
-                ccClass: avaliacao.cc.class,
-                coClass: avaliacao.co.class,
-                ccState: avaliacao.cc.state,
-                coState: avaliacao.co.state,
               },
             });
           }
+          warnings.push(
+            plano.flat
+              ? `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — nenhuma coluna de frente ("Fiscal | ...", "Contábil | ...", "Pessoal | ...") foi preenchida nessa linha, e as colunas "Fiscal?", "Contábil?" e "Pessoal?" não marcam nenhuma frente como contratada. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`
+              : `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — não há linha para o CNPJ/CPF "${docRaw ?? ''}" nas abas 02_Fiscal, 03_Contabil ou 04_Pessoal. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`,
+          );
         }
-        return true;
-      };
 
-      // Aba da frente quando o arquivo vem em abas; a própria linha, dividida
-      // pelos prefixos, quando vem em coluna única.
-      const fiscalRow =
-        (doc ? fiscalByDoc.get(doc) : undefined) ?? plano.fronts.FISCAL;
-      const contabilRow =
-        (doc ? contabilByDoc.get(doc) : undefined) ?? plano.fronts.CONTABIL;
-      const pessoalRow =
-        (doc ? pessoalByDoc.get(doc) : undefined) ?? plano.fronts.PESSOAL;
-
-      const fiscalMatched = await processFront('fiscal', fiscalRow);
-      const contabilMatched = await processFront('contabil', contabilRow);
-      const pessoalMatched = await processFront('pessoal', pessoalRow);
-
-      // Sem nenhuma frente reconhecida (nem linha nas abas, nem frente com
-      // nome parecido cadastrada), o cliente ainda entra na carteira deste
-      // ciclo — atribuir frente não é obrigatório pra ele aparecer, só pra
-      // ter avaliação de complexidade. Cria um snapshot "sem frente"
-      // (frontId null) em vez de deixar o cliente invisível.
-      if (cycleId && !fiscalMatched && !contabilMatched && !pessoalMatched) {
-        const existingSnapshot = await prisma.clientCycleSnapshot.findFirst({
-          where: { clientId: client.id, cycleId, frontId: null },
-        });
-        if (!existingSnapshot) {
-          await prisma.clientCycleSnapshot.create({
-            data: {
-              clientId: client.id,
-              cycleId,
-              frontId: null,
-              monthlyFee: clientData.monthlyFee,
-              classification: clientData.classification,
-            },
-          });
-        }
-        warnings.push(
-          plano.flat
-            ? `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — nenhuma coluna de frente ("Fiscal | ...", "Contábil | ...", "Pessoal | ...") foi preenchida nessa linha, e as colunas "Fiscal?", "Contábil?" e "Pessoal?" não marcam nenhuma frente como contratada. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`
-            : `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — não há linha para o CNPJ/CPF "${docRaw ?? ''}" nas abas 02_Fiscal, 03_Contabil ou 04_Pessoal. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`,
+        count++;
+      } catch (err: any) {
+        const motivo = String(err?.message ?? err)
+          .split('\n')
+          .map((l: string) => l.trim())
+          .filter(Boolean)[0];
+        errors.push(
+          `${fileLabel}, linha ${rowNumber}: não foi possível importar este cliente — ${motivo}`,
         );
       }
-
-      count++;
     }
 
     return {

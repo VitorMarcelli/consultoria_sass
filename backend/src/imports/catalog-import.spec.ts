@@ -1,6 +1,7 @@
 import {
   hasColumn,
   legacyNoteFromAnswers,
+  parseCompetencia,
   readCell,
   translateFrontRow,
   translateMasterRow,
@@ -313,5 +314,56 @@ describe('nota antiga a partir da resposta do catálogo', () => {
         PESSOAL__NOTA_ROTATIVIDADE: 'ALTA',
       }),
     ).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Mês vindo de planilha. O Excel não guarda data como texto: guarda o número
+// de dias desde 30/12/1899. Foi assim que a importação de cem clientes caiu em
+// 11/09/2026 — a coluna "Último Mês de Conciliação" chegou como 46235 e o
+// banco, que espera texto, recusou a gravação inteira.
+// ---------------------------------------------------------------------------
+describe('competência', () => {
+  it('converte o número de série do Excel', () => {
+    expect(parseCompetencia(46235)).toBe('2026-08');
+    expect(parseCompetencia('46235')).toBe('2026-08');
+  });
+
+  it('aceita os formatos que as pessoas digitam', () => {
+    expect(parseCompetencia('2026-08')).toBe('2026-08');
+    expect(parseCompetencia('2026-8')).toBe('2026-08');
+    expect(parseCompetencia('08/2026')).toBe('2026-08');
+    expect(parseCompetencia('01/08/2026')).toBe('2026-08');
+    expect(parseCompetencia(new Date(Date.UTC(2026, 7, 15)))).toBe('2026-08');
+  });
+
+  it('não inventa mês a partir de número que não é data', () => {
+    // Quantidades e notas não podem virar competência por acidente.
+    expect(parseCompetencia(3)).toBeNull();
+    expect(parseCompetencia(180)).toBeNull();
+    expect(parseCompetencia('')).toBeNull();
+    expect(parseCompetencia('mês que vem')).toBeNull();
+  });
+
+  it('o campo de mês do catálogo guarda AAAA-MM, não o número cru', () => {
+    const { answers, warnings } = translateFrontRow(
+      { 'Último Mês de Conciliação': 46235 },
+      CATALOG_FIELDS,
+      'CONTABIL',
+      origem,
+    );
+    expect(answers['CONTABIL__ULTIMO_MES_DE_CONCILIACAO']).toBe('2026-08');
+    expect(warnings).toEqual([]);
+  });
+
+  it('mês irreconhecível vira aviso, não resposta torta', () => {
+    const { answers, warnings } = translateFrontRow(
+      { 'Último Mês de Conciliação': 'agosto' },
+      CATALOG_FIELDS,
+      'CONTABIL',
+      origem,
+    );
+    expect(answers['CONTABIL__ULTIMO_MES_DE_CONCILIACAO']).toBeUndefined();
+    expect(warnings.join(' ')).toContain('AAAA-MM');
   });
 });

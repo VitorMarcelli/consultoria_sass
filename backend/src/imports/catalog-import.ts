@@ -97,6 +97,45 @@ function optionFromLegacyNote(
   return comNota[nota - 1].opcao;
 }
 
+// Competência (AAAA-MM) a partir do que a planilha entregar.
+//
+// O formulário guarda mês em AAAA-MM, que é o formato do <input type="month">.
+// A planilha pode mandar isso de três jeitos: o texto pronto, uma data já
+// convertida, ou — o caso que quebrou a importação de 11/09/2026 — o número de
+// série do Excel, que conta dias desde 30/12/1899. Tratar tudo como número,
+// como era feito antes, gravava "46235" onde a pessoa escreveu agosto/2026, e
+// jogava fora qualquer competência digitada como texto.
+export function parseCompetencia(bruto: unknown): string | null {
+  if (isBlank(bruto)) return null;
+
+  const doDate = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+
+  if (bruto instanceof Date) return doDate(bruto);
+
+  const n = typeof bruto === 'number' ? bruto : Number(String(bruto).trim());
+  if (Number.isFinite(n)) {
+    // 20000 é 1954 e 60000 é 2064: dentro da faixa, é número de série do
+    // Excel. Fora dela o número não é data — e aqui devolver nada é melhor
+    // que seguir adiante, porque `new Date('3')` responde 2001 sem hesitar.
+    if (n >= 20000 && n <= 60000) {
+      return doDate(new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000));
+    }
+    return null;
+  }
+
+  const texto = String(bruto).trim();
+  let m = texto.match(/^(\d{4})[-/](\d{1,2})$/); // 2026-08
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}`;
+  m = texto.match(/^(\d{1,2})[-/](\d{4})$/); // 08/2026
+  if (m) return `${m[2]}-${m[1].padStart(2, '0')}`;
+  m = texto.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/); // 01/08/2026
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}`;
+
+  const d = new Date(texto);
+  return isNaN(d.getTime()) ? null : doDate(d);
+}
+
 function optionByLabel(
   field: CatalogField,
   value: unknown,
@@ -194,6 +233,15 @@ function traduzirCampo(
   if (isBlank(bruto)) return; // célula vazia: resposta simplesmente falta
 
   if (field.type === 'MASCARA') {
+    if (field.format === 'DATA') {
+      const competencia = parseCompetencia(bruto);
+      if (competencia) answers[field.key] = competencia;
+      else
+        warnings.push(
+          `${opts.origem}, campo "${field.label}": não reconheci "${bruto}" como mês. Use o formato AAAA-MM.`,
+        );
+      return;
+    }
     const n = Number(String(bruto).replace(',', '.'));
     if (Number.isFinite(n)) answers[field.key] = String(n);
     return;
