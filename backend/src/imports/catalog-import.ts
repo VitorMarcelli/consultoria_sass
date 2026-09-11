@@ -67,18 +67,34 @@ export function hasColumn(row: RawRow, labels: string[]): boolean {
 // Notas numéricas do template antigo (1 a 3) para as opções do novo.
 //
 // Os campos de percepção do catálogo têm exatamente três opções, pontuando
-// 1, 3 e 5. A escala antiga ia de 1 a 3 com o mesmo significado ordinal, e
-// por isso a conversão é posicional: 1 vira a primeira opção, 2 a do meio,
-// 3 a última. Só se aplica quando o campo tem três opções — em qualquer
-// outro caso o número não tem tradução conhecida e vira aviso.
+// 1, 3 e 5. A escala antiga ia de 1 a 3 com o mesmo significado ordinal —
+// quanto maior, mais complexo —, então a conversão é por NOTA, não por
+// posição na lista.
+//
+// A diferença não é acadêmica. Em "Nota Organização" a escala do template é
+// invertida: "Alta" organização pontua 1 e "Baixa" pontua 5, e as opções
+// aparecem na ordem Baixa, Média, Alta. Converter pela posição faria a nota 1
+// do template antigo (cliente organizado) virar "Baixa" — exatamente o
+// oposto. Numa importação isso inverteria a Organização da carteira inteira,
+// e a Maturidade da Operação sairia errada sem ninguém perceber.
 function optionFromLegacyNote(
   field: CatalogField,
+  front: ComplexityFront,
   nota: number,
 ): CatalogOption | null {
-  const opcoes = (field.options ?? []).filter((o) => !o.notApplicable);
-  if (opcoes.length !== 3) return null;
   if (nota < 1 || nota > 3) return null;
-  return opcoes[nota - 1];
+
+  const comNota = (field.options ?? [])
+    .filter((o) => !o.notApplicable)
+    .map((o) => ({
+      opcao: o,
+      score: (o.cc ?? {})[front] ?? (o.co ?? {})[front] ?? null,
+    }))
+    .filter((x): x is { opcao: CatalogOption; score: number } => x.score != null)
+    .sort((a, b) => a.score - b.score);
+
+  if (comNota.length !== 3) return null;
+  return comNota[nota - 1].opcao;
 }
 
 function optionByLabel(
@@ -123,6 +139,9 @@ function labelsFor(field: CatalogField): string[] {
 interface TranslateOptions {
   // Identificação da linha para as mensagens de aviso.
   origem: string;
+  // Frente em tradução. Necessária para converter nota numérica do template
+  // antigo, porque a pontuação de cada opção é definida por frente.
+  front?: ComplexityFront;
   // Documento, usado para desempatar o perfil quando a coluna não existe.
   documento?: string | null;
 }
@@ -192,10 +211,11 @@ function traduzirCampo(
     return;
   }
 
-  // Depois, nota numérica do template antigo.
+  // Depois, nota numérica do template antigo. Precisa da frente porque a
+  // nota de cada opção é por frente.
   const numero = Number(String(bruto).trim());
-  if (Number.isInteger(numero)) {
-    const convertida = optionFromLegacyNote(field, numero);
+  if (Number.isInteger(numero) && opts.front) {
+    const convertida = optionFromLegacyNote(field, opts.front, numero);
     if (convertida) {
       answers[field.key] = convertida.value;
       return;
@@ -244,7 +264,7 @@ export function translateFrontRow(
   for (const field of fields) {
     if (field.block !== front) continue;
     if (field.type === 'RELACAO' || field.type === 'RESULTADO') continue;
-    traduzirCampo(field, row, answers, warnings, opts);
+    traduzirCampo(field, row, answers, warnings, { ...opts, front });
   }
   return { answers, warnings };
 }

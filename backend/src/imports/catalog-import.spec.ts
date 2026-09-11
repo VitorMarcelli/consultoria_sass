@@ -92,9 +92,9 @@ describe('bloco MESTRE', () => {
 });
 
 describe('bloco de frente', () => {
-  it('converte a nota numérica do template antigo pela posição da opção', () => {
-    // O catálogo tem três opções nos campos de percepção (1, 3 e 5). A escala
-    // antiga ia de 1 a 3 com o mesmo significado ordinal.
+  it('converte a nota numérica do template antigo pela pontuação da opção', () => {
+    // A escala antiga ia de 1 a 3: quanto maior, mais complexo. A conversão
+    // segue a NOTA da opção no catálogo, não a posição dela na lista.
     const { answers, warnings } = translateFrontRow(
       { 'Nota Atendimento': 1, 'Nota Organização': 3 },
       CATALOG_FIELDS,
@@ -102,8 +102,23 @@ describe('bloco de frente', () => {
       origem,
     );
     expect(answers['FISCAL__NOTA_ATENDIMENTO']).toBe('BAIXO');
-    expect(answers['FISCAL__NOTA_ORGANIZACAO']).toBe('ALTA');
+    // Organização tem escala invertida: "Baixa" organização pontua 5, que é a
+    // mais complexa. Nota 3 do template antigo é o cliente mais desorganizado.
+    expect(answers['FISCAL__NOTA_ORGANIZACAO']).toBe('BAIXA');
     expect(warnings).toEqual([]);
+  });
+
+  it('não inverte a Organização, cuja escala é ao contrário das demais', () => {
+    // Converter por posição faria a nota 1 (cliente organizado) virar
+    // "Baixa" — o oposto do que a planilha diz. Numa importação isso
+    // inverteria a Maturidade da Operação da carteira inteira.
+    const { answers } = translateFrontRow(
+      { 'Nota Organização': 1 },
+      CATALOG_FIELDS,
+      'FISCAL',
+      origem,
+    );
+    expect(answers['FISCAL__NOTA_ORGANIZACAO']).toBe('ALTA');
   });
 
   it('aceita o rótulo da opção do template novo', () => {
@@ -175,6 +190,73 @@ describe('bloco de frente', () => {
       origem,
     );
     expect(answers['FISCAL__NOTA_ATENDIMENTO']).toBeUndefined();
+    expect(warnings).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Colunas e valores reais do template MVP REV03 que circula no cliente
+// (docs_cliente/02_Dicionario_e_Template_Unico_Carteira_MVP_REV03). Levantados
+// da planilha em 11/09/2026 — estes testes garantem que uma importação real
+// não cai em aviso por causa de rótulo ou grafia.
+// ---------------------------------------------------------------------------
+describe('template real do cliente (MVP REV03)', () => {
+  it('traduz a linha de 01_Clientes como ela vem', () => {
+    const { answers, warnings } = translateMasterRow(
+      {
+        'Tipo pessoa': 'PJ',
+        'Status contrato': 'Ativo',
+        'Faixa faturamento anual': 'R$ 1,2–4,8 mi',
+        'Classificação A-D': 'A',
+      },
+      CATALOG_FIELDS,
+      { origem: 'template real, linha 5' },
+    );
+    expect(answers['MESTRE__PERFIL_DO_CLIENTE']).toBe('EMPRESA_PJ');
+    expect(answers['MESTRE__STATUS_CONTRATO']).toBe('ATIVO');
+    expect(answers['MESTRE__FAIXA_FATURAMENTO_ANUAL']).toBe('R_1_2_4_8_MI');
+    expect(answers['MESTRE__CLASSIFICACAO_A_D']).toBe('A');
+    expect(warnings).toEqual([]);
+  });
+
+  it('traduz a linha de 02_Fiscal como ela vem, com notas de 1 a 3', () => {
+    const { answers, warnings } = translateFrontRow(
+      {
+        'Forma recebimento documentos': 'Portal',
+        'Nota Volume': '2',
+        'Nota Atendimento': '3',
+        'Nota Organização': '1',
+      },
+      CATALOG_FIELDS,
+      'FISCAL',
+      { origem: 'template real, linha 5' },
+    );
+    expect(answers['FISCAL__FORMA_RECEBIMENTO_DOCUMENTOS']).toBe('PORTAL');
+    expect(answers['FISCAL__NOTA_VOLUME']).toBe('MEDIO');
+    expect(answers['FISCAL__NOTA_ATENDIMENTO']).toBe('ALTO');
+    // Organização tem escala invertida no template: "Alta" pontua 1.
+    expect(answers['FISCAL__NOTA_ORGANIZACAO']).toBe('ALTA');
+    expect(warnings).toEqual([]);
+  });
+
+  it('traduz as colunas de 04_Pessoal', () => {
+    const { answers, warnings } = translateFrontRow(
+      {
+        'Qtd. Funcionários': 12,
+        'Recebimento documentos': 'Portal',
+        'Recebimento ponto': 'Planilha',
+        'Envio documentos': 'E-mail',
+        'Nota Rotatividade': '3',
+      },
+      CATALOG_FIELDS,
+      'PESSOAL',
+      { origem: 'template real, linha 5' },
+    );
+    expect(answers['PESSOAL__QTD_FUNCIONARIOS']).toBe('12');
+    expect(answers['PESSOAL__RECEBIMENTO_DOCUMENTOS']).toBe('PORTAL');
+    expect(answers['PESSOAL__RECEBIMENTO_PONTO']).toBe('PLANILHA');
+    expect(answers['PESSOAL__ENVIO_DOCUMENTOS']).toBe('E_MAIL');
+    expect(answers['PESSOAL__NOTA_ROTATIVIDADE']).toBe('ALTA');
     expect(warnings).toEqual([]);
   });
 });

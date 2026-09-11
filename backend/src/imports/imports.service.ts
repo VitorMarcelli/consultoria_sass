@@ -2,6 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientManager } from '../prisma/prisma-client-manager';
 import { ComplexityService } from '../complexity/complexity.service';
+import { CATALOG_FIELDS } from '../client-catalog/client-catalog.data';
+import {
+  translateFrontRow,
+  translateMasterRow,
+} from './catalog-import';
+import { mapTaxRegime } from '../client-catalog/legacy-mapping';
+import { assessFront } from '../complexity/cc-co.rules';
+import { buildFrontInput } from '../complexity/cc-co.input';
 import {
   FrontType,
   CriteriaScores,
@@ -267,6 +275,35 @@ export class ImportsService {
         (contabilRowForRegime && this.getVal(contabilRowForRegime, ['Regime tributário'])) ||
         null;
 
+      // Tradução do bloco MESTRE para os códigos do catálogo. As colunas
+      // legadas continuam sendo gravadas como sempre; estas respostas são o
+      // que o motor CC/CO consome. Valor que não casa vira aviso e fica em
+      // branco — nunca é adivinhado, porque nota errada aqui redistribui
+      // carteira.
+      const traducaoMestre = translateMasterRow(row, CATALOG_FIELDS, {
+        origem: `${fileLabel}, linha ${rowNumber}`,
+        documento: docRaw ? String(docRaw) : null,
+      });
+      warnings.push(...traducaoMestre.warnings);
+      const respostasMestre = traducaoMestre.answers;
+
+      // No template MVP REV03 o Regime tributário mora nas abas de frente
+      // (02_Fiscal / 03_Contabil), não em 01_Clientes — mas no catálogo ele é
+      // campo do bloco MESTRE e compõe a Natureza do Cliente nas duas frentes.
+      // Sem esta ponte, a nota de regime nunca chegaria ao cálculo numa
+      // importação. `taxRegime` já foi resolvido acima com a mesma
+      // precedência (Fiscal, e Contábil como reserva).
+      if (!respostasMestre['MESTRE__REGIME_TRIBUTARIO'] && taxRegime) {
+        const r = mapTaxRegime(taxRegime);
+        if (r.status === 'MAPEADO') {
+          respostasMestre['MESTRE__REGIME_TRIBUTARIO'] = r.code;
+        } else if (r.status !== 'VAZIO') {
+          warnings.push(
+            `${fileLabel}, linha ${rowNumber}, campo "Regime tributário": ${r.reason}.`,
+          );
+        }
+      }
+
       const clientData: any = {
         name,
         tradeName: tradeName || null,
@@ -274,6 +311,8 @@ export class ImportsService {
         revenueBracket,
         monthlyFee,
         classification,
+        catalogAnswers: respostasMestre,
+        profileType: respostasMestre['MESTRE__PERFIL_DO_CLIENTE'] ?? undefined,
       };
       if (taxRegime) clientData.taxRegime = taxRegime;
       if (personType) clientData.personType = personType;
@@ -385,12 +424,63 @@ export class ImportsService {
           scores,
         });
 
+        // Tradução do bloco da frente e cálculo dos índices CC/CO.
+        //
+        // O cálculo é feito aqui, em memória, com o que já foi lido da
+        // planilha: chamar o serviço de complexidade por cliente significaria
+        // uma ida ao banco por frente, e numa importação de cinquenta
+        // clientes isso são centenas de travessias até o banco.
+        const frenteMotor = FRONT_TYPE[key];
+        const traducaoFrente = translateFrontRow(
+          areaRow,
+          CATALOG_FIELDS,
+          frenteMotor,
+          { origem: `${fileLabel}, linha ${rowNumber}, ${displayName}` },
+        );
+        warnings.push(...traducaoFrente.warnings);
+
+        const avaliacao = assessFront(
+          buildFrontInput(
+            frenteMotor,
+            {
+              status: clientData.status,
+              profileType: clientData.profileType,
+              catalogAnswers: respostasMestre,
+            },
+            {
+              actsInFront,
+              catalogAnswers: traducaoFrente.answers,
+              hrInfo:
+                key === 'pessoal'
+                  ? {
+                      employeesCount: this.parseIntOrNull(
+                        getArea(['Qtd. Funcionários']),
+                      ),
+                      prolaboreCount: this.parseIntOrNull(
+                        getArea(['Qtd. Pró-labores']),
+                      ),
+                      domesticsCount: this.parseIntOrNull(
+                        getArea(['Qtd. Domésticas']),
+                      ),
+                    }
+                  : null,
+            },
+          ),
+        );
+
         const data: any = {
           actsInFront,
           operator1Id,
           operator2Id,
           ...scores,
           ...assessment,
+          catalogAnswers: traducaoFrente.answers,
+          ccScore: avaliacao.cc.value,
+          coScore: avaliacao.co.value,
+          ccClass: avaliacao.cc.class,
+          coClass: avaliacao.co.class,
+          ccState: avaliacao.cc.state,
+          coState: avaliacao.co.state,
         };
 
         if (classificationRecord) {
@@ -535,6 +625,14 @@ export class ImportsService {
                 assessmentState: assessment.assessmentState,
                 primaryOwnerId: operator1Id,
                 secondaryOwnerId: operator2Id,
+                catalogAnswers: traducaoFrente.answers,
+                profileType: clientData.profileType ?? null,
+                ccScore: avaliacao.cc.value,
+                coScore: avaliacao.co.value,
+                ccClass: avaliacao.cc.class,
+                coClass: avaliacao.co.class,
+                ccState: avaliacao.cc.state,
+                coState: avaliacao.co.state,
               },
             });
           }
