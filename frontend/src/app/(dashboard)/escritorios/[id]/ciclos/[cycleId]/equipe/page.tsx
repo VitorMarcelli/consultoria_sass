@@ -218,7 +218,9 @@ export default function CycleTeamPage({
                           </button>
                           <button 
                             onClick={() => {
-                              setSelectedEmployeeToEdit(member.employee);
+                              // Passa a alocação inteira, não só o colaborador: a edição precisa dos
+                              // dois — dados da pessoa e parâmetros da alocação no ciclo.
+                              setSelectedEmployeeToEdit(member);
                               setIsEditModalOpen(true);
                             }}
                             className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-xl hover:bg-blue-50"
@@ -296,7 +298,9 @@ export default function CycleTeamPage({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedEmployeeToEdit(member.employee);
+                        // Passa a alocação inteira, não só o colaborador: a edição precisa dos
+                              // dois — dados da pessoa e parâmetros da alocação no ciclo.
+                              setSelectedEmployeeToEdit(member);
                         setIsEditModalOpen(true);
                       }}
                       className="p-2 bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors"

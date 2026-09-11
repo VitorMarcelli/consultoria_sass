@@ -22,18 +22,47 @@ export default function EditEmployeeModal({ isOpen, onClose, tenantId, employeeD
   const [grossSalary, setGrossSalary] = useState('');
   const [status, setStatus] = useState('ACTIVE');
   const [observations, setObservations] = useState('');
-  
+
+  // Parâmetros da alocação no ciclo. Eram pedidos no cadastro e não existiam
+  // na edição: para corrigir as horas disponíveis de alguém era preciso
+  // desalocar e alocar de novo. E é esse número que serve de denominador no
+  // planejamento de capacidade.
+  const [dailyHours, setDailyHours] = useState('');
+  const [predictable, setPredictable] = useState('');
+  const [unpredictable, setUnpredictable] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
 
+  // A tela passa a alocação inteira, com o colaborador aninhado. Aceita também
+  // receber o colaborador direto, para não quebrar outros pontos de chamada.
+  const employee = employeeData?.employee ?? employeeData;
+  const allocationId = employeeData?.employee ? employeeData.id : null;
+
   useEffect(() => {
-    if (isOpen && employeeData) {
-      setName(employeeData.name || '');
-      setRole(employeeData.role || '');
-      setLevel(employeeData.level || '');
-      setEmail(employeeData.email || '');
-      setGrossSalary(employeeData.grossSalary ? String(employeeData.grossSalary) : '');
-      setStatus(employeeData.status || 'ACTIVE');
-      setObservations(employeeData.observations || '');
+    if (isOpen && employee) {
+      setName(employee.name || '');
+      setRole(employee.role || '');
+      setLevel(employee.level || '');
+      setEmail(employee.email || '');
+      setGrossSalary(employee.grossSalary ? String(employee.grossSalary) : '');
+      setStatus(employee.status || 'ACTIVE');
+      setObservations(employee.observations || '');
+
+      setDailyHours(
+        employeeData?.dailyAvailableTime != null
+          ? String(employeeData.dailyAvailableTime)
+          : '',
+      );
+      setPredictable(
+        employeeData?.predictableRecurrentTimePercentage != null
+          ? String(employeeData.predictableRecurrentTimePercentage)
+          : '',
+      );
+      setUnpredictable(
+        employeeData?.unpredictableRecurrentTimePercentage != null
+          ? String(employeeData.unpredictableRecurrentTimePercentage)
+          : '',
+      );
     }
   }, [isOpen, employeeData]);
 
@@ -44,8 +73,8 @@ export default function EditEmployeeModal({ isOpen, onClose, tenantId, employeeD
       return;
     }
 
-    const linkedClientsCount = employeeData?.linkedClientsCount || 0;
-    const isDeactivating = employeeData?.status !== 'INACTIVE' && status === 'INACTIVE';
+    const linkedClientsCount = employee?.linkedClientsCount || 0;
+    const isDeactivating = employee?.status !== 'INACTIVE' && status === 'INACTIVE';
     if (isDeactivating && linkedClientsCount > 0) {
       const proceed = confirm(
         `${name} ainda é líder ou operador em ${linkedClientsCount} cliente${linkedClientsCount > 1 ? 's' : ''}. Desativar mesmo assim? Isso não remove o vínculo com esses clientes — só marca o colaborador como inativo.`
@@ -53,9 +82,29 @@ export default function EditEmployeeModal({ isOpen, onClose, tenantId, employeeD
       if (!proceed) return;
     }
 
+    // A regra dos percentuais é do backend; conferir aqui evita gravar o
+    // colaborador e só então falhar na alocação, deixando a edição pela
+    // metade.
+    if (allocationId) {
+      const p = parseFloat((predictable || '').replace(',', '.'));
+      const u = parseFloat((unpredictable || '').replace(',', '.'));
+      if (isNaN(p) || isNaN(u)) {
+        alert(
+          'Informe os dois percentuais de tempo recorrente da alocação (previsível e não previsível).',
+        );
+        return;
+      }
+      if (p + u !== 100) {
+        alert(
+          `Os percentuais de tempo recorrente devem somar 100%. Hoje somam ${p + u}%.`,
+        );
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
-      await apiRequest(`/employees/${employeeData.id}`, {
+      await apiRequest(`/employees/${employee.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           tenantId,
@@ -68,6 +117,22 @@ export default function EditEmployeeModal({ isOpen, onClose, tenantId, employeeD
           grossSalary: grossSalary ? parseFloat(grossSalary.replace(',', '.')) : null,
         })
       });
+
+      // Alocação só é gravada quando a tela abriu a partir de uma: editar o
+      // perfil do colaborador fora do contexto de ciclo não deve mexer nela.
+      if (allocationId) {
+        const num = (v: string) =>
+          v.trim() === '' ? null : parseFloat(v.replace(',', '.'));
+        await apiRequest(`/allocations/${allocationId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            tenantId,
+            dailyAvailableTime: num(dailyHours),
+            predictableRecurrentTimePercentage: num(predictable),
+            unpredictableRecurrentTimePercentage: num(unpredictable),
+          }),
+        });
+      }
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -209,6 +274,61 @@ export default function EditEmployeeModal({ isOpen, onClose, tenantId, employeeD
                     </div>
                   </div>
                 </div>
+
+                {allocationId && (
+                  <div className="pt-6 mt-6 border-t border-slate-100">
+                    <h4 className="text-sm font-black text-slate-800 mb-1">
+                      Alocação neste ciclo
+                    </h4>
+                    <p className="text-xs font-medium text-slate-500 mb-4">
+                      As horas disponíveis por dia são o denominador do
+                      planejamento de capacidade. Os dois percentuais são
+                      obrigatórios e precisam somar 100%.
+                    </p>
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">
+                          Horas Alocadas / Dia
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={dailyHours}
+                          onChange={(e) => setDailyHours(e.target.value)}
+                          placeholder="6"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">
+                          Temp. Recorr. Prev. (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={predictable}
+                          onChange={(e) => setPredictable(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">
+                          Temp. Recorr. Não Prev. (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={unpredictable}
+                          onChange={(e) => setUnpredictable(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-6 mt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
                   <button

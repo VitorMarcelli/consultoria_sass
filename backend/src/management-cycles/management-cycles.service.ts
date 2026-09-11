@@ -551,6 +551,15 @@ export class ManagementCyclesService {
       subdivisionId: alloc.subdivisionId,
       leaderId: alloc.leaderId,
       allocatedHours: alloc.dailyAvailableTime || 0,
+      // Parâmetros da alocação. Eram informados no cadastro e não voltavam
+      // aqui, então a tela de edição não tinha como exibi-los nem corrigi-los
+      // — e dailyAvailableTime é o denominador do planejamento de capacidade.
+      dailyAvailableTime: alloc.dailyAvailableTime,
+      predictableRecurrentTimePercentage:
+        alloc.predictableRecurrentTimePercentage,
+      unpredictableRecurrentTimePercentage:
+        alloc.unpredictableRecurrentTimePercentage,
+      allocationStartDate: alloc.allocationStartDate,
       status: alloc.status,
       employee: alloc.employee
         ? {
