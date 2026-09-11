@@ -235,14 +235,37 @@ export default function CycleClientsPage({
         setImportProgress({ current: Math.min(i + CHUNK_SIZE, lines.length), total: lines.length });
       }
 
+      // Um mesmo problema costuma repetir em dezenas de linhas — um
+      // colaborador que não existe no cadastro aparece em cada cliente que ele
+      // atende. Listar linha a linha enche o limite de 20 e esconde justamente
+      // os outros problemas; agrupado, o mesmo relatório cabe em três linhas e
+      // diz quantas vezes aconteceu.
+      const agrupar = (mensagens: string[]) => {
+        const grupos = new Map<string, { texto: string; linhas: string[] }>();
+        for (const m of mensagens) {
+          const chave = m.replace(/linha \d+/g, 'linha N');
+          const linha = m.match(/linha (\d+)/)?.[1];
+          const grupo = grupos.get(chave) ?? { texto: m, linhas: [] };
+          if (linha) grupo.linhas.push(linha);
+          grupos.set(chave, grupo);
+        }
+        return [...grupos.values()].map(({ texto, linhas }) =>
+          linhas.length > 1
+            ? `${texto.replace(/linha \d+/, `linhas ${linhas.slice(0, 5).join(', ')}${linhas.length > 5 ? ` e mais ${linhas.length - 5}` : ''}`)}`
+            : texto,
+        );
+      };
+
       let summary = `Importação de ${totalImported} registros concluída.`;
       if (allErrors.length) {
-        summary += `\n\n${allErrors.length} erro(s) de validação (linhas rejeitadas parcialmente):\n${allErrors.slice(0, 20).join('\n')}`;
-        if (allErrors.length > 20) summary += `\n... e mais ${allErrors.length - 20}.`;
+        const erros = agrupar(allErrors);
+        summary += `\n\n${allErrors.length} erro(s) de validação (linhas não importadas):\n${erros.slice(0, 15).join('\n\n')}`;
+        if (erros.length > 15) summary += `\n... e mais ${erros.length - 15} tipo(s) de erro.`;
       }
       if (allWarnings.length) {
-        summary += `\n\n${allWarnings.length} aviso(s):\n${allWarnings.slice(0, 20).join('\n')}`;
-        if (allWarnings.length > 20) summary += `\n... e mais ${allWarnings.length - 20}.`;
+        const avisos = agrupar(allWarnings);
+        summary += `\n\n${allWarnings.length} aviso(s):\n${avisos.slice(0, 15).join('\n\n')}`;
+        if (avisos.length > 15) summary += `\n... e mais ${avisos.length - 15} tipo(s) de aviso.`;
       }
       alert(summary);
       setIsImportModalOpen(false);

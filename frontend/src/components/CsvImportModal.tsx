@@ -91,7 +91,7 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, t
                       <li>Uma linha por cliente, numa aba só. As colunas de frente vêm com o prefixo da frente: <strong>Fiscal | …</strong>, <strong>Contábil | …</strong>, <strong>Pessoal | …</strong>.</li>
                       <li>Marque <strong>Fiscal?</strong>, <strong>Contábil?</strong> e <strong>Pessoal?</strong> com Sim só nas frentes contratadas — frente marcada com Não fica de fora do cálculo, em vez de entrar valendo zero.</li>
                       <li>Cada cabeçalho tem um comentário com a regra do campo e as opções aceitas. Preencha pela lista: valor fora dela é importado em branco e aparece no aviso.</li>
-                      <li>Para Responsável principal/secundário, informe o nome exato do colaborador.</li>
+                      <li>Para Responsável principal/secundário, use o nome como está em <strong>Estrutura &gt; Equipe</strong> — a pessoa precisa já estar cadastrada. Nome que não bate não interrompe a importação: a frente entra sem responsável e o aviso diz qual nome não foi encontrado.</li>
                       <li>O template antigo, de quatro abas casadas por CNPJ/CPF, continua sendo aceito.</li>
                     </ul>
                     <a 

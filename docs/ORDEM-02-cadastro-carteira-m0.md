@@ -466,3 +466,52 @@ Três correções, em ordem de importância:
 
 O template gerado passou a dizer, no comentário de cada coluna de mês, "mês no
 padrão AAAA-MM (ex.: 2026-08)".
+
+### 7.7 A coluna que aponta para outro cadastro
+
+Todas as colunas de domínio fechado do template têm lista de opções e avisam
+quando o valor não bate. Duas não têm: **Responsável principal** e
+**Responsável secundário**, porque a equipe varia por escritório e o arquivo é
+gerado uma vez, no build.
+
+São, portanto, as únicas em que o preenchimento à mão pode apontar para o
+nada — e era exatamente o que acontecia em silêncio. O importador procurava o
+colaborador assim:
+
+```ts
+emp.name.toLowerCase().includes(nomeDigitado)
+```
+
+Dois defeitos no mesmo trecho:
+
+1. **Nome que não existe virava `null` sem uma palavra.** O escritório
+   terminava a importação achando que a carteira estava distribuída, e a
+   frente ficava sem dono. Relatado em 11/09/2026.
+
+2. **Trecho contido casa demais.** "Ana" está dentro de "Mariana Costa". Quem
+   digitasse o primeiro nome podia levar outra pessoa — e o responsável
+   alimenta o coeficiente por responsável no Diagnóstico e o planejamento de
+   capacidade. Atribuir a pessoa errada é pior que não atribuir ninguém,
+   porque parece certo. É a mesma armadilha do casamento de nome de frente,
+   em que "logística" casava com "TI".
+
+`employee-match.ts` compara por palavra inteira, aceita nome parcial só quando
+ele identifica uma pessoa só, e nunca desempata no chute: dois candidatos viram
+aviso e o campo fica vazio.
+
+### 7.8 Os outros silêncios da importação
+
+Na mesma varredura, três situações que não davam erro e também não apareciam:
+
+- **CNPJ repetido no próprio arquivo.** A segunda linha encontrava o cliente da
+  primeira e sobrescrevia. O relatório dizia "cem importados" e a carteira
+  ficava com noventa e oito.
+- **Cliente sem CNPJ/CPF.** É cadastrado, mas não há como reconhecê-lo depois:
+  reimportar o mesmo arquivo cria uma segunda cópia.
+- **Linha com dados e sem razão social.** Era descartada sem deixar rastro.
+
+As três viraram mensagem nomeando a linha. E, como um mesmo problema costuma
+repetir em dezenas de linhas — um colaborador inexistente aparece em cada
+cliente que ele atende —, o resumo agrupa mensagens iguais e mostra em quais
+linhas aconteceram, em vez de gastar o limite de exibição repetindo a mesma
+frase.

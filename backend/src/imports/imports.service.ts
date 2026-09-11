@@ -10,6 +10,7 @@ import {
   translateMasterRow,
 } from './catalog-import';
 import { splitFlatRow } from './flat-template';
+import { matchEmployee } from './employee-match';
 import { mapTaxRegime } from '../client-catalog/legacy-mapping';
 import { assessFront } from '../complexity/cc-co.rules';
 import { buildFrontInput } from '../complexity/cc-co.input';
@@ -206,12 +207,33 @@ export class ImportsService {
     const employees = await prisma.employee.findMany({
       where: { status: 'ACTIVE' },
     });
-    const getEmployeeId = (name: string) => {
-      if (!name || String(name).trim() === '') return null;
-      const e = employees.find((emp) =>
-        emp.name.toLowerCase().includes(String(name).toLowerCase().trim()),
+    // Responsável é a única coluna do template que aponta para outro cadastro,
+    // e por isso a única sem lista de opções: o nome é digitado à mão. Quando
+    // ele não bate com ninguém, a frente fica sem dono — e antes isso
+    // acontecia sem uma palavra, de modo que o escritório terminava a
+    // importação achando que a carteira estava distribuída (relatado em
+    // 11/09/2026). Agora cada nome que não resolve vira aviso nomeando a
+    // linha, o campo e o valor.
+    const resolverResponsavel = (
+      rotulo: string,
+      raw: any,
+      contexto: string,
+    ): string | null => {
+      const encontrado = matchEmployee(raw, employees);
+      if (encontrado.status === 'ENCONTRADO') return encontrado.id;
+      if (encontrado.status === 'VAZIO') return null;
+
+      const valor = String(raw).trim();
+      if (encontrado.status === 'AMBIGUO') {
+        warnings.push(
+          `${contexto}, campo "${rotulo}": "${valor}" pode ser ${encontrado.candidates.join(' ou ')}. A frente ficou sem esse responsável — escreva o nome completo na planilha ou defina pela ficha do cliente.`,
+        );
+        return null;
+      }
+      warnings.push(
+        `${contexto}, campo "${rotulo}": não há colaborador ativo chamado "${valor}" neste escritório. A frente ficou sem esse responsável — confira o nome em Estrutura > Equipe, ou cadastre a pessoa antes de importar.`,
       );
-      return e ? e.id : null;
+      return null;
     };
 
     const fronts = await prisma.operationalFront.findMany({
@@ -281,6 +303,11 @@ export class ImportsService {
     warnOrphanDocs('03_Contabil', contabilByDoc);
     warnOrphanDocs('04_Pessoal', pessoalByDoc);
 
+    // Documento já visto neste arquivo. Duas linhas com o mesmo CNPJ não dão
+    // erro: a segunda encontra o cliente da primeira e sobrescreve. O arquivo
+    // parece ter importado cem clientes e a carteira fica com noventa e oito.
+    const documentosDoArquivo = new Map<string, number>();
+
     for (let rowIndex = 0; rowIndex < records.length; rowIndex++) {
       const row = records[rowIndex];
       const rowNumber = baseRow + rowIndex;
@@ -305,7 +332,20 @@ export class ImportsService {
         const plano = splitFlatRow(row, CATALOG_FIELDS);
 
         const name = getVal(['Razão social/Nome', 'Razão Social', 'Razao Social', 'name', 'Nome']);
-        if (!name) continue;
+        if (!name) {
+          // Linha em branco é o fim da planilha e não interessa. Linha com
+          // dados e sem razão social é engano de preenchimento, e sumia sem
+          // deixar rastro.
+          const temConteudo = Object.values(row).some(
+            (v) => v !== null && v !== undefined && String(v).trim() !== '',
+          );
+          if (temConteudo) {
+            errors.push(
+              `${fileLabel}, linha ${rowNumber}: a linha tem dados preenchidos mas está sem "Razão social/Nome", então não foi importada.`,
+            );
+          }
+          continue;
+        }
 
         const docRaw = getVal(['CNPJ/CPF', 'CNPJ', 'CPF', 'cnpj']);
         const doc = this.normalizeDoc(docRaw);
@@ -317,6 +357,20 @@ export class ImportsService {
           if (normalized.includes('DOM') || normalized === 'PF') return 'PF_DOMESTICA';
           return normalized;
         })();
+
+        if (doc) {
+          const linhaAnterior = documentosDoArquivo.get(doc);
+          if (linhaAnterior !== undefined) {
+            warnings.push(
+              `${fileLabel}, linha ${rowNumber}: o CNPJ/CPF "${docRaw}" já aparece na linha ${linhaAnterior} deste arquivo. As duas linhas se referem ao mesmo cliente, e esta sobrescreveu a anterior — se são clientes diferentes, corrija o documento e importe de novo.`,
+            );
+          }
+          documentosDoArquivo.set(doc, rowNumber);
+        } else {
+          warnings.push(
+            `${fileLabel}, linha ${rowNumber}: o cliente "${name}" está sem CNPJ/CPF. Ele foi cadastrado, mas sem documento não há como reconhecê-lo numa próxima importação — o mesmo arquivo importado de novo criaria uma segunda cópia dele.`,
+          );
+        }
 
         const tradeName = getVal(['Nome fantasia', 'nomeFantasia', 'tradeName', 'Fantasia']);
         const statusVal = this.normalizeStatus(getVal(['Status contrato', 'Status', 'status']));
@@ -443,8 +497,17 @@ export class ImportsService {
               },
             });
 
-          const operator1Id = getEmployeeId(getArea(['Responsável principal']));
-          const operator2Id = getEmployeeId(getArea(['Responsável secundário']));
+          const contextoLinha = `${fileLabel}, linha ${rowNumber}, ${displayName}`;
+          const operator1Id = resolverResponsavel(
+            'Responsável principal',
+            getArea(['Responsável principal']),
+            contextoLinha,
+          );
+          const operator2Id = resolverResponsavel(
+            'Responsável secundário',
+            getArea(['Responsável secundário']),
+            contextoLinha,
+          );
 
           // A tradução para o catálogo vem antes das notas do motor antigo
           // porque agora ela alimenta as duas coisas: o par CC/CO e, por

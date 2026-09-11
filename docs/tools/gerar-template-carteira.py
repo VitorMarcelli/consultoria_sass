@@ -188,6 +188,14 @@ def nota_do_cabecalho(coluna) -> str:
         # agosto de 2026 — o importador converte os dois, mas o texto é o que
         # a pessoa consegue conferir.
         partes.append("Formato: mês no padrão AAAA-MM (ex.: 2026-08)")
+    elif coluna["formato"] == "Base de Equipe":
+        # A única coluna que aponta para outro cadastro, e por isso a única
+        # sem lista de opções: a equipe varia por escritório.
+        partes.append(
+            "Escreva o nome como está em Estrutura > Equipe. A pessoa precisa "
+            "estar cadastrada antes da importação — nome que não bate deixa a "
+            "frente sem responsável e aparece no aviso."
+        )
     elif coluna["formato"]:
         partes.append(f"Formato: {coluna['formato']}")
     if coluna["opcoes"]:
