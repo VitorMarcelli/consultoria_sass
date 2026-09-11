@@ -16,7 +16,7 @@ interface CsvImportModalProps {
   progressText?: string;
 }
 
-export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, title = "Importar Clientes", description = "Faça upload do Dicionário e Template Único de Carteira (MVP).", templateUrl = "/02_Dicionario_e_Template_Unico_Carteira_MVP_REV03.xlsx", templateName = "Baixar Template de Carteira (.XLSX)", progressValue, progressText }: CsvImportModalProps) {
+export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, title = "Importar Clientes", description = "Uma linha por cliente, todas as frentes na mesma aba.", templateUrl = "/Template_Carteira_Sevilha.xlsx", templateName = "Baixar Template de Carteira (.XLSX)", progressValue, progressText }: CsvImportModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState('');
 
@@ -88,8 +88,11 @@ export default function CsvImportModal({ isOpen, onClose, onImport, isLoading, t
                   <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 mb-4 border border-slate-200">
                     <p className="font-medium text-slate-800 mb-2">Instruções para o arquivo:</p>
                     <ul className="list-disc pl-5 space-y-1 mb-3">
-                      <li>Use as abas <strong>01_Clientes</strong>, <strong>02_Fiscal</strong>, <strong>03_Contabil</strong> e <strong>04_Pessoal</strong> do template — cada aba de frente é casada com o cliente pelo CNPJ/CPF.</li>
+                      <li>Uma linha por cliente, numa aba só. As colunas de frente vêm com o prefixo da frente: <strong>Fiscal | …</strong>, <strong>Contábil | …</strong>, <strong>Pessoal | …</strong>.</li>
+                      <li>Marque <strong>Fiscal?</strong>, <strong>Contábil?</strong> e <strong>Pessoal?</strong> com Sim só nas frentes contratadas — frente marcada com Não fica de fora do cálculo, em vez de entrar valendo zero.</li>
+                      <li>Cada cabeçalho tem um comentário com a regra do campo e as opções aceitas. Preencha pela lista: valor fora dela é importado em branco e aparece no aviso.</li>
                       <li>Para Responsável principal/secundário, informe o nome exato do colaborador.</li>
+                      <li>O template antigo, de quatro abas casadas por CNPJ/CPF, continua sendo aceito.</li>
                     </ul>
                     <a 
                       href={templateUrl} 

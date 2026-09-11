@@ -1,5 +1,6 @@
 import {
   hasColumn,
+  legacyNoteFromAnswers,
   readCell,
   translateFrontRow,
   translateMasterRow,
@@ -258,5 +259,59 @@ describe('template real do cliente (MVP REV03)', () => {
     expect(answers['PESSOAL__ENVIO_DOCUMENTOS']).toBe('E_MAIL');
     expect(answers['PESSOAL__NOTA_ROTATIVIDADE']).toBe('ALTA');
     expect(warnings).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Volta do catálogo para a escala de 1 a 3 do motor antigo. Os painéis de
+// Diagnóstico e as colunas score* de ClientFrontClassification ainda leem
+// essa escala; o template de coluna única não traz mais números.
+// ---------------------------------------------------------------------------
+describe('nota antiga a partir da resposta do catálogo', () => {
+  const notaDe = (front: any, label: string, valor: string) =>
+    legacyNoteFromAnswers(CATALOG_FIELDS, front, label, {
+      [`${front}__${label
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')}`]: valor,
+    });
+
+  it('fecha o ciclo com a conversão de ida, inclusive na escala invertida', () => {
+    // Ida e volta têm de dar o mesmo número, senão uma reimportação mexeria
+    // na carteira sem ninguém ter mudado nada na planilha.
+    for (const nota of [1, 2, 3]) {
+      const { answers } = translateFrontRow(
+        { 'Nota Atendimento': nota, 'Nota Organização': nota },
+        CATALOG_FIELDS,
+        'FISCAL',
+        origem,
+      );
+      expect(
+        legacyNoteFromAnswers(CATALOG_FIELDS, 'FISCAL', 'Nota Atendimento', answers),
+      ).toBe(nota);
+      expect(
+        legacyNoteFromAnswers(CATALOG_FIELDS, 'FISCAL', 'Nota Organização', answers),
+      ).toBe(nota);
+    }
+  });
+
+  it('a opção mais complexa é sempre a nota 3, mesmo quando o rótulo diz "Alta"', () => {
+    // "Alta" organização é o cliente mais fácil: pontua 1 no catálogo e por
+    // isso volta como nota 1 na escala antiga.
+    expect(notaDe('FISCAL', 'Nota Organização', 'ALTA')).toBe(1);
+    expect(notaDe('FISCAL', 'Nota Organização', 'BAIXA')).toBe(3);
+    expect(notaDe('FISCAL', 'Nota Volume', 'ALTO')).toBe(3);
+  });
+
+  it('sem resposta, ou em campo de outra frente, não inventa nota', () => {
+    expect(
+      legacyNoteFromAnswers(CATALOG_FIELDS, 'FISCAL', 'Nota Atendimento', {}),
+    ).toBeNull();
+    expect(
+      legacyNoteFromAnswers(CATALOG_FIELDS, 'FISCAL', 'Nota Rotatividade', {
+        PESSOAL__NOTA_ROTATIVIDADE: 'ALTA',
+      }),
+    ).toBeNull();
   });
 });

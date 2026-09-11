@@ -316,3 +316,111 @@ Blocos na ordem de dependência. Cada bloco termina com `npm run build` no backe
 4. Todo acesso a dado de tenant passa por `getTenantPrisma`.
 5. Funções de cálculo puras e testáveis; o service orquestra, a função calcula.
 6. Se o frontend consumir um campo alterado, atualizar na mesma tarefa.
+
+---
+
+## 7. Template de importação em coluna única (pedido de 11/09/2026)
+
+Pedido do cliente: em vez de a planilha de carteira ser separada em abas, ser
+uma tabela corrida, em uma aba só, e a importação funcionar do mesmo jeito.
+
+### 7.1 O que o layout em abas custava
+
+O template MVP REV03 normalizava os dados em quatro abas — `01_Clientes` mais
+uma por frente — casadas por CNPJ/CPF. O modelo é correto do ponto de vista de
+dados e ruim do ponto de vista de quem preenche:
+
+- o documento precisa ser repetido em até quatro lugares, sempre igual;
+- um CNPJ digitado com um dígito diferente numa aba faz aquela frente inteira
+  desaparecer da importação — o defeito é silencioso, porque a linha órfã não
+  pertence a nenhum cliente (foi o que motivou o aviso de linha órfã em
+  `imports.service.ts`);
+- para conferir um cliente é preciso procurá-lo em quatro lugares.
+
+### 7.2 Layout novo
+
+Uma aba, um cliente por linha. As colunas do bloco MESTRE vêm sem prefixo; as
+de frente vêm prefixadas com a frente:
+
+```
+CNPJ/CPF | Razão social/Nome | ... | Fiscal | Nota Volume | ... | Pessoal | Qtd. Funcionários
+```
+
+Regras do formato:
+
+1. **Prefixo define a frente.** Aceita `|`, `:`, `>`, `/` e hífen como
+   separador — só é tratado como prefixo quando o texto antes do separador é
+   nome de frente, então `Classificação A-D` e `Razão social/Nome` continuam
+   sendo campos do cliente. Os apelidos `DP` e `RH` valem como Pessoal.
+2. **`Fiscal?`, `Contábil?` e `Pessoal?` declaram o escopo.** Frente marcada
+   com "Não" não é avaliada — o que não é o mesmo que nota zero: ela sai do
+   numerador **e** do denominador, conforme a decisão de 09/09/2026. Frente
+   marcada com "Sim" e sem respostas entra como pendência de mapeamento, que é
+   o caso do cliente recém-contratado.
+3. **Sem a coluna de escopo**, a frente entra quando tem alguma resposta
+   preenchida. Coluna presente e vazia não inventa frente contratada.
+4. **Rótulo exclusivo de uma frente é aceito sem prefixo** (`Qtd.
+   Funcionários` só existe no Pessoal). O que se repete entre frentes
+   (`Nota Atendimento`, nas três) exige prefixo — adivinhar aqui seria pontuar
+   a frente errada.
+5. **O template antigo continua aceito.** Quando o arquivo tem as abas, elas
+   têm precedência; a divisão por prefixo é o caminho alternativo, não um
+   substituto. Há escritório com a carteira já preenchida no formato antigo.
+
+### 7.3 O template é gerado, não mantido à mão
+
+`docs/tools/gerar-template-carteira.py` produz
+`frontend/public/Template_Carteira_Sevilha.xlsx` a partir da **mesma** planilha
+que gera o catálogo (`docs/Sistema - Base de Cadastro de Clientes.xlsx`).
+
+O motivo é o mesmo que justificou gerar o catálogo: se um rótulo de coluna ou
+uma opção de lista divergir do catálogo, a importação aceita o arquivo e deixa
+a resposta em branco. O cliente entra na carteira sem complexidade e o erro só
+aparece semanas depois, no planejamento. Gerando os dois da mesma fonte, não
+há como divergir.
+
+O arquivo gerado traz:
+
+- validação em lista em todas as 32 colunas de domínio fechado, com as listas
+  em colunas ocultas da própria aba — é o que permite ter opção com vírgula
+  (os segmentos) e lista acima de 255 caracteres sem precisar de uma segunda
+  aba;
+- um comentário em cada cabeçalho com o número do campo, o que ele pontua
+  (CC, CO, ambos ou nada), o pilar e a regra da planilha;
+- o CNPJ/CPF formatado como texto, senão o Excel come o zero à esquerda do CPF
+  e transforma o CNPJ em notação científica;
+- `Status da frente` por frente, que não existe no catálogo (ele descreve o
+  cadastro, não o ciclo) mas é o que informa "Sem movimento" ao motor.
+
+Campos do tipo Resultado ficam fora do template: `Total de Vínculos` é
+calculado das quantidades e preenchê-lo à mão só criaria divergência.
+
+### 7.4 A armadilha que o template novo abriu
+
+O motor antigo (`ClientFrontClassification.score*`, painel de Diagnóstico por
+critério) lê notas de 1 a 3. O template antigo trazia números e o importador só
+copiava a célula. O template novo traz o rótulo da opção — "Alto", "Média" —, e
+o `parseNote` tratava texto como **valor inválido**: além de registrar erro, ele
+marcava a linha e a frente inteira deixava de ser gravada.
+
+Ou seja: o template correto derrubaria a importação.
+
+Duas mudanças resolveram:
+
+- `legacyNoteFromAnswers` faz o caminho inverso de `optionFromLegacyNote` — da
+  resposta do catálogo de volta para 1–3, pela posição da opção na escala.
+  Continua respeitando a escala invertida da Organização ("Alta" pontua 1);
+  há teste de ida e volta nas duas direções, porque se elas discordarem uma
+  reimportação mexe na carteira sem ninguém ter mudado a planilha.
+- texto que não virou resposta não é mais erro de nota: a tradução já avisou o
+  motivo, e rejeitar de novo derrubaria a frente por causa de uma célula.
+
+### 7.5 Teste que fecha o circuito
+
+`backend/src/imports/flat-template.template.spec.ts` tem uma linha preenchida
+com as colunas e os valores **reais** do arquivo gerado, e verifica que ela
+atravessa o caminho inteiro: divisão por prefixo, tradução do MESTRE e das três
+frentes sem nenhum aviso, todos os campos que pontuam respondidos, e os dois
+índices saindo calculados com uma casa decimal.
+
+Renomear uma única coluna do gerador faz esse teste falhar — verificado.

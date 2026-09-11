@@ -268,3 +268,44 @@ export function translateFrontRow(
   }
   return { answers, warnings };
 }
+
+// Caminho inverso de optionFromLegacyNote: da resposta do catálogo de volta
+// para a nota de 1 a 3 do motor antigo.
+//
+// Os painéis antigos (Diagnóstico por critério, ClientFrontClassification.
+// scoreVolume e companhia) continuam lendo essa escala. Enquanto o template
+// trazia números, o importador só precisava copiar a célula; o template de
+// coluna única traz o rótulo da opção ("Alto", "Média"), e sem esta conversão
+// a nota antiga ficaria nula em toda importação — ou, pior, seria rejeitada
+// como valor inválido e a frente inteira deixaria de ser gravada.
+export function legacyNoteFromAnswers(
+  fields: CatalogField[],
+  front: ComplexityFront,
+  label: string,
+  answers: Record<string, string>,
+): number | null {
+  const alvo = norm(label);
+  const field = fields.find(
+    (f) => f.block === front && norm(f.label) === alvo,
+  );
+  if (!field) return null;
+
+  const resposta = answers[field.key];
+  if (!resposta) return null;
+
+  const escolhida = (field.options ?? []).find((o) => o.value === resposta);
+  if (!escolhida || escolhida.notApplicable) return null;
+
+  const comNota = (field.options ?? [])
+    .filter((o) => !o.notApplicable)
+    .map((o) => ({
+      opcao: o,
+      score: (o.cc ?? {})[front] ?? (o.co ?? {})[front] ?? null,
+    }))
+    .filter((x): x is { opcao: CatalogOption; score: number } => x.score != null)
+    .sort((a, b) => a.score - b.score);
+
+  if (comNota.length !== 3) return null;
+  const posicao = comNota.findIndex((x) => x.opcao.value === resposta);
+  return posicao === -1 ? null : posicao + 1;
+}

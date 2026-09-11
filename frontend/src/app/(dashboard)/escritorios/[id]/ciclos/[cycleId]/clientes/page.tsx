@@ -115,10 +115,17 @@ export default function CycleClientsPage({
   const handleImportCsv = async (file: File) => {
     setIsSaving(true);
     try {
-      // Template MVP REV03 (02_Dicionario_e_Template_Unico_Carteira): 4 abas
-      // normalizadas — 01_Clientes é a base, 02_Fiscal/03_Contabil/04_Pessoal
-      // trazem uma linha por CNPJ/CPF ativo naquela frente, casadas pelo
-      // documento (não mais um flag "Possui Frente X?" na mesma linha).
+      // Dois layouts de template são aceitos.
+      //
+      // O atual (Template_Carteira_Sevilha) é uma aba só: um cliente por linha
+      // e as colunas de frente prefixadas ("Fiscal | Nota Volume"). Quem
+      // desmonta o prefixo é o backend (imports/flat-template.ts) — daqui ele
+      // sai como uma tabela qualquer.
+      //
+      // O anterior (MVP REV03) tinha 4 abas normalizadas: 01_Clientes como
+      // base e 02_Fiscal/03_Contabil/04_Pessoal com uma linha por CNPJ/CPF
+      // ativo naquela frente, casadas pelo documento. Continua aceito porque
+      // há escritório com a carteira já preenchida nesse formato.
       //
       // Cada aba do arquivo real tem um título + subtítulo decorativos ANTES
       // do cabeçalho de verdade (linha 4, não linha 1) — sheet_to_json direto
@@ -169,8 +176,8 @@ export default function CycleClientsPage({
         workbook = XLSX.read(text, { type: 'string' });
       }
 
-      // CSV (uma tabela só) cai no fallback da primeira aba; XLSX do template
-      // usa as abas nomeadas.
+      // CSV e template de coluna única caem no fallback da primeira aba; o
+      // template de 4 abas usa as abas nomeadas.
       const clientesSheetName = workbook.SheetNames.includes('01_Clientes')
         ? '01_Clientes'
         : workbook.SheetNames[0];

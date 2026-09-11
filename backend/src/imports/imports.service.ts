@@ -4,9 +4,11 @@ import { PrismaClientManager } from '../prisma/prisma-client-manager';
 import { ComplexityService } from '../complexity/complexity.service';
 import { CATALOG_FIELDS } from '../client-catalog/client-catalog.data';
 import {
+  legacyNoteFromAnswers,
   translateFrontRow,
   translateMasterRow,
 } from './catalog-import';
+import { splitFlatRow } from './flat-template';
 import { mapTaxRegime } from '../client-catalog/legacy-mapping';
 import { assessFront } from '../complexity/cc-co.rules';
 import { buildFrontInput } from '../complexity/cc-co.input';
@@ -242,6 +244,14 @@ export class ImportsService {
       const rowNumber = baseRow + rowIndex;
       const getVal = (keys: string[]) => this.getVal(row, keys);
 
+      // Layout de coluna única: as colunas de frente vêm prefixadas na mesma
+      // linha ("Fiscal | Nota Volume"). O divisor devolve as linhas de frente
+      // no mesmo formato que as abas produziam, então daqui pra frente os dois
+      // layouts seguem pelo mesmo caminho. Quando o arquivo vem em abas, o
+      // divisor não encontra prefixo e não devolve nada — as abas continuam
+      // tendo precedência.
+      const plano = splitFlatRow(row, CATALOG_FIELDS);
+
       const name = getVal(['Razão social/Nome', 'Razão Social', 'Razao Social', 'name', 'Nome']);
       if (!name) continue;
 
@@ -261,7 +271,9 @@ export class ImportsService {
       const revenueBracket = getVal(['Faixa faturamento anual', 'Faixa de Faturamento']) || null;
       const monthlyFee = this.parseMoney(getVal(['Honorário faturado', 'Honorários']));
       const classification = getVal(['Classificação A-D', 'Classificação', 'classificacao']) || null;
-      const entryDate = this.parseDate(getVal(['Data entrada']));
+      const entryDate = this.parseDate(
+        getVal(['Data entrada', 'Data de Início (Operação)', 'Data de Inicio (Operação)']),
+      );
       const exitDate = this.parseDate(getVal(['Data saída']));
 
       // O template MVP REV03 não tem mais Regime Tributário no 01_Clientes —
@@ -270,7 +282,10 @@ export class ImportsService {
       // frente Fiscal, com fallback pra Contábil quando só ela existir.
       const fiscalRowForRegime = doc ? fiscalByDoc.get(doc) : undefined;
       const contabilRowForRegime = doc ? contabilByDoc.get(doc) : undefined;
+      // No layout de coluna única o regime volta a ser uma coluna do cliente,
+      // que é onde o catálogo o define — por isso ele é a primeira opção aqui.
       const taxRegime =
+        getVal(['Regime tributário', 'Regime Tributario']) ||
         (fiscalRowForRegime && this.getVal(fiscalRowForRegime, ['Regime tributário'])) ||
         (contabilRowForRegime && this.getVal(contabilRowForRegime, ['Regime tributário'])) ||
         null;
@@ -315,7 +330,24 @@ export class ImportsService {
         profileType: respostasMestre['MESTRE__PERFIL_DO_CLIENTE'] ?? undefined,
       };
       if (taxRegime) clientData.taxRegime = taxRegime;
-      if (personType) clientData.personType = personType;
+      // "Tipo pessoa" é coluna do template antigo. No novo, o mesmo dado vem
+      // como "Perfil do Cliente" com o rótulo da opção, já traduzido acima —
+      // aproveita a tradução em vez de exigir as duas colunas na planilha.
+      const perfilPessoa = (() => {
+        if (personType) return personType;
+        switch (respostasMestre['MESTRE__PERFIL_DO_CLIENTE']) {
+          case 'EMPRESA_PJ':
+            return 'PJ';
+          case 'EMPREGADOR_DOMESTICO':
+            return 'PF_DOMESTICA';
+          case 'PESSOA_FISICA':
+          case 'PRODUTOR_RURAL_PF':
+            return 'PF';
+          default:
+            return null;
+        }
+      })();
+      if (perfilPessoa) clientData.personType = perfilPessoa;
       if (entryDate) clientData.entryDate = entryDate;
       if (exitDate) clientData.exitDate = exitDate;
 
@@ -362,14 +394,42 @@ export class ImportsService {
         const operator1Id = getEmployeeId(getArea(['Responsável principal']));
         const operator2Id = getEmployeeId(getArea(['Responsável secundário']));
 
+        // A tradução para o catálogo vem antes das notas do motor antigo
+        // porque agora ela alimenta as duas coisas: o par CC/CO e, por
+        // conversão, a escala de 1 a 3 que os painéis antigos ainda leem.
+        const frenteMotor = FRONT_TYPE[key];
+        const traducaoFrente = translateFrontRow(
+          areaRow,
+          CATALOG_FIELDS,
+          frenteMotor,
+          { origem: `${fileLabel}, linha ${rowNumber}, ${displayName}` },
+        );
+        warnings.push(...traducaoFrente.warnings);
+
         let rowHasInvalidNote = false;
         const parseNote = (label: string, keys: string[]): number | null => {
+          // Template de coluna única: a célula traz o rótulo da opção. A nota
+          // antiga sai da resposta já traduzida, pela posição da opção na
+          // escala do catálogo.
+          const daResposta = legacyNoteFromAnswers(
+            CATALOG_FIELDS,
+            frenteMotor,
+            label,
+            traducaoFrente.answers,
+          );
+          if (daResposta !== null) return daResposta;
+
           if (!hasAreaCol(keys)) return null; // coluna ausente: não é erro
           const raw = getArea(keys);
           if (raw === null || raw === undefined || String(raw).trim() === '')
             return null; // coluna existe, célula vazia: critério ausente
           const parsed = parseInt(String(raw).trim(), 10);
-          if (isNaN(parsed) || parsed < 1 || parsed > 3) {
+          // Valor de texto que não virou resposta: a tradução já avisou o
+          // motivo. Rejeitar de novo aqui derrubaria a frente inteira por
+          // causa de uma célula — é o que acontecia quando esta função só
+          // entendia números.
+          if (isNaN(parsed)) return null;
+          if (parsed < 1 || parsed > 3) {
             errors.push(
               `${fileLabel}, linha ${rowNumber}, campo "${displayName} - ${label}": valor "${raw}" inválido — a nota deve ser 1, 2 ou 3.`,
             );
@@ -424,21 +484,10 @@ export class ImportsService {
           scores,
         });
 
-        // Tradução do bloco da frente e cálculo dos índices CC/CO.
-        //
-        // O cálculo é feito aqui, em memória, com o que já foi lido da
+        // Cálculo dos índices CC/CO em memória, com o que já foi lido da
         // planilha: chamar o serviço de complexidade por cliente significaria
-        // uma ida ao banco por frente, e numa importação de cinquenta
-        // clientes isso são centenas de travessias até o banco.
-        const frenteMotor = FRONT_TYPE[key];
-        const traducaoFrente = translateFrontRow(
-          areaRow,
-          CATALOG_FIELDS,
-          frenteMotor,
-          { origem: `${fileLabel}, linha ${rowNumber}, ${displayName}` },
-        );
-        warnings.push(...traducaoFrente.warnings);
-
+        // uma ida ao banco por frente, e numa importação de cinquenta clientes
+        // isso são centenas de travessias até o banco.
         const avaliacao = assessFront(
           buildFrontInput(
             frenteMotor,
@@ -640,9 +689,14 @@ export class ImportsService {
         return true;
       };
 
-      const fiscalRow = doc ? fiscalByDoc.get(doc) : undefined;
-      const contabilRow = doc ? contabilByDoc.get(doc) : undefined;
-      const pessoalRow = doc ? pessoalByDoc.get(doc) : undefined;
+      // Aba da frente quando o arquivo vem em abas; a própria linha, dividida
+      // pelos prefixos, quando vem em coluna única.
+      const fiscalRow =
+        (doc ? fiscalByDoc.get(doc) : undefined) ?? plano.fronts.FISCAL;
+      const contabilRow =
+        (doc ? contabilByDoc.get(doc) : undefined) ?? plano.fronts.CONTABIL;
+      const pessoalRow =
+        (doc ? pessoalByDoc.get(doc) : undefined) ?? plano.fronts.PESSOAL;
 
       const fiscalMatched = await processFront('fiscal', fiscalRow);
       const contabilMatched = await processFront('contabil', contabilRow);
@@ -669,7 +723,9 @@ export class ImportsService {
           });
         }
         warnings.push(
-          `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — não há linha para o CNPJ/CPF "${docRaw ?? ''}" nas abas 02_Fiscal, 03_Contabil ou 04_Pessoal. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`,
+          plano.flat
+            ? `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — nenhuma coluna de frente ("Fiscal | ...", "Contábil | ...", "Pessoal | ...") foi preenchida nessa linha, e as colunas "Fiscal?", "Contábil?" e "Pessoal?" não marcam nenhuma frente como contratada. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`
+            : `${fileLabel}, linha ${rowNumber}: cliente "${name}" foi adicionado à carteira deste ciclo sem nenhuma frente vinculada — não há linha para o CNPJ/CPF "${docRaw ?? ''}" nas abas 02_Fiscal, 03_Contabil ou 04_Pessoal. Você pode atribuir uma frente pela ficha do cliente quando tiver esses dados.`,
         );
       }
 
