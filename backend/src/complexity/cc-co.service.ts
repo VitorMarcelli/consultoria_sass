@@ -133,6 +133,93 @@ export class CcCoService {
     return this.assessAndPersist(tenantId, clientId, frontId);
   }
 
+  // Grava as respostas de VÁRIAS frentes de uma vez e recalcula todas.
+  //
+  // O cadastro enviava uma requisição por frente, e cada uma repetia as
+  // respostas do bloco MESTRE — o mesmo cliente era atualizado três vezes com
+  // o mesmo conteúdo. Somando as transações implícitas de cada update, um
+  // cadastro de três frentes custava dezenas de idas ao banco, cada uma
+  // atravessando de Ohio a São Paulo.
+  //
+  // Aqui o bloco geral é gravado uma vez só e as frentes vão numa transação.
+  async saveClientAnswers(
+    tenantId: string,
+    clientId: string,
+    payload: {
+      profileType?: string | null;
+      masterAnswers?: Record<string, any>;
+      fronts: {
+        frontId: string;
+        frontAnswers?: Record<string, any>;
+        primaryOwnerId?: string | null;
+        secondaryOwnerId?: string | null;
+      }[];
+    },
+  ) {
+    const prisma = this.getTenantPrisma(tenantId);
+
+    if (payload.masterAnswers || payload.profileType !== undefined) {
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { catalogAnswers: true },
+      });
+      if (!client) throw new NotFoundException('Cliente não encontrado.');
+
+      await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          ...(payload.profileType !== undefined
+            ? { profileType: payload.profileType || null }
+            : {}),
+          ...(payload.masterAnswers
+            ? {
+                catalogAnswers: mergeAnswers(
+                  client.catalogAnswers,
+                  payload.masterAnswers,
+                ),
+              }
+            : {}),
+        },
+      });
+    }
+
+    const existentes = await prisma.clientFrontClassification.findMany({
+      where: { clientId },
+      select: { id: true, frontId: true, catalogAnswers: true },
+    });
+    const porFrente = new Map(existentes.map((c) => [c.frontId, c]));
+
+    const escritas = [];
+    for (const f of payload.fronts) {
+      const atual = porFrente.get(f.frontId);
+      if (!atual) continue; // frente não alocada: ignora em vez de falhar o lote
+      escritas.push(
+        prisma.clientFrontClassification.update({
+          where: { id: atual.id },
+          data: {
+            ...(f.frontAnswers
+              ? {
+                  catalogAnswers: mergeAnswers(
+                    atual.catalogAnswers,
+                    f.frontAnswers,
+                  ),
+                }
+              : {}),
+            ...(f.primaryOwnerId !== undefined
+              ? { operator1Id: f.primaryOwnerId || null }
+              : {}),
+            ...(f.secondaryOwnerId !== undefined
+              ? { operator2Id: f.secondaryOwnerId || null }
+              : {}),
+          },
+        }),
+      );
+    }
+    if (escritas.length > 0) await prisma.$transaction(escritas);
+
+    return this.assessClientAllFronts(tenantId, clientId);
+  }
+
   // Recalcula uma frente de um cliente e grava o resultado. É o único ponto
   // que escreve ccScore/coScore/ccClass/coClass/ccState/coState — nenhuma tela
   // pode digitar esses valores.
@@ -175,7 +262,52 @@ export class CcCoService {
     return result;
   }
 
-  // Recalcula todas as frentes de um cliente e devolve o consolidado.
+  // Avalia todas as frentes de um cliente SEM gravar. É o que a ficha do
+  // cliente consome.
+  //
+  // Antes o GET chamava a versão que persiste, e abrir a ficha de um cliente
+  // disparava um UPDATE por frente. Além de surpreendente — consultar não
+  // deveria alterar —, cada update do Prisma abre transação implícita e custa
+  // cerca de quatro idas ao banco. Medido em 10/09/2026: abrir a ficha de um
+  // cliente com duas frentes fazia 15 consultas, das quais 12 eram das
+  // escritas. Com o servidor em Ohio e o banco em São Paulo, isso é quase
+  // dois segundos só de rede.
+  //
+  // Os índices seguem persistidos, mas no caminho de escrita: saveAnswers e
+  // a edição do cliente recalculam e gravam. A leitura só lê.
+  async readClientAssessment(tenantId: string, clientId: string) {
+    const prisma = this.getTenantPrisma(tenantId);
+
+    const classifications = await prisma.clientFrontClassification.findMany({
+      where: { clientId },
+      include: { client: true, front: true, hrInfo: true },
+    });
+
+    const fronts = this.evaluateAll(classifications);
+    return { fronts, consolidated: assessClient(fronts) };
+  }
+
+  private evaluateAll(
+    classifications: any[],
+  ): (FrontAssessmentResult & { frontId: string; frontName: string })[] {
+    const fronts: (FrontAssessmentResult & {
+      frontId: string;
+      frontName: string;
+    })[] = [];
+    for (const c of classifications) {
+      const front = resolveFront(c.front?.name);
+      if (!front) continue;
+      fronts.push({
+        ...assessFront(buildFrontInput(front, c.client, c)),
+        frontId: c.frontId,
+        frontName: c.front?.name ?? '',
+      });
+    }
+    return fronts;
+  }
+
+  // Recalcula todas as frentes de um cliente E grava. Caminho de escrita:
+  // chamado quando algo que alimenta o cálculo muda, não quando a tela abre.
   async assessClientAllFronts(tenantId: string, clientId: string) {
     const prisma = this.getTenantPrisma(tenantId);
 
@@ -184,30 +316,29 @@ export class CcCoService {
       include: { client: true, front: true, hrInfo: true },
     });
 
-    const fronts: (FrontAssessmentResult & { frontId: string; frontName: string })[] =
-      [];
+    const fronts = this.evaluateAll(classifications);
+    const porFrente = new Map(fronts.map((f) => [f.frontId, f]));
 
-    for (const c of classifications) {
-      const front = resolveFront(c.front?.name);
-      if (!front) continue;
-      const result = assessFront(buildFrontInput(front, c.client, c));
-      await prisma.clientFrontClassification.update({
-        where: { id: c.id },
-        data: {
-          ccScore: result.cc.value,
-          coScore: result.co.value,
-          ccClass: result.cc.class,
-          coClass: result.co.class,
-          ccState: result.cc.state,
-          coState: result.co.state,
-        },
+    // Uma transação só para todas as frentes, em vez de uma por update: são
+    // três frentes no máximo, e cada update solto custaria a sua própria
+    // transação implícita.
+    const escritas = classifications
+      .filter((c) => porFrente.has(c.frontId))
+      .map((c) => {
+        const r = porFrente.get(c.frontId) as FrontAssessmentResult;
+        return prisma.clientFrontClassification.update({
+          where: { id: c.id },
+          data: {
+            ccScore: r.cc.value,
+            coScore: r.co.value,
+            ccClass: r.cc.class,
+            coClass: r.co.class,
+            ccState: r.cc.state,
+            coState: r.co.state,
+          },
+        });
       });
-      fronts.push({
-        ...result,
-        frontId: c.frontId,
-        frontName: c.front?.name ?? '',
-      });
-    }
+    if (escritas.length > 0) await prisma.$transaction(escritas);
 
     return { fronts, consolidated: assessClient(fronts) };
   }

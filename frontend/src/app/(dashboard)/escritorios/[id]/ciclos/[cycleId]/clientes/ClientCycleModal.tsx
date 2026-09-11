@@ -248,24 +248,25 @@ export default function ClientCycleModal({
         });
       }
 
-      // 3. Grava as respostas e deixa o backend calcular. O índice nunca é
-      //    enviado pela tela — é sempre derivado no servidor.
-      for (const s of chosen) {
-        await apiRequest(
-          `/cc-co/clients/${clientId}/fronts/${frontIdFor(s.front)}/answers`,
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              tenantId,
-              profileType: masterAnswers['MESTRE__PERFIL_DO_CLIENTE'] || null,
-              masterAnswers,
-              frontAnswers: frontAnswers[s.front],
-              primaryOwnerId: owners[s.front].primary || null,
-              secondaryOwnerId: owners[s.front].secondary || null,
-            }),
-          },
-        );
-      }
+      // 3. Grava as respostas de todas as frentes numa requisição só e
+      //    deixa o backend calcular. Uma chamada por frente repetia o bloco
+      //    MESTRE a cada vez e multiplicava as idas ao banco — com o servidor
+      //    em Ohio e o banco em São Paulo, cada ida custa caro.
+      //    O índice nunca é enviado pela tela: só as respostas.
+      await apiRequest(`/cc-co/clients/${clientId}/answers`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId,
+          profileType: masterAnswers['MESTRE__PERFIL_DO_CLIENTE'] || null,
+          masterAnswers,
+          fronts: chosen.map((s) => ({
+            frontId: frontIdFor(s.front),
+            frontAnswers: frontAnswers[s.front],
+            primaryOwnerId: owners[s.front].primary || null,
+            secondaryOwnerId: owners[s.front].secondary || null,
+          })),
+        }),
+      });
 
       onSuccess();
       onClose();

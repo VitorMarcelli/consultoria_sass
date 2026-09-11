@@ -33,6 +33,18 @@ export class CcCoController {
     });
   }
 
+  // Grava as respostas de várias frentes numa requisição só. É o que o
+  // cadastro usa: enviar uma por frente repetia o bloco MESTRE a cada
+  // chamada e multiplicava as idas ao banco.
+  @Post('clients/:clientId/answers')
+  saveAllAnswers(@Param('clientId') clientId: string, @Body() body: any) {
+    return this.ccCo.saveClientAnswers(body.tenantId, clientId, {
+      profileType: body.profileType,
+      masterAnswers: body.masterAnswers,
+      fronts: body.fronts ?? [],
+    });
+  }
+
   // Força o recálculo de uma frente sem alterar resposta nenhuma.
   @Post('clients/:clientId/fronts/:frontId/assess')
   assessFront(
@@ -43,13 +55,14 @@ export class CcCoController {
     return this.ccCo.assessAndPersist(tenantId, clientId, frontId);
   }
 
-  // Todas as frentes do cliente mais o consolidado.
+  // Todas as frentes do cliente mais o consolidado. Somente leitura: não
+  // recalcula nem grava. Para forçar recálculo existe o POST assess.
   @Get('clients/:clientId')
   getClient(
     @Param('clientId') clientId: string,
     @Query('tenantId') tenantId: string,
   ) {
-    return this.ccCo.assessClientAllFronts(tenantId, clientId);
+    return this.ccCo.readClientAssessment(tenantId, clientId);
   }
 
   // Quanto do mapeamento do M0 já foi feito e quanto falta, em respostas.
