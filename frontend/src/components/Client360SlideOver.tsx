@@ -165,8 +165,6 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
   const [classificationData, setClassificationData] = useState<any>({});
   
   const [editingFrontId, setEditingFrontId] = useState<string | null>(null);
-  const [editingClassificationData, setEditingClassificationData] = useState<any>({});
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // O estado do Agente de IA foi removido junto com os handlers ao migrar o
   // painel para CC/CO: o agente sugere notas do formato anterior e precisa
@@ -243,55 +241,12 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
     }
   };
 
-  const handleEditFrontClick = async (frontId: string) => {
+  // Abrir a edição só troca de modo: o formulário de catálogo busca as
+  // próprias respostas. Antes havia aqui um GET da classificação inteira,
+  // usado só para devolvê-la no salvamento legado que saiu — era uma ida ao
+  // servidor a mais por abertura de ficha, sem nada em troca.
+  const handleEditFrontClick = (frontId: string) => {
     setEditingFrontId(frontId);
-    setEditingClassificationData({});
-    try {
-      // GET /clients/:clientId/fronts/:frontId/classification retorna a
-      // classificação diretamente (taxInfo/hrInfo/accountingInfo já vêm
-      // aninhados nela via include do Prisma) — não existe um envelope
-      // "{ classification: {...} }". Buscar por data.classification aqui
-      // sempre falhava silenciosamente e o formulário abria vazio.
-      const data = await apiRequest(`/clients/${client.id}/fronts/${frontId}/classification?tenantId=${tenantId}`);
-      if (data && data.id) {
-        const mergedData = {
-          ...data,
-          taxInfo: data.taxInfo || {},
-          hrInfo: data.hrInfo || {},
-          accountingInfo: data.accountingInfo || {}
-        };
-        setEditingClassificationData(mergedData);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar classificação:', err);
-    }
-  };
-
-  const handleSaveFrontEdit = async () => {
-    if (!editingFrontId) return;
-    setIsSavingEdit(true);
-    try {
-      await apiRequest(`/clients/${client.id}/fronts/${editingFrontId}/classification`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...editingClassificationData, tenantId })
-      });
-
-      const frontSnap = clientFronts.find((f: any) => f.frontId === editingFrontId);
-      if (frontSnap?.snapshotId) {
-        await apiRequest(`/management-cycles/${cycleId}/clients/${frontSnap.snapshotId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ ...editingClassificationData, tenantId })
-        });
-      }
-
-      setEditingFrontId(null);
-      setEditingClassificationData({});
-      await loadClientFronts();
-    } catch (err: any) {
-      alert(err.message || 'Erro ao salvar alterações');
-    } finally {
-      setIsSavingEdit(false);
-    }
   };
 
 
@@ -746,19 +701,20 @@ export default function Client360SlideOver({ isOpen, onClose, client, tenantId, 
                                   do novo cálculo. As respostas acima seguem valendo normalmente.
                                 </p>
                               </div>
-                              <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-slate-200/60 sm:justify-end">
+                              {/* Quem grava é o "Salvar e recalcular" do
+                                  formulário acima. Existia aqui um segundo
+                                  botão "Salvar Alterações", herdado da tela
+                                  antiga: ele não editava mais nada visível e
+                                  ainda assim gravava — reativando no cálculo
+                                  uma frente que estava sem movimento. Dois
+                                  botões iguais e só um que vale é pior que
+                                  um só. */}
+                              <div className="flex mt-6 pt-4 border-t border-slate-200/60 sm:justify-end">
                                 <button
                                   onClick={() => setEditingFrontId(null)}
                                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-sm"
                                 >
-                                  Cancelar
-                                </button>
-                                <button
-                                  onClick={handleSaveFrontEdit}
-                                  disabled={isSavingEdit}
-                                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                  {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Alterações'}
+                                  Fechar
                                 </button>
                               </div>
                             </div>

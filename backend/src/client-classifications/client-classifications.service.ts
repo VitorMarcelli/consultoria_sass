@@ -97,8 +97,18 @@ export class ClientClassificationsService {
       operator2Id: operator2Id || null,
       frequency: frequency || null,
       particulars: particulars || null,
-      actsInFront: 'YES',
     };
+
+    // `actsInFront` era gravado como 'YES' fixo aqui. Nenhuma tela edita esse
+    // campo — quem define se a frente está ativa, sem movimento ou encerrada é
+    // o cadastro e a importação —, então o efeito real era reativar no cálculo
+    // uma frente parada toda vez que alguém abrisse a ficha e salvasse. E
+    // frente parada não vale zero: ela sai da média. Reativá-la por engano
+    // muda a complexidade do cliente e a média do escritório sem que ninguém
+    // tenha respondido nada diferente.
+    if (data.actsInFront) updateData.actsInFront = data.actsInFront;
+
+    const actsInFrontAtual = data.actsInFront ?? existing.actsInFront ?? 'YES';
 
     if (frontType === 'FISCAL' && taxInfo) {
       updateData.taxInfo = {
@@ -239,7 +249,7 @@ export class ClientClassificationsService {
 
       const evaluation = this.complexityService.evaluate({
         front: engineFront,
-        actsInFront: 'YES',
+        actsInFront: actsInFrontAtual,
         clientStatus: client?.status ?? 'ACTIVE',
         scores,
       });

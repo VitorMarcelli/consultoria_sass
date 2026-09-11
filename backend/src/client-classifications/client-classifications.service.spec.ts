@@ -42,7 +42,6 @@ function buildDeps(existingClassification: Partial<any>) {
 describe('ClientClassificationsService.updateClassification — motor de complexidade', () => {
   it('Fiscal: calcula scoreVolume e o motor a partir de monthlyNotesCount informado em tela', async () => {
     const { service, updateMock } = buildDeps({});
-
     await service.updateClassification('tenant-1', 'client-1', 'front-1', {
       frontType: 'FISCAL',
       taxInfo: { monthlyNotesCount: '180' },
@@ -118,5 +117,42 @@ describe('ClientClassificationsService.updateClassification — motor de complex
     expect(savedData.scoreVolume).toBe(1);
     expect(savedData.assessmentState).toBe('ASSESSED');
     expect(savedData.complexityClass).toBe('C2');
+  });
+});
+
+describe('ClientClassificationsService.updateClassification — situação da frente', () => {
+  it('não reativa uma frente sem movimento quando a tela salva', async () => {
+    // Nenhuma tela edita actsInFront: quem define se a frente está ativa, sem
+    // movimento ou encerrada é o cadastro e a importação. O serviço gravava
+    // 'YES' fixo, então abrir a ficha e salvar reativava a frente no cálculo.
+    // Frente parada não vale zero — ela sai da média —, de modo que reativá-la
+    // por engano muda a complexidade do cliente e a média do escritório sem
+    // ninguém ter respondido nada diferente.
+    const { service, updateMock } = buildDeps({ actsInFront: 'NO_MOVEMENT' });
+
+    await service.updateClassification('tenant-1', 'client-1', 'front-1', {
+      frontType: 'FISCAL',
+      taxInfo: { monthlyNotesCount: '180' },
+    });
+
+    const savedData = updateMock.mock.calls[0][0].data;
+    expect(savedData.actsInFront).toBeUndefined();
+    // E o motor antigo tem de enxergar a frente como parada, não como ativa.
+    expect(savedData.assessmentState).toBe('NOT_APPLICABLE');
+    expect(savedData.complexityClass).toBe('C0');
+  });
+
+  it('grava a situação quando ela vem no payload', async () => {
+    const { service, updateMock } = buildDeps({ actsInFront: 'NO_MOVEMENT' });
+
+    await service.updateClassification('tenant-1', 'client-1', 'front-1', {
+      frontType: 'FISCAL',
+      actsInFront: 'YES',
+      taxInfo: { monthlyNotesCount: '180' },
+    });
+
+    const savedData = updateMock.mock.calls[0][0].data;
+    expect(savedData.actsInFront).toBe('YES');
+    expect(savedData.assessmentState).toBe('PARTIAL');
   });
 });

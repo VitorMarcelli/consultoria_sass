@@ -35,7 +35,11 @@ export default function FrontCatalogEditor({
   front,
   onSaved,
 }: Props) {
-  const { loading: loadingCatalog, fieldsOf } = useClientCatalog();
+  const {
+    loading: loadingCatalog,
+    error: catalogError,
+    fieldsOf,
+  } = useClientCatalog();
 
   const [masterAnswers, setMasterAnswers] = useState<Record<string, string>>({});
   const [frontAnswers, setFrontAnswers] = useState<Record<string, string>>({});
@@ -46,6 +50,10 @@ export default function FrontCatalogEditor({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Falha ao carregar é diferente de falha ao salvar: enquanto as respostas
+  // não chegaram, o formulário está em branco, e salvar em branco apaga o que
+  // já estava gravado. Por isso ela bloqueia o botão.
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
 
   const masterFields = useMemo(
@@ -60,6 +68,7 @@ export default function FrontCatalogEditor({
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setLoadError(null);
     setResult(null);
     Promise.all([
       apiRequest(`/clients/${clientId}?tenantId=${tenantId}`),
@@ -82,7 +91,8 @@ export default function FrontCatalogEditor({
         setEmployees(Array.isArray(equipe) ? equipe : []);
       })
       .catch((err) => {
-        if (alive) setError(err?.message || 'Falha ao carregar as respostas.');
+        if (alive)
+          setLoadError(err?.message || 'Falha ao carregar as respostas.');
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -92,7 +102,10 @@ export default function FrontCatalogEditor({
     };
   }, [clientId, frontId, tenantId]);
 
+  const impedido = loadError || catalogError;
+
   const handleSave = async () => {
+    if (impedido) return;
     setSaving(true);
     setError(null);
     try {
@@ -211,6 +224,14 @@ export default function FrontCatalogEditor({
         </div>
       </div>
 
+      {impedido && (
+        <p className="text-sm font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          Não foi possível carregar as respostas desta frente ({impedido}).
+          Feche e abra a ficha de novo — salvar agora gravaria o formulário em
+          branco por cima do que já está registrado.
+        </p>
+      )}
+
       {error && (
         <p className="text-sm font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
           {error}
@@ -242,7 +263,7 @@ export default function FrontCatalogEditor({
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !!impedido}
           className="px-5 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
         >
           {saving ? (
