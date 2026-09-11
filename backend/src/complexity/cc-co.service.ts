@@ -473,7 +473,9 @@ export class CcCoService {
   async getPortfolioAssessment(
     tenantId: string,
     frontId?: string,
-  ): Promise<AggregateResult & { front: ComplexityFront | null }> {
+  ): Promise<
+    AggregateResult & { front: ComplexityFront | null; byFront?: any[] }
+  > {
     const prisma = this.getTenantPrisma(tenantId);
 
     const classifications = await prisma.clientFrontClassification.findMany({
@@ -495,6 +497,38 @@ export class CcCoService {
       ? resolveFront(classifications[0]?.front?.name)
       : null;
 
-    return { ...assessPortfolio(records), front: resolved };
+    // Sem frontId, devolve também a quebra por frente. São os quatro recortes
+    // da aba "Lógica da Complexidade" do template: o consolidado do escritório
+    // mais uma linha por área. Numa chamada só, porque a tela mostra os dois
+    // juntos e pedir quatro vezes multiplicaria a travessia até o banco.
+    //
+    // O geral é o pool de TODAS as observações cliente-frente, não a média das
+    // médias das áreas: com carteiras de tamanhos diferentes por frente os
+    // dois resultados divergem, e o pool é o que a planilha calcula.
+    const byFront = frontId
+      ? undefined
+      : Object.values(
+          classifications.reduce(
+            (acc: Record<string, any>, c: any, i: number) => {
+              const chave = c.frontId;
+              acc[chave] = acc[chave] ?? {
+                frontId: c.frontId,
+                frontName: c.front?.name ?? '',
+                front: resolveFront(c.front?.name),
+                registros: [],
+              };
+              acc[chave].registros.push(records[i]);
+              return acc;
+            },
+            {},
+          ),
+        ).map((g: any) => ({
+          frontId: g.frontId,
+          frontName: g.frontName,
+          front: g.front,
+          ...assessPortfolio(g.registros),
+        }));
+
+    return { ...assessPortfolio(records), front: resolved, byFront };
   }
 }

@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { StatsCard } from '@/components/ui/StatsCard';
 import DashboardMappingTab from './components/DashboardMappingTab';
+import OfficeComplexity from '@/components/catalog/OfficeComplexity';
 import DashboardCapacityTab from './components/DashboardCapacityTab';
 import DashboardLevelingTab from './components/DashboardLevelingTab';
 
@@ -337,6 +338,13 @@ export default function CycleOverviewPage({
         {secondaryStats.map((stat, i) => (
           <StatsCard key={i} stat={stat as any} />
         ))}
+      </div>
+
+      {/* Complexidade Geral do escritório — o consolidado das três frentes.
+          O Diagnóstico mostra por frente; este é o número que resume a
+          carteira inteira, e que o cliente procurou nos testes sem achar. */}
+      <div className="mt-6">
+        <OfficeComplexity tenantId={id} />
       </div>
 
       {/* Sessão de Gráficos */}
