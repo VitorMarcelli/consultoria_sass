@@ -52,12 +52,18 @@ export interface CatalogOption {
   notApplicable?: boolean;
 }
 
+// Subtipo do campo, vindo da coluna "TIPO II" do template. É o que distingue
+// Data de Valor dentro de MASCARA — sem ele o formulário renderiza uma
+// competência (mm/aaaa) como campo numérico.
+export type CatalogFieldFormat = 'DATA' | 'VALOR' | 'DOCUMENTO' | 'EQUIPE';
+
 export interface CatalogField {
   key: string;
   number: number;
   block: CatalogBlock;
   label: string;
   type: CatalogFieldType;
+  format?: CatalogFieldFormat;
   role: CatalogFieldRole;
   pillar?: string;
   fronts: ComplexityFront[];

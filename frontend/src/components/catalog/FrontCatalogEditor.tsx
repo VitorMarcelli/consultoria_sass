@@ -40,6 +40,9 @@ export default function FrontCatalogEditor({
   const [masterAnswers, setMasterAnswers] = useState<Record<string, string>>({});
   const [frontAnswers, setFrontAnswers] = useState<Record<string, string>>({});
   const [profileType, setProfileType] = useState<string>('');
+  const [primaryOwnerId, setPrimaryOwnerId] = useState<string>('');
+  const [secondaryOwnerId, setSecondaryOwnerId] = useState<string>('');
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +66,20 @@ export default function FrontCatalogEditor({
       apiRequest(
         `/clients/${clientId}/fronts/${frontId}/classification?tenantId=${tenantId}`,
       ),
+      apiRequest(`/employees?tenantId=${tenantId}`),
     ])
-      .then(([cliente, classificacao]) => {
+      .then(([cliente, classificacao, equipe]) => {
         if (!alive) return;
         const asMap = (v: any): Record<string, string> =>
           v && typeof v === 'object' && !Array.isArray(v) ? { ...v } : {};
+        // As respostas do bloco MESTRE continuam sendo carregadas porque o
+        // cálculo do CC depende delas — mas não são editáveis aqui.
         setMasterAnswers(asMap(cliente?.catalogAnswers));
         setFrontAnswers(asMap(classificacao?.catalogAnswers));
         setProfileType(cliente?.profileType ?? '');
+        setPrimaryOwnerId(classificacao?.operator1Id ?? '');
+        setSecondaryOwnerId(classificacao?.operator2Id ?? '');
+        setEmployees(Array.isArray(equipe) ? equipe : []);
       })
       .catch((err) => {
         if (alive) setError(err?.message || 'Falha ao carregar as respostas.');
@@ -82,11 +91,6 @@ export default function FrontCatalogEditor({
       alive = false;
     };
   }, [clientId, frontId, tenantId]);
-
-  const setMaster = (key: string, value: string) => {
-    setMasterAnswers((prev) => ({ ...prev, [key]: value }));
-    if (key === 'MESTRE__PERFIL_DO_CLIENTE') setProfileType(value);
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -100,9 +104,13 @@ export default function FrontCatalogEditor({
           method: 'POST',
           body: JSON.stringify({
             tenantId,
-            profileType: profileType || null,
-            masterAnswers,
+            // masterAnswers e profileType NÃO são enviados daqui: os dados
+            // gerais do cliente se editam na visão geral. Mandá-los junto
+            // faria a última frente salva sobrescrever o que outra tinha
+            // gravado.
             frontAnswers,
+            primaryOwnerId: primaryOwnerId || null,
+            secondaryOwnerId: secondaryOwnerId || null,
           }),
         },
       );
@@ -135,22 +143,53 @@ export default function FrontCatalogEditor({
         answers={{ ...masterAnswers, ...frontAnswers }}
       />
 
+      {/* Os dados gerais do cliente NÃO aparecem aqui. Eles valem para as três
+          frentes, e deixá-los editáveis dentro de cada uma fazia o mesmo campo
+          existir em três lugares — quem salvasse por último sobrescrevia os
+          outros. Editam-se na visão geral do cliente. */}
       <div>
         <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-3">
-          Dados gerais do cliente
+          Responsáveis pela frente
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
-          {masterFields.map((f: CatalogField) => (
-            <CatalogFieldInput
-              key={f.key}
-              field={f}
-              value={masterAnswers[f.key] ?? ''}
-              onChange={setMaster}
-            />
-          ))}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Responsável principal
+            </label>
+            <select
+              value={primaryOwnerId}
+              onChange={(e) => setPrimaryOwnerId(e.target.value)}
+              className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+            >
+              <option value="">Selecione...</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Responsável secundário
+            </label>
+            <select
+              value={secondaryOwnerId}
+              onChange={(e) => setSecondaryOwnerId(e.target.value)}
+              className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+            >
+              <option value="">Nenhum</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <p className="mt-2 text-[11px] font-medium text-slate-400">
-          Estes campos valem para todas as frentes do cliente.
+          O responsável principal é quem aparece no coeficiente por responsável
+          do Diagnóstico.
         </p>
       </div>
 

@@ -60,6 +60,11 @@ export class CcCoService {
       profileType?: string | null;
       masterAnswers?: Record<string, any>;
       frontAnswers?: Record<string, any>;
+      // Responsáveis da frente. Ficam em coluna própria (operator1Id /
+      // operator2Id), não em catalogAnswers, porque são relação com Employee
+      // e o CCR por responsável depende de poder agrupar por esse id.
+      primaryOwnerId?: string | null;
+      secondaryOwnerId?: string | null;
     },
   ) {
     const prisma = this.getTenantPrisma(tenantId);
@@ -89,7 +94,12 @@ export class CcCoService {
       });
     }
 
-    if (payload.frontAnswers) {
+    const mexeNaFrente =
+      payload.frontAnswers ||
+      payload.primaryOwnerId !== undefined ||
+      payload.secondaryOwnerId !== undefined;
+
+    if (mexeNaFrente) {
       const existing = await prisma.clientFrontClassification.findUnique({
         where: { clientId_frontId: { clientId, frontId } },
         select: { catalogAnswers: true },
@@ -102,10 +112,20 @@ export class CcCoService {
       await prisma.clientFrontClassification.update({
         where: { clientId_frontId: { clientId, frontId } },
         data: {
-          catalogAnswers: mergeAnswers(
-            existing.catalogAnswers,
-            payload.frontAnswers,
-          ),
+          ...(payload.frontAnswers
+            ? {
+                catalogAnswers: mergeAnswers(
+                  existing.catalogAnswers,
+                  payload.frontAnswers,
+                ),
+              }
+            : {}),
+          ...(payload.primaryOwnerId !== undefined
+            ? { operator1Id: payload.primaryOwnerId || null }
+            : {}),
+          ...(payload.secondaryOwnerId !== undefined
+            ? { operator2Id: payload.secondaryOwnerId || null }
+            : {}),
         },
       });
     }
@@ -192,7 +212,6 @@ export class CcCoService {
     return { fronts, consolidated: assessClient(fronts) };
   }
 
-  // Índices da carteira. Sem frontId, consolida o escritório inteiro pelo
   // Quanto do mapeamento do M0 já foi feito, e quanto falta.
   //
   // O índice só aparece quando a avaliação de uma frente fecha, então sem
@@ -317,6 +336,7 @@ export class CcCoService {
     };
   }
 
+  // Índices da carteira. Sem frontId, consolida o escritório inteiro pelo
   // pool de observações cliente-frente — mesma base da aba de lógica do
   // template, e não a média das médias de cada área.
   async getPortfolioAssessment(

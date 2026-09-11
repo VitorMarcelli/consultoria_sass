@@ -20,6 +20,8 @@ export interface CatalogField {
   block: CatalogBlock;
   label: string;
   type: 'TEXTO' | 'LISTA' | 'MASCARA' | 'SWITCH' | 'RELACAO' | 'RESULTADO';
+  // Subtipo: distingue Data de Valor dentro de MASCARA.
+  format?: 'DATA' | 'VALOR' | 'DOCUMENTO' | 'EQUIPE';
   role: 'CADASTRO' | 'ELEGIBILIDADE' | 'CC' | 'CO' | 'AMBOS' | 'INSUMO';
   pillar?: string;
   fronts: ComplexityFront[];

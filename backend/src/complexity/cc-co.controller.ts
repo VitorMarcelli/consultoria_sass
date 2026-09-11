@@ -28,6 +28,8 @@ export class CcCoController {
       profileType: body.profileType,
       masterAnswers: body.masterAnswers,
       frontAnswers: body.frontAnswers,
+      primaryOwnerId: body.primaryOwnerId,
+      secondaryOwnerId: body.secondaryOwnerId,
     });
   }
 

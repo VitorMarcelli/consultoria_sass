@@ -59,7 +59,20 @@ export default function CatalogFieldInput({
         </select>
       )}
 
-      {field.type === 'MASCARA' && (
+      {/* MASCARA cobre Data e Valor. Renderizar tudo como número fazia a
+          competência do "Último Mês de Conciliação" virar um campo numérico —
+          defeito reportado nos testes de 10/09/2026. */}
+      {field.type === 'MASCARA' && field.format === 'DATA' && (
+        <input
+          type="month"
+          value={value ?? ''}
+          disabled={disabled}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          className={baseClasses}
+        />
+      )}
+
+      {field.type === 'MASCARA' && field.format !== 'DATA' && (
         <input
           type="number"
           min={0}

@@ -34,6 +34,16 @@ BLOCO_POR_CADASTRO = {
     "PESSOAL": "PESSOAL",
 }
 
+# Subtipo da coluna "TIPO II". Distingue Data de Valor dentro de "Mascara" —
+# sem isso o formulário renderiza o "Último Mês de Conciliação" como número,
+# que foi exatamente o defeito reportado nos testes de 10/09/2026.
+FORMATO = {
+    "Data": "DATA",
+    "Valor": "VALOR",
+    "CNPJ / CPF": "DOCUMENTO",
+    "Base de Equipe": "EQUIPE",
+}
+
 TIPO = {
     "Texto": "TEXTO",
     "Lista": "LISTA",
@@ -118,7 +128,7 @@ def main():
         v = [celula(c.value) for c in linha]
         if not any(v):
             continue
-        (num, cad, rotulo, _f, tipo1, _t2, opcao, classe, _cc, _co,
+        (num, cad, rotulo, _f, tipo1, tipo2, opcao, classe, _cc, _co,
          _k, _l, _m, _n, ccF, ccC, ccP, coF, coC, coP, pilar, regra) = v
 
         if not num:
@@ -133,6 +143,7 @@ def main():
                 "bloco": bloco,
                 "rotulo": rotulo,
                 "tipo": TIPO.get(tipo1, "TEXTO"),
+                "formato": FORMATO.get(tipo2, ""),
                 "papel": FORCAR_PAPEL.get(numero, PAPEL.get(classe, "CADASTRO")),
                 "forcado": numero in FORCAR_PAPEL,
                 "pilar": pilar if pilar and pilar != "—" else "",
@@ -202,6 +213,8 @@ def main():
         w(f"    block: {ts(c['bloco'])},")
         w(f"    label: {ts(c['rotulo'])},")
         w(f"    type: {ts(c['tipo'])},")
+        if c["formato"]:
+            w(f"    format: {ts(c['formato'])},")
         w(f"    role: {ts(c['papel'])},")
         if c["forcado"]:
             w("    // Papel corrigido em relação à planilha: as notas de CO estão")

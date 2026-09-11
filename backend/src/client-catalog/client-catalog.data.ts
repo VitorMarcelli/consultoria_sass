@@ -1,6 +1,6 @@
 // GERADO AUTOMATICAMENTE — não editar à mão.
 // Fonte: docs/Sistema - Base de Cadastro de Clientes.xlsx
-// Gerado em 09/09/2026 por docs/tools/gerar-catalogo-dominios.py
+// Gerado em 11/09/2026 por docs/tools/gerar-catalogo-dominios.py
 //
 // Fonte única dos domínios e notas do cadastro de clientes (ORDEM-02,
 // solução S1.2). Consumido pelo formulário, pelo importador, pelo motor
@@ -14,7 +14,7 @@ import {
 
 export const CATALOG_SOURCE = {
   file: 'Sistema - Base de Cadastro de Clientes.xlsx',
-  generatedAt: '09/09/2026',
+  generatedAt: '11/09/2026',
 };
 
 export const CATALOG_FIELDS: CatalogField[] = [
@@ -24,6 +24,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'MESTRE',
     label: 'Data de Início (Operação)',
     type: 'MASCARA',
+    format: 'DATA',
     role: 'CADASTRO',
     fronts: ['FISCAL' as ComplexityFront, 'CONTABIL' as ComplexityFront, 'PESSOAL' as ComplexityFront],
   },
@@ -33,6 +34,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'MESTRE',
     label: 'Ciclo (AAAA-MM)',
     type: 'MASCARA',
+    format: 'DATA',
     role: 'CADASTRO',
     fronts: ['FISCAL' as ComplexityFront, 'CONTABIL' as ComplexityFront, 'PESSOAL' as ComplexityFront],
   },
@@ -42,6 +44,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'MESTRE',
     label: 'CNPJ/CPF',
     type: 'MASCARA',
+    format: 'DOCUMENTO',
     role: 'CADASTRO',
     fronts: ['FISCAL' as ComplexityFront, 'CONTABIL' as ComplexityFront, 'PESSOAL' as ComplexityFront],
   },
@@ -143,6 +146,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'MESTRE',
     label: 'Honorário faturado',
     type: 'MASCARA',
+    format: 'VALOR',
     role: 'CADASTRO',
     fronts: ['FISCAL' as ComplexityFront, 'CONTABIL' as ComplexityFront, 'PESSOAL' as ComplexityFront],
   },
@@ -224,6 +228,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'FISCAL',
     label: 'Responsável principal - Fiscal',
     type: 'RELACAO',
+    format: 'EQUIPE',
     role: 'CADASTRO',
     fronts: ['FISCAL' as ComplexityFront],
   },
@@ -233,6 +238,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'FISCAL',
     label: 'Responsável secundário - Fiscal',
     type: 'RELACAO',
+    format: 'EQUIPE',
     role: 'CADASTRO',
     fronts: ['FISCAL' as ComplexityFront],
   },
@@ -350,6 +356,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'CONTABIL',
     label: 'Responsável principal - Contábil',
     type: 'RELACAO',
+    format: 'EQUIPE',
     role: 'CADASTRO',
     fronts: ['CONTABIL' as ComplexityFront],
   },
@@ -359,6 +366,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'CONTABIL',
     label: 'Responsável secundário - Contábil',
     type: 'RELACAO',
+    format: 'EQUIPE',
     role: 'CADASTRO',
     fronts: ['CONTABIL' as ComplexityFront],
   },
@@ -457,6 +465,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'CONTABIL',
     label: 'Último Mês de Conciliação',
     type: 'MASCARA',
+    format: 'DATA',
     role: 'CADASTRO',
     pillar: 'Atraso / desempenho',
     fronts: ['CONTABIL' as ComplexityFront],
@@ -521,6 +530,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'PESSOAL',
     label: 'Responsável principal - Pessoal',
     type: 'RELACAO',
+    format: 'EQUIPE',
     role: 'CADASTRO',
     fronts: ['PESSOAL' as ComplexityFront],
   },
@@ -530,6 +540,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'PESSOAL',
     label: 'Responsável secundário - Pessoal',
     type: 'RELACAO',
+    format: 'EQUIPE',
     role: 'CADASTRO',
     fronts: ['PESSOAL' as ComplexityFront],
   },
@@ -539,6 +550,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'PESSOAL',
     label: 'Qtd. Funcionários',
     type: 'MASCARA',
+    format: 'VALOR',
     role: 'INSUMO',
     pillar: 'Volume de vínculos',
     fronts: ['PESSOAL' as ComplexityFront],
@@ -549,6 +561,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'PESSOAL',
     label: 'Qtd. Pró-labores',
     type: 'MASCARA',
+    format: 'VALOR',
     role: 'INSUMO',
     pillar: 'Volume de vínculos',
     fronts: ['PESSOAL' as ComplexityFront],
@@ -559,6 +572,7 @@ export const CATALOG_FIELDS: CatalogField[] = [
     block: 'PESSOAL',
     label: 'Qtd. Domésticas',
     type: 'MASCARA',
+    format: 'VALOR',
     role: 'INSUMO',
     pillar: 'Volume de vínculos',
     fronts: ['PESSOAL' as ComplexityFront],

@@ -67,6 +67,18 @@ export default function ClientCycleModal({
     Record<ComplexityFront, Record<string, string>>
   >({ FISCAL: {}, CONTABIL: {}, PESSOAL: {} });
 
+  // Responsáveis por frente. Ficam fora de frontAnswers porque são relação
+  // com Employee, gravada em coluna própria — é por esse id que o Diagnóstico
+  // agrupa o coeficiente por responsável.
+  const [owners, setOwners] = useState<
+    Record<ComplexityFront, { primary: string; secondary: string }>
+  >({
+    FISCAL: { primary: '', secondary: '' },
+    CONTABIL: { primary: '', secondary: '' },
+    PESSOAL: { primary: '', secondary: '' },
+  });
+  const [employees, setEmployees] = useState<any[]>([]);
+
   // Escopo contratado — é o gatilho que decide quais passos existem.
   const [scope, setScope] = useState<Record<ComplexityFront, boolean>>({
     FISCAL: false,
@@ -102,10 +114,14 @@ export default function ClientCycleModal({
   const loadFronts = async () => {
     setIsFetching(true);
     try {
-      const data = await apiRequest(`/structures/fronts?tenantId=${tenantId}`);
+      const [data, equipe] = await Promise.all([
+        apiRequest(`/structures/fronts?tenantId=${tenantId}`),
+        apiRequest(`/employees?tenantId=${tenantId}`),
+      ]);
       setFronts(data || []);
+      setEmployees(Array.isArray(equipe) ? equipe : []);
     } catch (err) {
-      console.error('Erro ao buscar frentes:', err);
+      console.error('Erro ao buscar frentes ou equipe:', err);
     } finally {
       setIsFetching(false);
     }
@@ -121,6 +137,11 @@ export default function ClientCycleModal({
     setMasterAnswers({});
     setFrontAnswers({ FISCAL: {}, CONTABIL: {}, PESSOAL: {} });
     setScope({ FISCAL: false, CONTABIL: false, PESSOAL: false });
+    setOwners({
+      FISCAL: { primary: '', secondary: '' },
+      CONTABIL: { primary: '', secondary: '' },
+      PESSOAL: { primary: '', secondary: '' },
+    });
     setStepIndex(0);
     setError(null);
   };
@@ -239,6 +260,8 @@ export default function ClientCycleModal({
               profileType: masterAnswers['MESTRE__PERFIL_DO_CLIENTE'] || null,
               masterAnswers,
               frontAnswers: frontAnswers[s.front],
+              primaryOwnerId: owners[s.front].primary || null,
+              secondaryOwnerId: owners[s.front].secondary || null,
             }),
           },
         );
@@ -468,6 +491,56 @@ export default function ClientCycleModal({
                           }}
                         />
                         <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                              Responsável principal
+                            </label>
+                            <select
+                              value={owners[currentStep].primary}
+                              onChange={(e) =>
+                                setOwners((p) => ({
+                                  ...p,
+                                  [currentStep]: {
+                                    ...p[currentStep],
+                                    primary: e.target.value,
+                                  },
+                                }))
+                              }
+                              className={inputClasses}
+                            >
+                              <option value="">Selecione...</option>
+                              {employees.map((emp) => (
+                                <option key={emp.id} value={emp.id}>
+                                  {emp.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                              Responsável secundário
+                            </label>
+                            <select
+                              value={owners[currentStep].secondary}
+                              onChange={(e) =>
+                                setOwners((p) => ({
+                                  ...p,
+                                  [currentStep]: {
+                                    ...p[currentStep],
+                                    secondary: e.target.value,
+                                  },
+                                }))
+                              }
+                              className={inputClasses}
+                            >
+                              <option value="">Nenhum</option>
+                              {employees.map((emp) => (
+                                <option key={emp.id} value={emp.id}>
+                                  {emp.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           {fieldsOf(currentStep)
                             .filter(isRenderableField)
                             .map((f: CatalogField) => (
