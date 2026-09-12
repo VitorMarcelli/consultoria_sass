@@ -194,6 +194,27 @@ function traduzirCampo(
 ) {
   const labels = labelsFor(field);
 
+  // O rótulo da própria opção vem antes de qualquer tradução.
+  //
+  // O template oferece esses textos numa lista suspensa: quando a célula traz
+  // um deles, não há nada a interpretar. Os tradutores legados existem para
+  // entender planilhas antigas, que escreviam o mesmo dado de outro jeito —
+  // deixá-los na frente fazia o caminho normal depender de eles conhecerem
+  // rótulos que nem existiam quando foram escritos.
+  //
+  // Foi assim que "Faixa faturamento anual" chegou vazia ao sistema em
+  // 11/09/2026, com a planilha preenchida: quatro das seis faixas do template
+  // não estavam previstas no tradutor, e "Pessoa Física e Empregador
+  // Doméstico" virava "Outros" — errado e calado. A Complexidade do Cliente
+  // ficava incompleta e o cliente não classificava.
+  if (field.type === 'LISTA' && hasColumn(row, labels)) {
+    const direto = optionByLabel(field, readCell(row, labels));
+    if (direto) {
+      answers[field.key] = direto.value;
+      return;
+    }
+  }
+
   // Campos com tradutor próprio.
   const tradutor = MASTER_TRANSLATORS[field.key];
   if (tradutor) {
@@ -210,16 +231,9 @@ function traduzirCampo(
   }
 
   if (field.key === 'MESTRE__PERFIL_DO_CLIENTE') {
-    // O template novo traz o rótulo exato da opção ("Empresa – PJ"), que o
-    // tradutor legado não reconhece porque ele espera "PJ" ou "PF". Tentar o
-    // catálogo primeiro evita cair no desempate por documento à toa.
-    const bruto = readCell(row, labels);
-    const direto = optionByLabel(field, bruto);
-    if (direto) {
-      answers[field.key] = direto.value;
-      return;
-    }
-    const r = mapProfileType(bruto, opts.documento);
+    // Único campo que se resolve mesmo sem coluna: o CNPJ já diz que é
+    // empresa. O rótulo, quando vem, já foi tratado acima.
+    const r = mapProfileType(readCell(row, labels), opts.documento);
     if (r.status === 'MAPEADO') answers[field.key] = r.code;
     else if (r.status === 'AMBIGUO')
       warnings.push(

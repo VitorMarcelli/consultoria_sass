@@ -31,6 +31,7 @@ function count(
 
   let answered = 0;
   let applicable = 0;
+  const missing: CatalogField[] = [];
   for (const f of relevant) {
     const value = answers[f.key];
     const option = f.options?.find((o) => o.value === value);
@@ -38,8 +39,9 @@ function count(
     if (option?.notApplicable) continue;
     applicable += 1;
     if (value) answered += 1;
+    else missing.push(f);
   }
-  return { answered, applicable };
+  return { answered, applicable, missing };
 }
 
 export default function IndexProgress({
@@ -57,7 +59,7 @@ export default function IndexProgress({
     data,
   }: {
     label: string;
-    data: { answered: number; applicable: number };
+    data: { answered: number; applicable: number; missing: CatalogField[] };
   }) => {
     const done = data.applicable > 0 && data.answered === data.applicable;
     const pct = data.applicable > 0 ? (data.answered / data.applicable) * 100 : 0;
@@ -83,8 +85,17 @@ export default function IndexProgress({
     );
   };
 
-  const faltam =
-    cc.applicable - cc.answered + (co.applicable - co.answered);
+  // Quais campos faltam, não só quantos.
+  //
+  // A tela dizia "falta 1" e a pessoa tinha de caçar qual. Aconteceu de
+  // verdade em 11/09/2026: o que faltava era a Faixa de faturamento, que nem
+  // se edita aqui — mora no cadastro do cliente, porque vale para as três
+  // frentes. Dizer o nome do campo e onde ele está poupa a caçada.
+  const faltantes = [...cc.missing, ...co.missing].filter(
+    (f, i, arr) => arr.findIndex((o) => o.key === f.key) === i,
+  );
+  const doCliente = faltantes.filter((f) => f.block === 'MESTRE');
+  const daFrente = faltantes.filter((f) => f.block !== 'MESTRE');
 
   return (
     <div className="rounded-2xl border border-slate-200/70 bg-slate-50/60 p-4">
@@ -92,11 +103,34 @@ export default function IndexProgress({
         <Item label="Natureza do cliente" data={cc} />
         <Item label="Maturidade da operação" data={co} />
       </div>
-      <p className="mt-3 text-[11px] font-medium text-slate-500">
-        {faltam === 0
-          ? 'Avaliação completa. O índice é calculado ao salvar.'
-          : `Faltam ${faltam} ${faltam === 1 ? 'resposta' : 'respostas'} para o índice desta frente fechar.`}
-      </p>
+      {faltantes.length === 0 ? (
+        <p className="mt-3 text-[11px] font-medium text-slate-500">
+          Avaliação completa. O índice é calculado ao salvar.
+        </p>
+      ) : (
+        <div className="mt-3 space-y-1">
+          {daFrente.length > 0 && (
+            <p className="text-[11px] font-medium text-slate-600">
+              Falta responder nesta frente:{' '}
+              <strong className="font-bold text-slate-800">
+                {daFrente.map((f) => f.label).join(', ')}
+              </strong>
+              .
+            </p>
+          )}
+          {doCliente.length > 0 && (
+            <p className="text-[11px] font-medium text-amber-700">
+              Falta no cadastro do cliente:{' '}
+              <strong className="font-bold">
+                {doCliente.map((f) => f.label).join(', ')}
+              </strong>
+              . Esses campos valem para as três frentes e se editam na visão
+              geral do cliente — enquanto faltarem, nenhuma frente fecha o
+              índice.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

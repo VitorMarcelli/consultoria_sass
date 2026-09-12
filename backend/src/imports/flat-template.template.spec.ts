@@ -94,6 +94,20 @@ describe('template de coluna única, ponta a ponta', () => {
     expect(answers['MESTRE__REGIME_TRIBUTARIO']).toBe('LUCRO_PRESUMIDO');
     expect(answers['MESTRE__SEGMENTO']).toBe('ALIMENTACAO_HOTELARIA_E_TURISMO');
     expect(answers['MESTRE__FAIXA_FATURAMENTO_ANUAL']).toBeDefined();
+
+    // Os campos do cliente que pontuam entram nas TRÊS frentes: sem um deles,
+    // nenhuma delas fecha. A versão anterior deste arquivo só conferia os
+    // campos de cada frente, e foi por essa fresta que a Faixa de faturamento
+    // passou — a planilha preenchida, a resposta vazia e o índice sem fechar.
+    const pontuamNoCliente = CATALOG_FIELDS.filter(
+      (f) =>
+        f.block === 'MESTRE' &&
+        f.type === 'LISTA' &&
+        ['CC', 'CO', 'AMBOS'].includes(f.role),
+    );
+    expect(
+      pontuamNoCliente.filter((f) => !answers[f.key]).map((f) => f.label),
+    ).toEqual([]);
   });
 
   it.each(COMPLEXITY_FRONTS)(
@@ -163,5 +177,93 @@ describe('template de coluna única, ponta a ponta', () => {
         expect(Number((valor as number).toFixed(1))).toBe(valor);
       }
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Caso relatado em 11/09/2026: o cliente "Agro Teste 001 Ltda" tinha o template
+// inteiro preenchido, a conta feita à mão dava CC 1,4 e CO 1,0, e o sistema
+// devolvia CC nula com "avaliação incompleta — falta 1".
+//
+// A conta à mão estava certa. Faltava a Faixa de faturamento anual, que compõe
+// a Natureza do Cliente: ela vinha preenchida na planilha e chegava vazia no
+// sistema, porque a tradução não reconhecia quatro das seis faixas do próprio
+// template. Com quatro das cinco respostas, o índice não fecha — e não fechar é
+// o comportamento certo, porque média parcial daria um número plausível e
+// errado.
+//
+// Este teste fixa os dois lados: o número exato quando está completo, e a
+// recusa de calcular quando falta um campo.
+// ---------------------------------------------------------------------------
+describe('Agro Teste 001 — Fiscal, caso relatado pelo cliente', () => {
+  const linha: Record<string, any> = {
+    'CNPJ/CPF': '11.222.333/0001-44',
+    'Razão social/Nome': 'Agro Teste 001 Ltda',
+    'Perfil do Cliente': 'Empresa – PJ', // CC 3
+    'Status contrato': 'Ativo',
+    'Regime tributário': 'Simples', // CC 1
+    'Faixa faturamento anual': 'Até R$ 360 mil', // CC 1
+    'Fiscal?': 'Sim',
+    'Fiscal | Status da frente': 'Ativo',
+    'Fiscal | Forma recebimento documentos': 'Plataforma integrada', // CO 1
+    'Fiscal | Forma envio documentos': 'Plataforma integrada', // CO 1
+    'Fiscal | Forma integração': 'Automática/API', // CO 1
+    'Fiscal | Nota Volume': 'Baixo', // CC 1
+    'Fiscal | Nota Atendimento': 'Baixo', // CC 1 e CO 1
+    'Fiscal | Nota Organização': 'Alta', // CO 1
+  };
+
+  const avaliar = (row: Record<string, any>) => {
+    const { master, fronts } = splitFlatRow(row, CATALOG_FIELDS);
+    const mestre = translateMasterRow(master, CATALOG_FIELDS, {
+      origem: 'Agro Teste 001',
+      documento: '11222333000144',
+    });
+    const fiscal = translateFrontRow(
+      fronts.FISCAL!,
+      CATALOG_FIELDS,
+      'FISCAL',
+      { origem: 'Agro Teste 001, Fiscal' },
+    );
+    return {
+      avisos: [...mestre.warnings, ...fiscal.warnings],
+      resultado: assessFront(
+        buildFrontInput(
+          'FISCAL',
+          { status: 'ACTIVE', catalogAnswers: mestre.answers },
+          { actsInFront: 'YES', catalogAnswers: fiscal.answers, hrInfo: null },
+        ),
+      ),
+      respostas: mestre.answers,
+    };
+  };
+
+  it('a faixa de faturamento chega do template ao cálculo', () => {
+    const { respostas, avisos } = avaliar(linha);
+    expect(respostas['MESTRE__FAIXA_FATURAMENTO_ANUAL']).toBe('ATE_R_360_MIL');
+    expect(avisos).toEqual([]);
+  });
+
+  it('CC 1,4 e CO 1,0 — os mesmos números da conta feita à mão', () => {
+    const { resultado } = avaliar(linha);
+    // CC = (3 PJ + 1 Simples + 1 até 360 mil + 1 Volume + 1 Atendimento) / 5
+    expect(resultado.cc.value).toBe(1.4);
+    expect(resultado.cc.class).toBe('C1');
+    expect(resultado.cc.state).toBe('ASSESSED');
+    // CO = (1 + 1 + 1 + 1 Atendimento + 1 Organização) / 5
+    expect(resultado.co.value).toBe(1);
+    expect(resultado.co.class).toBe('C1');
+    expect(resultado.co.state).toBe('ASSESSED');
+  });
+
+  it('sem a faixa, o CC não fecha em vez de inventar média parcial', () => {
+    const semFaixa = { ...linha };
+    delete semFaixa['Faixa faturamento anual'];
+    const { resultado } = avaliar(semFaixa);
+    expect(resultado.cc.state).toBe('PARTIAL');
+    expect(resultado.cc.value).toBeNull();
+    // (3+1+1+1)/4 = 1,5 cairia na classe C2 e pareceria uma resposta legítima.
+    // O CO, que não depende da faixa, continua fechando normalmente.
+    expect(resultado.co.value).toBe(1);
   });
 });

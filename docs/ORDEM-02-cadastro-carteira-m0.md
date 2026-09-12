@@ -515,3 +515,58 @@ repetir em dezenas de linhas — um colaborador inexistente aparece em cada
 cliente que ele atende —, o resumo agrupa mensagens iguais e mostra em quais
 linhas aconteceram, em vez de gastar o limite de exibição repetindo a mesma
 frase.
+
+### 7.9 A Faixa de faturamento não chegava ao cálculo (11/09/2026)
+
+Relato do cliente: `Agro Teste 001 Ltda`, template inteiro preenchido, conta
+feita à mão dando **CC 1,4 e CO 1,0**, e o sistema devolvendo **CC nula** com
+"avaliação incompleta — falta 1". Ele foi ao cadastro, viu que a Faixa de
+faturamento estava vazia, preencheu à mão e o cálculo bateu.
+
+A conta dele estava certa e o motor também. O erro estava na tradução.
+
+**Causa.** `traduzirCampo` rodava os tradutores legados **antes** de olhar o
+rótulo da própria opção. Esses tradutores existem para entender planilhas
+antigas — a faixa vinha em valores mensais, o status vinha como `ACTIVE` — e
+não conheciam os rótulos que o template oferece hoje. Resultado, na varredura:
+
+| Campo | Opção | Antes |
+|---|---|---|
+| Faixa faturamento anual | Até R$ 360 mil | não mapeava |
+| Faixa faturamento anual | R$ 4,8–20 mi | não mapeava |
+| Faixa faturamento anual | R$ 20–78 mi | não mapeava |
+| Faixa faturamento anual | Acima de R$ 78 mi | não mapeava |
+| Segmento | Pessoa Física e Empregador Doméstico | virava "Outros" |
+
+Quatro das seis faixas. Duas funcionavam porque alguém tinha acrescentado dois
+`if` de caso particular ao tradutor — o que explica por que o defeito não
+apareceu antes: quem testou calhou de usar uma das duas.
+
+A Faixa compõe a Natureza do Cliente nas frentes Fiscal e Contábil. Faltando
+ela, as duas ficam PARTIAL e não classificam — que é o comportamento correto,
+porque média parcial daria (3+1+1+1)/4 = 1,5, um C2 plausível e errado.
+
+**Correção estrutural, não mais um caso particular.** O rótulo da opção passa a
+ser consultado primeiro, para todo campo de lista: quando a célula traz um dos
+textos que o próprio template oferece, não há o que interpretar. Os tradutores
+legados viram o que sempre deviam ter sido — o caminho alternativo, para
+planilhas que escrevem o mesmo dado de outro jeito.
+
+**Por que não foi pego antes.** Existia teste ponta a ponta do template, e ele
+passava: conferia que todo campo que pontua **da frente** tinha resposta. A
+Faixa é campo do bloco do cliente, e o bloco do cliente só era conferido por
+amostragem. Duas coberturas novas fecham a fresta:
+
+- `catalog-roundtrip.spec.ts` varre **toda opção de toda lista** do catálogo e
+  exige que cada uma volte como ela mesma. Opção nova que o cliente acrescente
+  à planilha entra na varredura sozinha.
+- o teste do template passou a exigir resposta para todo campo do bloco do
+  cliente que pontua — não só os da frente.
+
+E o caso do Rodrigo virou teste com nome próprio, fixando os dois lados: CC 1,4
+e CO 1,0 com tudo preenchido, e recusa de calcular quando falta a Faixa.
+
+**Na tela.** A mensagem dizia "falta 1" e a pessoa tinha de caçar qual campo —
+ainda por cima um que não se edita naquela tela, porque vale para as três
+frentes. Agora os campos faltantes são nomeados, e os do cadastro do cliente
+aparecem separados, dizendo onde se editam.
